@@ -104,7 +104,6 @@
 ;; amongst any which have already expired.  However, normalize a
 ;; negative value to 0 before passing it to select.
 (define (_time-remaining abstime)
-;  (let ([curr (gettimeofday)])
   (let ([curr (get-time)])
    (let ([secs (- (car abstime) (car curr))]
 	  [usecs (- (cdr abstime) (cdr curr))])
@@ -114,7 +113,6 @@
 ;; pair representing current time plus the timeout value as an
 ;; absolute time
 (define (_get-abstime msecs)
-;  (let* ([curr (gettimeofday)]
   (let* ([curr (get-time)]
 	 [usec-tmp (round (+ (* msecs 1000) (cdr curr)))])
     (let ([secs (+ (car curr) (quotient usec-tmp 1000000))]
