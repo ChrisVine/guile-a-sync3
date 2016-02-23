@@ -10,3 +10,5 @@ In no particular order:
 
 - Provide some additional wrapper procedures for operations on a glib
   main loop.
+
+- Precompile the event-loop.scm and coroutines.scm.
