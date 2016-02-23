@@ -2,9 +2,9 @@ Overview
 --------
 
 This library provides a thread safe event loop for guile
-(event-loop.scm) with support for watches on ports/file descriptors,
-timeouts, and permits events to be posted by other tasks.  This
-includes tasks running on other threads.
+(event-loop.scm) with support for watches on ports/file descriptors
+and timeouts, and which permits events to be posted by other tasks.
+This includes tasks running on other threads.
 
 It also provides a coroutines interface (coroutines.scm) which
 provides await semantics on such events, so as to avoid inversion of
@@ -24,9 +24,10 @@ or on a 64-bit system, probably:
 
   ./configure --prefix=/usr --libdir=/usr/lib64
 
-On a 64 bit system you may also need to includes -fPIC in your CFLAGS
-options if your compiler doesn't do that for you (gcc normally does
-when necessary).
+On a 64 bit system you may also need to include -fPIC in your CFLAGS
+options if libtool doesn't do that for you (libtool normally does when
+necessary).
 
-If compiling from git rather than from a tarball, you will need to set
-up the library by running ./autogen.sh before running configure.
+If compiling from git rather than from a release tarball, you will
+need to set up the library by running ./autogen.sh before running
+configure.
