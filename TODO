@@ -11,4 +11,12 @@ In no particular order:
 - Provide some additional wrapper procedures for operations on a glib
   main loop.
 
-- Precompile the event-loop.scm and coroutines.scm.
+- Precompile event-loop.scm and coroutines.scm
+
+- Allow a-sync-run-task-in-thread! to be passed an optional handler
+  argument for an exceptions emitted by the thunk
+
+- Do we want get_time() to throw a guile exception if clock_gettime()
+  returns non-zero?  (This shouldn't really be necessary because
+  configure detects whether a monotonic clock is available or not and
+  no other exceptional conditions are possible in this usage.)
