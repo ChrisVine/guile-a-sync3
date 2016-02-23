@@ -1,0 +1,43 @@
+dnl Process this file with autoconf to produce a configure script.
+AC_INIT([guile-a-sync], [0.1])
+
+dnl Set so_version info for libtool (set with -version-info in lib/Makefile.am)
+dnl CURRENT : REVISION : AGE where
+dnl CURRENT =  The most recent interface number that this library implements.
+dnl REVISION = The implementation number of the current interface.
+dnl AGE =      The difference between the newest and oldest interface numbers
+dnl            that this library implements (ie a range so that AGE must be
+dnl            less than or equal to CURRENT)
+dnl
+dnl +1 : ? : +1  == new interface that does not break old one
+dnl +1 : ? : 0   == new interface that breaks old one
+dnl  ? : ? : 0   == no new interfaces, but breaks apps
+dnl  ? :+1 : ?   == just some internal changes, nothing breaks (eg bump with
+dnl                 minor/micro library version number changes changing
+dnl                 compiled code but no new interface)
+GUILE_A_SYNC_SO_VERSION=0:0:0
+AC_SUBST(GUILE_A_SYNC_SO_VERSION)
+
+AM_INIT_AUTOMAKE([1.11])
+
+AC_CONFIG_HEADERS([config.h])
+
+dnl check for working c compiler
+AC_CHECK_COMPILER
+
+dnl set up libtool
+AC_PROG_LIBTOOL
+AC_CONFIG_MACRO_DIR([m4])
+
+dnl check for guile
+GUILE_SITE_DIR
+PKG_CHECK_MODULES(GUILE, guile-2.0 >= 2.0.2)
+
+dnl check if we have a monotonic clock
+AC_CHECK_HAVE_MONOTONIC_CLOCK
+
+dnl define MAKE for subdirectories
+AC_PROG_MAKE_SET
+
+AC_CONFIG_FILES([ Makefile a-sync/Makefile docs/Makefile lib/Makefile ])
+AC_OUTPUT

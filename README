@@ -1,0 +1,10 @@
+This library provides a thread safe event loop for guile
+(event-loop.scm) with support for watches on ports/file descriptors,
+timeouts, and permits events to be posted by other tasks.  This
+includes tasks running on other threads.
+
+It also provides a coroutines interface which provides await semantics
+on such events, so as to avoid inversion of control (aka "callback
+hell").
+
+See docs/coroutines and docs/event-loop for further details.
