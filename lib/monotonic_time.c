@@ -25,7 +25,7 @@
 #include <config.h>
 
 
-static SCM have_monotonic_time() {
+static SCM have_monotonic_time(void) {
 #ifdef HAVE_MONOTONIC_CLOCK
   return SCM_BOOL_T;
 #else
@@ -34,7 +34,7 @@ static SCM have_monotonic_time() {
 }
 
 /* returns a (sec . usec) pair */
-static SCM get_time() {
+static SCM get_time(void) {
 #ifdef HAVE_MONOTONIC_CLOCK
   struct timespec ts;
   clock_gettime(CLOCK_MONOTONIC, &ts);
