@@ -20,3 +20,5 @@ In no particular order:
   returns non-zero?  (This shouldn't really be necessary because
   configure detects whether a monotonic clock is available or not and
   no other exceptional conditions are possible in this usage.)
+
+- Provide unit tests
