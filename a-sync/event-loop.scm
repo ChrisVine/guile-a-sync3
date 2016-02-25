@@ -496,22 +496,26 @@
 ;; a-sync) to the thunk's return value.  It is intended to be called
 ;; in a waitable procedure invoked by a-sync.  It will normally be
 ;; necessary to call event-loop-block! before invoking this procedure.
-;; If 'handler' is provided, then it will be run in the 'thunk' thread
-;; if 'thunk' throws and its return value will be passed to 'resume';
-;; otherwise the program will terminate if an unhandled exception
-;; propagates out of 'thunk'.  'handler' should take the same
-;; arguments as a guile catch handler (this is implemented using
-;; catch).
+;; If the optional 'handler' argument is provided, then it will be run
+;; in the event loop thread if 'thunk' throws and its return value
+;; will be passed to 'resume'; otherwise the program will terminate if
+;; an unhandled exception propagates out of 'thunk'.  'handler' should
+;; take the same arguments as a guile catch handler (this is
+;; implemented using catch).  If 'handler' throws, the exception will
+;; propagate out of event-loop-run!.
 (define* (a-sync-run-task-in-thread! loop resume thunk #:optional handler)
   (if handler
       (call-with-new-thread
        (lambda ()
-	 (let ([res 
-		(catch #t
-		       (lambda () (thunk))
-		       handler)])
-	   (event-post! loop (lambda ()
-			       (resume res))))))
+	 (catch
+	  #t
+	  (lambda ()
+	    (let ([res (thunk)])
+	      (event-post! loop (lambda ()
+				  (resume res)))))
+	  (lambda args
+	    (event-post! loop (lambda ()
+				(resume (apply handler args))))))))
       (call-with-new-thread
        (lambda ()
 	 (let ([res (thunk)])

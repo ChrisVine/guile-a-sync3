@@ -131,7 +131,7 @@ thread, and then post an event to the event loop specified by the
 a-sync) to the thunk's return value.  It is intended to be called in a
 waitable procedure invoked by a-sync.  It will normally be necessary
 to call event-loop-block! before invoking this procedure.  If
-'handler' is provided, then it will be run in the 'thunk' thread if
+'handler' is provided, then it will be run in the event loop thread if
 'thunk' throws and its return value will be passed to 'resume';
 otherwise the program will terminate if an unhandled exception
 propagates out of 'thunk'.  'handler' should take the same arguments
