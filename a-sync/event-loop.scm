@@ -177,103 +177,113 @@
 ;; this is different from the thread which called make-event-loop,
 ;; external synchronization is required to ensure visibility.  Where
 ;; event-loop-quit! has been called, this procedure may be called
-;; again to restart the same event loop.
+;; again to restart the same event loop.  If a callback throws, or
+;; something else throws in the implementation, then this procedure
+;; will return and it will be as if event-loop-quit! had been called.
 (define (event-loop-run! el)
   (define mutex (_mutex-get el))
   (define q (_q-get el))
   (define event-in (_event-in-get el))
   (define event-fd (fileno event-in))
 
-  ;; we don't need to use the mutex in this procedure except in
-  ;; relation to q, _done-get and _block-get, as we only access the
-  ;; current-timeout field of an event loop object, any individual
-  ;; timeout item vectors, and any of the read-files,
-  ;; read-files-actions, write-files and write-files-actions fields in
-  ;; the event loop thread
-  (let loop1 ()
-    (_process-timeouts el)
-    (when (not (and (null? (_read-files-get el))
-		    (null? (_write-files-get el))
-		    (null? (_timeouts-get el))
-		    (with-mutex mutex (and (q-empty? q)
-					   (not (_block-get el))))))
-      ;; we provide local versions in order to take a consistent view
-      ;; on each run, since we might remove items from the lists after
-      ;; executing the callbacks
-      (let ([read-files (_read-files-get el)]
-	    [read-files-actions (_read-files-actions-get el)]
-	    [write-files (_write-files-get el)]
-	    [write-files-actions (_write-files-actions-get el)]
-	    [current-timeout (_current-timeout-get el)])
-	(let ([res (catch 'system-error
-		     (lambda ()
-		       (select (cons event-fd read-files)
-			       write-files
-			       (delete-duplicates (append read-files write-files) _file-equal?)
-			       (and current-timeout
-				    (let ([secs (_time-remaining (vector-ref current-timeout 0))])
-				      (if (< secs 0) 0 secs)))))
-		     (lambda args
-		       (if (= EINTR (system-error-errno args))
-			   '(() () ())
-			   (apply throw args))))])
-	  (for-each (lambda (elt)
-		      (let ([action
-			     (let ([item (assoc elt read-files-actions _file-equal?)])
-			       (if item (cdr item) #f))])
-			(if action
-			    (when (not (action 'in))
-			      (_remove-watch-impl! el elt))
-			    (error "No action in event loop for read file: " elt))))
-		    (delv event-fd (car res)))
-	  (for-each (lambda (elt)
-		      (let ([action
-			     (let ([item (assoc elt write-files-actions _file-equal?)])
-			       (if item (cdr item) #f))])
-			(if action
-			    (when (not (action 'out))
-			      (_remove-watch-impl! el elt))
-			    (error "No action in event loop for write file: " elt))))
-		    (cadr res))
-	  (for-each (lambda (elt)
-		      (let ([action
-			     (let ([item (assoc elt (append read-files-actions write-files-actions) _file-equal?)])
-			       (if item (cdr item) #f))])
-			(if action
-			    (when (not (action 'excpt))
-			      (_remove-watch-impl! el elt))
-			    (error "No action in event loop for file: " elt))))
-		    (caddr res))
-	  (when (memv event-fd (car res))
-	    (let loop2 ()
-	      (let ([c (read-char event-in)])
-		(if (eof-object? c)
-		    (with-mutex mutex (_done-set! el #t))
-		    (case c
-		      [(#\x)
-		       (let loop3 ()
-			 ;; the strategy is to exhaust the entire
-			 ;; event queue when #\x is in the pipe
-			 ;; buffer.  This eliminates any concerns that
-			 ;; events might go missing if the pipe fills
-			 ;; up.
-			 (let ([action (with-mutex mutex
-					 (if (q-empty? q) #f (deq! q)))])
-			   (when action
-			     (action)
-			     (when (not (with-mutex mutex (_done-get el)))
-			       (loop3)))))
-		       (when (and (char-ready? event-in)
-				  (not (with-mutex mutex (_done-get el))))
-			 (loop2))]
-		      [else
-		       (error "Invalid character in event pipe: " c)]))))))
-	(if (not (with-mutex mutex (_done-get el)))
-	    (loop1)
-	    ;; clear out any stale events before returning and unblocking
-	    (_event-loop-reset! el))))))
-
-
+  (catch
+   #t
+   (lambda ()
+     ;; we don't need to use the mutex in this procedure except in
+     ;; relation to q, _done-get and _block-get, as we only access the
+     ;; current-timeout field of an event loop object, any individual
+     ;; timeout item vectors, and any of the read-files,
+     ;; read-files-actions, write-files and write-files-actions fields
+     ;; in the event loop thread
+     (let loop1 ()
+       (_process-timeouts el)
+       (when (not (and (null? (_read-files-get el))
+		       (null? (_write-files-get el))
+		       (null? (_timeouts-get el))
+		       (with-mutex mutex (and (q-empty? q)
+					      (not (_block-get el))))))
+         ;; we provide local versions in order to take a consistent view
+         ;; on each run, since we might remove items from the lists after
+         ;; executing the callbacks
+         (let ([read-files (_read-files-get el)]
+	       [read-files-actions (_read-files-actions-get el)]
+	       [write-files (_write-files-get el)]
+	       [write-files-actions (_write-files-actions-get el)]
+	       [current-timeout (_current-timeout-get el)])
+	   (let ([res (catch 'system-error
+		        (lambda ()
+			  (select (cons event-fd read-files)
+				  write-files
+				  (delete-duplicates (append read-files write-files) _file-equal?)
+				  (and current-timeout
+				       (let ([secs (_time-remaining (vector-ref current-timeout 0))])
+					 (if (< secs 0) 0 secs)))))
+			(lambda args
+			  (if (= EINTR (system-error-errno args))
+			      '(() () ())
+			      (apply throw args))))])
+	     (for-each (lambda (elt)
+			 (let ([action
+				(let ([item (assoc elt read-files-actions _file-equal?)])
+				  (if item (cdr item) #f))])
+			   (if action
+			       (when (not (action 'in))
+				 (_remove-watch-impl! el elt))
+			       (error "No action in event loop for read file: " elt))))
+		       (delv event-fd (car res)))
+	     (for-each (lambda (elt)
+			 (let ([action
+				(let ([item (assoc elt write-files-actions _file-equal?)])
+				  (if item (cdr item) #f))])
+			   (if action
+			       (when (not (action 'out))
+			         (_remove-watch-impl! el elt))
+			       (error "No action in event loop for write file: " elt))))
+		       (cadr res))
+	     (for-each (lambda (elt)
+			 (let ([action
+				(let ([item (assoc elt (append read-files-actions write-files-actions) _file-equal?)])
+				  (if item (cdr item) #f))])
+			   (if action
+			       (when (not (action 'excpt))
+				 (_remove-watch-impl! el elt))
+			       (error "No action in event loop for file: " elt))))
+		       (caddr res))
+	     (when (memv event-fd (car res))
+	       (let loop2 ()
+		 (let ([c (read-char event-in)])
+		   (if (eof-object? c)
+		       (with-mutex mutex (_done-set! el #t))
+		       (case c
+			 [(#\x)
+			  (let loop3 ()
+			    ;; the strategy is to exhaust the entire
+			    ;; event queue when #\x is in the pipe
+			    ;; buffer.  This eliminates any concerns
+			    ;; that events might go missing if the
+			    ;; pipe fills up.
+			    (let ([action (with-mutex mutex
+					    (if (q-empty? q) #f (deq! q)))])
+			      (when action
+			        (action)
+				(when (not (with-mutex mutex (_done-get el)))
+			          (loop3)))))
+			  (when (and (char-ready? event-in)
+				     (not (with-mutex mutex (_done-get el))))
+			    (loop2))]
+			 [else
+			  (error "Invalid character in event pipe: " c)]))))))
+	   (if (not (with-mutex mutex (_done-get el)))
+	       (loop1)
+	       ;; clear out any stale events before returning and
+	       ;; unblocking
+	       (_event-loop-reset! el))))))
+   (lambda args
+     ;; something threw, probably a callback.  Put the event loop in a
+     ;; valid state and rethrow
+     (_event-loop-reset! el)
+     (apply throw args))))
+   
 ;; This procedure is only called in the event loop thread, by
 ;; event-loop-run!  The only things requiring protection by a mutex
 ;; are the q, done-set and event-out fields of the event loop object.

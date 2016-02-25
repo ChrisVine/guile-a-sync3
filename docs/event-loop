@@ -16,7 +16,9 @@ constructed by make-event-loop.
 
 This starts the event loop, which runs in the thread which calls this
 procedure.  Where event-loop-quit! has been called, this procedure may
-be called again to restart the same event loop.
+be called again to restart the same event loop.  If a callback throws,
+or something else throws in the implementation, then this procedure
+will return and it will be as if event-loop-quit! had been called.
 
 
   (event-loop-add-read-watch! loop file proc)
