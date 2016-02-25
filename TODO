@@ -4,17 +4,12 @@ In no particular order:
 
 - Switch to SRFI-9 records instead of R6RS records for event-loop objects
 
-- Document how exceptions propagate in relation to the a-sync procedure
-
 - Include more examples in the documentation
 
 - Provide some additional wrapper procedures for operations on a glib
   main loop.
 
 - Precompile event-loop.scm and coroutines.scm
-
-- Allow a-sync-run-task-in-thread! to be passed an optional handler
-  argument for an exceptions emitted by the thunk
 
 - Do we want get_time() to throw a guile exception if clock_gettime()
   returns non-zero?  (This shouldn't really be necessary because

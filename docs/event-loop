@@ -123,14 +123,19 @@ event-loop-run! has unblocked and event-loop-run! then called for
 them.  This is thread safe - any thread may call this procedure.
 
 
-  (a-sync-run-task-in-thread! loop resume thunk)
+  (a-sync-run-task-in-thread! loop resume thunk [handler])
 
 This is a convenience procedure which will run 'thunk' in its own
 thread, and then post an event to the event loop specified by the
 'loop' argument which applies 'resume' (obtained from a call to
 a-sync) to the thunk's return value.  It is intended to be called in a
 waitable procedure invoked by a-sync.  It will normally be necessary
-to call event-loop-block! before invoking this procedure.
+to call event-loop-block! before invoking this procedure.  If
+'handler' is provided, then it will be run in the 'thunk' thread if
+'thunk' throws and its return value will be passed to 'resume';
+otherwise the program will terminate if an unhandled exception
+propagates out of 'thunk'.  'handler' should take the same arguments
+as a guile catch handler (this is implemented using catch).
 
 
   (a-sync-run-task! loop resume thunk)

@@ -139,8 +139,27 @@
 ;; most recent previous call to 'resume' was made by the last callback
 ;; to execute.
 ;;
-;; After the call to 'resume', the callback should therefore normally
-;; just return (with a #t or #f value in the case of a file watch or a
+;; An exception thrown in the waitable procedure before the first call
+;; to 'await' which is not handled locally will propagate out of the
+;; a-sync procedure normally.  Any exception thrown subsequently in
+;; the waitable procedure which is not handled locally will propagate
+;; into the previously called callback at the point where 'resume' was
+;; last called.  If this is handled locally in the callback by putting
+;; a catch block around resume, then control will be returned to the
+;; event loop and the remainder of the waitable procedure will not
+;; execute.  If that exception is not handled locally in the callback,
+;; or if the callback throws an exception of its own, then it will
+;; propagate out of the event loop.  If the event loop in the
+;; event-loop module is used, this means that it will propagate out of
+;; the call to event-loop-run!.  If an exception propagates out of
+;; event-loop-run! for that or some other reason, then the event loop
+;; will be left in a valid state and it will be as if event-loop-quit!
+;; had been called on it, but it is then up to the user to catch that
+;; exception once it is out of event-loop-run! if she does not want
+;; the program to terminate.
+;;
+;; After the call to 'resume', the callback should normally just
+;; return (with a #t or #f value in the case of a file watch or a
 ;; timeout on an event-loop object from the event loop module).  If
 ;; a-sync is used with a file watch or timeout constructed by
 ;; make-event-loop, the watch callback or timeout callback should
@@ -150,12 +169,20 @@
 ;; timeout repetitions).  That way, there can never be a case where
 ;; the callback has been removed from the event loop by returning
 ;; false but the waitable procedure still thinks it has a call to
-;; 'await' to be made.  The event-loop module has a-sync-run-task,
+;; 'await' to be made.  The event-loop module has a-sync-run-task!,
 ;; a-sync-run-task-in-thread!, a-sync-run-timeout!,
 ;; a-sync-run-timeout-once!, a-sync-run-read-watch!,
 ;; a-sync-run-read-watch-once!, a-sync-run-write-watch! and
-;; a-sync-run-write-watch-once!  convenience procedures which will
-;; correctly set this up for you automatically.
+;; a-sync-run-write-watch-once! convenience procedures which will
+;; correctly set this up for you automatically.  If those convenience
+;; procedures are used, exceptions should always be handled locally in
+;; the waitable procedure (and if the callback might throw, in the
+;; callback also) if it is undesirable that uncaught exceptions
+;; propagate out of event-loop-run!.  In the case of
+;; a-sync-run-task-in-thread!, that procedure also takes an optional
+;; handler argument which will handle any exceptions thrown by the
+;; task: otherwise the task thread throwing would terminate the
+;; program if not caught within the task.
 ;;
 ;; There can be as many calls to 'await' and asynchronous callbacks in
 ;; any one waitable procedure as wanted, to enable composition of
