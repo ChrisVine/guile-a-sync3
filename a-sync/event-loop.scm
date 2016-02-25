@@ -129,12 +129,12 @@
       (if ((vector-ref current-timeout 3))
 	  (vector-set! current-timeout 0
 		       (_get-abstime (vector-ref current-timeout 2)))
-	  (_timeouts-set! el (_filter-timeout! (_timeouts-get el) (vector-ref current-timeout 1))))
+	  (_timeouts-set! el (_filter-timeout (_timeouts-get el) (vector-ref current-timeout 1))))
       (_current-timeout-set! el (_next-timeout (_timeouts-get el))))))
 
 ;; This returns a list of timeouts, with the tagged timeout removed
 ;; from the timeout list passed in
-(define (_filter-timeout! timeouts tag)
+(define (_filter-timeout timeouts tag)
   (let loop ([remaining timeouts]
 	     [checked '()])
     (if (null? remaining)
@@ -142,7 +142,7 @@
 	  ;; it is probably too extreme to error here if the user
 	  ;; requests to remove a timeout which no longer exists
 	  (simple-format (current-error-port)
-			 "Warning: timeout tag ~A not found in timeouts list in procedure _filter-timeout!\n"
+			 "Warning: timeout tag ~A not found in timeouts list in procedure _filter-timeout\n"
 			 tag)
 	  (force-output (current-error-port))
 	  timeouts)
@@ -429,7 +429,7 @@
 (define (timeout-remove! el tag)
   (event-post! el
 	       (lambda ()
-		 (_timeouts-set! el (_filter-timeout! (_timeouts-get el) tag)))))
+		 (_timeouts-set! el (_filter-timeout (_timeouts-get el) tag)))))
       
 ;; by default, upon there being no more watches, timeouts and posted
 ;; events for an event loop, event-loop-run! will return, which is
