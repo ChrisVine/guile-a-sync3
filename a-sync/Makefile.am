@@ -1,11 +1,17 @@
 ## Process this file with automake to produce Makefile.in
 
-install-data-hook:
-	install -d $(DESTDIR)$(GUILE_SITE)/a-sync
-	install -m a+r,u+w *.scm $(DESTDIR)$(GUILE_SITE)/a-sync/
+SOURCES = monotonic-time.scm coroutines.scm event-loop.scm
 
-uninstall-hook:
-	for files in `ls *.scm`; do rm -f $(DESTDIR)$(GUILE_SITE)/a-sync/$$files; done
-	-rmdir $(DESTDIR)$(GUILE_SITE)/a-sync
+GOBJECTS = $(SOURCES:%.scm=%.go)
 
-EXTRA_DIST = *.scm
+CLEANFILES = $(GOBJECTS)
+
+SUFFIXES = .scm .go
+
+.scm.go:
+	guild compile -L .. -o "$@" "$<"
+
+moduledir = $(GUILE_SITE)/a-sync
+module_DATA = $(SOURCES) $(GOBJECTS)
+
+EXTRA_DIST = $(SOURCES)
