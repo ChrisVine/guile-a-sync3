@@ -1,72 +1,41 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html401/loose.dtd">
-<html>
-<!-- Created on February, 28 2016 by texi2html 1.76 -->
-<!--
-Written by: Lionel Cons <Lionel.Cons@cern.ch> (original author)
-            Karl Berry  <karl@freefriends.org>
-            Olaf Bachmann <obachman@mathematik.uni-kl.de>
-            and many others.
-Maintained by: Many creative people <dev@texi2html.cvshome.org>
-Send bugs and suggestions to <users@texi2html.cvshome.org>
-
--->
+<html lang="en">
 <head>
-<title>guile-a-sync: coroutines</title>
-
-<meta name="description" content="guile-a-sync: coroutines">
-<meta name="keywords" content="guile-a-sync: coroutines">
-<meta name="resource-type" content="document">
-<meta name="distribution" content="global">
-<meta name="Generator" content="texi2html 1.76">
-<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
-<style type="text/css">
-<!--
-a.summary-letter {text-decoration: none}
-pre.display {font-family: serif}
-pre.format {font-family: serif}
-pre.menu-comment {font-family: serif}
-pre.menu-preformatted {font-family: serif}
-pre.smalldisplay {font-family: serif; font-size: smaller}
-pre.smallexample {font-size: smaller}
-pre.smallformat {font-family: serif; font-size: smaller}
-pre.smalllisp {font-size: smaller}
-span.sansserif {font-family:sans-serif; font-weight:normal;}
-ul.toc {list-style: none}
--->
-</style>
-
-
+<title>coroutines - guile-a-sync</title>
+<meta http-equiv="Content-Type" content="text/html">
+<meta name="description" content="guile-a-sync">
+<meta name="generator" content="makeinfo 4.13">
+<link title="Top" rel="start" href="index.html#Top">
+<link rel="prev" href="index.html#Top" title="Top">
+<link rel="next" href="event-loop.html#event-loop" title="event loop">
+<link href="http://www.gnu.org/software/texinfo/" rel="generator-home" title="Texinfo Homepage">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<style type="text/css"><!--
+  pre.display { font-family:inherit }
+  pre.format  { font-family:inherit }
+  pre.smalldisplay { font-family:inherit; font-size:smaller }
+  pre.smallformat  { font-family:inherit; font-size:smaller }
+  pre.smallexample { font-size:smaller }
+  pre.smalllisp    { font-size:smaller }
+  span.sc    { font-variant:small-caps }
+  span.roman { font-family:serif; font-weight:normal; } 
+  span.sansserif { font-family:sans-serif; font-weight:normal; } 
+--></style>
 </head>
-
-<body lang="en" bgcolor="#FFFFFF" text="#000000" link="#0000FF" vlink="#800080" alink="#FF0000">
-
+<body>
+<div class="node">
 <a name="coroutines"></a>
-<table cellpadding="1" cellspacing="1" border="0">
-<tr><td valign="middle" align="left">[<a href="a-sync.html#Top" title="Previous section in reading order"> &lt; </a>]</td>
-<td valign="middle" align="left">[<a href="a-sync_2.html#event-loop" title="Next section in reading order"> &gt; </a>]</td>
-<td valign="middle" align="left"> &nbsp; </td>
-<td valign="middle" align="left">[ &lt;&lt; ]</td>
-<td valign="middle" align="left">[<a href="a-sync.html#Top" title="Up section"> Up </a>]</td>
-<td valign="middle" align="left">[ &gt;&gt; ]</td>
-<td valign="middle" align="left"> &nbsp; </td>
-<td valign="middle" align="left"> &nbsp; </td>
-<td valign="middle" align="left"> &nbsp; </td>
-<td valign="middle" align="left"> &nbsp; </td>
-<td valign="middle" align="left">[<a href="a-sync.html#Top" title="Cover (top) of document">Top</a>]</td>
-<td valign="middle" align="left">[Contents]</td>
-<td valign="middle" align="left">[Index]</td>
-<td valign="middle" align="left">[<a href="a-sync_abt.html#SEC_About" title="About (help)"> ? </a>]</td>
-</tr></table>
-<hr size="1">
-<h3 class="node"> coroutines </h3>
+<p>
+Next:&nbsp;<a rel="next" accesskey="n" href="event-loop.html#event-loop">event loop</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="index.html#Top">Top</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="index.html#Top">Top</a>
+<hr>
+</div>
 
-<p>The (a-sync coroutines) module provides the following procedures:
-</p>
-<dl>
-<dt><u>Scheme Procedure:</u> <b>make-iterator</b><i> proc . args</i>
-<a name="IDX1"></a>
-</dt>
-<dd><p>This procedure takes a generator procedure, namely a procedure which
+   <p>The (a-sync coroutines) module provides the following procedures:
+
+<div class="defun">
+&mdash; Scheme Procedure: <b>make-iterator</b><var> proc . args<a name="index-make_002diterator-1"></a></var><br>
+<blockquote><p>This procedure takes a generator procedure, namely a procedure which
 has a 'yield' parameter for its first or only argument, followed by
 such other arguments (other than the one for the 'yield' parameter) as
 the generator procedure requires, and constructs an iterator from
@@ -84,14 +53,12 @@ it returns an iterator which will do so, (ii) it is resumable, and
 (iii) the procedure to be executed can receive starting arguments in
 addition to the yield/break argument, to provide an alternative to
 binding them with a lambda closure.  It is similar to ECMAScript
-generators and python generators.
-</p></dd></dl>
+generators and python generators. 
+</p></blockquote></div>
 
-<dl>
-<dt><u>Scheme Procedure:</u> <b>make-coroutine</b><i> proc . args</i>
-<a name="IDX2"></a>
-</dt>
-<dd><p>This procedure takes a generator procedure, namely a procedure which
+<div class="defun">
+&mdash; Scheme Procedure: <b>make-coroutine</b><var> proc . args<a name="index-make_002dcoroutine-2"></a></var><br>
+<blockquote><p>This procedure takes a generator procedure, namely a procedure which
 has a 'yield' parameter for its first or only argument, followed by
 such other arguments (other than the one for the 'yield' parameter) as
 the generator procedure requires, and constructs a coroutine.  It is
@@ -110,19 +77,17 @@ computation will be resumed at the point where it last left off (the
 yield procedure returning the value, if any, passed to the
 continuation on resuming) until it completes or it again calls the
 yield procedure.
-</p>
-<p>Upon the generator procedure finally completing, the value to which it
+
+        <p>Upon the generator procedure finally completing, the value to which it
 evaluates is returned by the resumption continuation together with a
 continuation value of #f.  This differs from the behaviour of
 make-iterator, which returns 'stop-iteration when the generator
-procedure finishes to completion and ignores its return value.
-</p></dd></dl>
+procedure finishes to completion and ignores its return value. 
+</p></blockquote></div>
 
-<dl>
-<dt><u>Scheme Procedure:</u> <b>a-sync</b><i> waitable . args</i>
-<a name="IDX3"></a>
-</dt>
-<dd><p>a-sync takes a waitable procedure (namely a procedure which takes
+<div class="defun">
+&mdash; Scheme Procedure: <b>a-sync</b><var> waitable . args<a name="index-a_002dsync-3"></a></var><br>
+<blockquote><p>a-sync takes a waitable procedure (namely a procedure which takes
 'await' as its first parameter, which is a yield procedure obtained by
 a call to make-iterator, and 'resume' as its second parameter, which
 is an iterator constructed by make-iterator), followed by such other
@@ -133,12 +98,12 @@ procedure in order to block until the callback is ready to let it
 resume.  When it unblocks, the 'await' argument returns the value (if
 any) passed to 'resume' by the callback.  This async procedure must be
 called in the same thread as that in which the event loop runs.
-</p>
-<p>None of the code in the waitable procedure should block on other
+
+        <p>None of the code in the waitable procedure should block on other
 things in the program, except by calls to await (which do not in fact
 block, even though they appear to do so).
-</p>
-<p>The way it works is that the call to a-sync will begin executing the
+
+        <p>The way it works is that the call to a-sync will begin executing the
 waitable procedure and will return as soon as the first (or only) call
 to 'await' is made by that procedure, or as soon as the waitable
 procedure returns if it makes no calls to 'await'.  Any subsequent
@@ -149,8 +114,8 @@ subsequently ending, or of further calls to 'await' being made within
 the same waitable procedure, is to return control to the event loop by
 recommencing execution at the point where the most recent previous
 call to 'resume' was made by the last callback to execute.
-</p>
-<p>An exception thrown in the waitable procedure before the first call to
+
+        <p>An exception thrown in the waitable procedure before the first call to
 'await' which is not handled locally will propagate out of the a-sync
 procedure normally.  Any exception thrown subsequently in the waitable
 procedure which is not handled locally will propagate into the
@@ -167,8 +132,8 @@ reason, then the event loop will be left in a valid state and it will
 be as if event-loop-quit! had been called on it, but it is then up to
 the user to catch that exception once it is out of event-loop-run! if
 she does not want the program to terminate.
-</p>
-<p>After the call to 'resume', the callback should normally just return
+
+        <p>After the call to 'resume', the callback should normally just return
 (with a #t or #f value in the case of a file watch or a timeout on an
 event-loop object from the event loop module).  If a-sync is used with
 a file watch or timeout on an event-loop object constructed by
@@ -179,7 +144,7 @@ responsibility of the waitable procedure to terminate the watch or
 timeout repetitions).  That way, there can never be a case where the
 callback has been removed from the event loop by returning false but
 the waitable procedure still thinks it has a call to 'await' to be
-made.  The <a href="a-sync_2.html#event-loop">event-loop</a> module has a-sync-run-task!,
+made.  The <a href="event-loop.html#event-loop">event-loop</a> module has a-sync-run-task!,
 a-sync-run-task-in-thread!, a-sync-run-timeout!,
 a-sync-run-timeout-once!, a-sync-run-read-watch!,
 a-sync-run-read-watch-once!, a-sync-run-write-watch! and
@@ -192,8 +157,8 @@ out of event-loop-run!.  In the case of a-sync-run-task-in-thread!,
 that procedure also takes an optional handler argument which will
 handle any exceptions thrown by the task: otherwise the task thread
 throwing would terminate the program if not caught within the task.
-</p>
-<p>There can be as many calls to 'await' and asynchronous callbacks in
+
+        <p>There can be as many calls to 'await' and asynchronous callbacks in
 any one waitable procedure as wanted, to enable composition of
 asynchronous operations.  However, you cannot run two or more
 asynchronous tasks at the same time with the same await-resume pair
@@ -201,45 +166,20 @@ without an intervening call to await except by doing extra work,
 because the first call to 'await' will match the first callback which
 happens to call 'resume', and so on.  In such cases, 'resume' would
 need to return something like a key-value pair so that the result can
-be correctly identified.  Accordingly this practice is discouraged.
+be correctly identified.  Accordingly this practice is discouraged. 
 Instead, when composing asynchronous tasks within any one waitable
-procedure, operate on a 'start-task -&gt; await-on-result -&gt; start-task
--&gt; await-on-result ...' basis, and make calls to a-sync on separate
+procedure, operate on a 'start-task &ndash;&gt; await-on-result &ndash;&gt; start-task
+&ndash;&gt; await-on-result ...' basis, and make calls to a-sync on separate
 waitable procedures for tasks which are to run independently.  This is
 easy using the convenience procedures mentioned above (see the
 examples).  A waitable procedure can itself call a-sync to construct
 another await-resume pair for the purpose of starting other
 asynchronous events.
-</p>
-<p>This procedure can be used with any event loop, including the glib
+
+        <p>This procedure can be used with any event loop, including the glib
 event loop provided by guile-gnome and so with gtk+ callbacks, and
-with the event loop in the event-loop module.
-</p></dd></dl>
+with the event loop in the event-loop module. 
+</p></blockquote></div>
 
+   </body></html>
 
-<hr size="1">
-<table cellpadding="1" cellspacing="1" border="0">
-<tr><td valign="middle" align="left">[<a href="a-sync.html#Top" title="Previous section in reading order"> &lt; </a>]</td>
-<td valign="middle" align="left">[<a href="a-sync_2.html#event-loop" title="Next section in reading order"> &gt; </a>]</td>
-<td valign="middle" align="left"> &nbsp; </td>
-<td valign="middle" align="left">[ &lt;&lt; ]</td>
-<td valign="middle" align="left">[<a href="a-sync.html#Top" title="Up section"> Up </a>]</td>
-<td valign="middle" align="left">[ &gt;&gt; ]</td>
-<td valign="middle" align="left"> &nbsp; </td>
-<td valign="middle" align="left"> &nbsp; </td>
-<td valign="middle" align="left"> &nbsp; </td>
-<td valign="middle" align="left"> &nbsp; </td>
-<td valign="middle" align="left">[<a href="a-sync.html#Top" title="Cover (top) of document">Top</a>]</td>
-<td valign="middle" align="left">[Contents]</td>
-<td valign="middle" align="left">[Index]</td>
-<td valign="middle" align="left">[<a href="a-sync_abt.html#SEC_About" title="About (help)"> ? </a>]</td>
-</tr></table>
-<p>
- <font size="-1">
-  This document was generated on <i>February, 28 2016</i> using <a href="http://texi2html.cvshome.org/"><i>texi2html 1.76</i></a>.
- </font>
- <br>
-
-</p>
-</body>
-</html>

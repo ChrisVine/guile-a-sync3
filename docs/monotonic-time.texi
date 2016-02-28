@@ -1,5 +1,5 @@
 
-@node monotonic time
+@node monotonic time,,event loop,Top
 
 The (a-sync monotonic-time) module provides two procedures.  It is
 loaded by the @ref{event loop,,(async event-loop)} module.

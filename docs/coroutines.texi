@@ -1,6 +1,6 @@
 
 
-@node coroutines
+@node coroutines,event loop,Top,Top
 
 The (a-sync coroutines) module provides the following procedures:
 

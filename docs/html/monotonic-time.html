@@ -1,0 +1,54 @@
+<html lang="en">
+<head>
+<title>monotonic time - guile-a-sync</title>
+<meta http-equiv="Content-Type" content="text/html">
+<meta name="description" content="guile-a-sync">
+<meta name="generator" content="makeinfo 4.13">
+<link title="Top" rel="start" href="index.html#Top">
+<link rel="prev" href="event-loop.html#event-loop" title="event loop">
+<link href="http://www.gnu.org/software/texinfo/" rel="generator-home" title="Texinfo Homepage">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<style type="text/css"><!--
+  pre.display { font-family:inherit }
+  pre.format  { font-family:inherit }
+  pre.smalldisplay { font-family:inherit; font-size:smaller }
+  pre.smallformat  { font-family:inherit; font-size:smaller }
+  pre.smallexample { font-size:smaller }
+  pre.smalllisp    { font-size:smaller }
+  span.sc    { font-variant:small-caps }
+  span.roman { font-family:serif; font-weight:normal; } 
+  span.sansserif { font-family:sans-serif; font-weight:normal; } 
+--></style>
+</head>
+<body>
+<div class="node">
+<a name="monotonic-time"></a>
+<p>
+Previous:&nbsp;<a rel="previous" accesskey="p" href="event-loop.html#event-loop">event loop</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="index.html#Top">Top</a>
+<hr>
+</div>
+
+   <p>The (a-sync monotonic-time) module provides two procedures.  It is
+loaded by the <a href="event-loop.html#event-loop">(async event-loop)</a> module.
+
+<div class="defun">
+&mdash; Scheme Procedure: <b>have-monotonic-time</b><var><a name="index-have_002dmonotonic_002dtime-23"></a></var><br>
+<blockquote><p>This procedure indicates whether the get-time procedure (see below)
+provides a monotonic clock.  Almost all modern linux/unix-like systems
+will do so.  This procedure may return #f if windows is in use, or if
+the guile-a-sync library was cross-compiled on one architecture for a
+different one. 
+</p></blockquote></div>
+
+<div class="defun">
+&mdash; Scheme Procedure: <b>get-time</b><var><a name="index-get_002dtime-24"></a></var><br>
+<blockquote><p>This returns the current time as a (secs . usecs) pair from some
+arbitrary epoch.  If (have-monotonic-time) returns #t, then this will
+be derived from a monotonic clock obtained by applying CLOCK_MONOTONIC
+to the clock_gettime() POSIX function.  This procedure is used by the
+<a href="event-loop.html#event-loop">event-loop</a> timeout implementation. 
+</p></blockquote></div>
+
+</body></html>
+

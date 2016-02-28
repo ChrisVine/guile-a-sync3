@@ -2,12 +2,15 @@
 @settitle guile-a-sync
 
 @ifnottex
-@node Top
+@node Top,coroutines,,
+
+@strong{guile-a-sync}
 
 This is the guile-a-sync library.  It provides both an asynchronous
 event loop for guile, and coroutines to enable an event loop
-(including other event loops) to be used with 'await' semantics to
-deal with inversion of control (otherwise known as ``callback hell''.
+(including other event loops such as the glib event loop) to be used
+with 'await' semantics to deal with inversion of control -- otherwise
+known as ``callback hell''.
 
 @end ifnottex
 

@@ -2,12 +2,15 @@
 
 .PHONY: docs
 docs:
-	$(top_builddir)/docs/texi2html --split nodes a-sync.texi
-	cp a-sync/a-sync.html a-sync/index.html
+	makeinfo guile-a-sync.texi
+	makeinfo --html guile-a-sync.texi
 	rm -rf html
-	mv a-sync html
+	mv guile-a-sync html
 
 doc_DATA = example.scm
+
+infofiledir = $(infodir)
+infofile_DATA = guile-a-sync.info
 
 install-data-hook:
 	install -d $(DESTDIR)$(htmldir)/html
@@ -16,4 +19,4 @@ install-data-hook:
 uninstall-hook:
 	for files in `ls html`; do rm -f $(DESTDIR)$(htmldir)/html/$$files; done
 
-EXTRA_DIST = html/*.html *.texi texi2html
+EXTRA_DIST = html/*.html *.texi guile-a-sync.info
