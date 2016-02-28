@@ -178,7 +178,7 @@ File: guile-a-sync.info,  Node: coroutines,  Next: event loop,  Prev: Top,  Up: 
 
 File: guile-a-sync.info,  Node: event loop,  Next: monotonic time,  Prev: coroutines,  Up: Top
 
-   The (async event-loop) module provides the follow procedures:
+   The (a-sync event-loop) module provides the follow procedures:
 
  -- Scheme Procedure: make-event-loop
      This constructs a new event loop object.
@@ -385,14 +385,14 @@ File: guile-a-sync.info,  Node: event loop,  Next: monotonic time,  Prev: corout
      only - as soon as 'thunk' has run once and completed, the timeout
      will be removed from the event loop.
 
-   The (async event-loop) module also loads the *note (async
+   The (async event-loop) module also loads the *note (a-sync
 monotonic-time): monotonic time. module.
 
 
 File: guile-a-sync.info,  Node: monotonic time,  Prev: event loop,  Up: Top
 
    The (a-sync monotonic-time) module provides two procedures.  It is
-loaded by the *note (async event-loop): event loop. module.
+loaded by the *note (a-sync event-loop): event loop. module.
 
  -- Scheme Procedure: have-monotonic-time
      This procedure indicates whether the get-time procedure (see below)
@@ -415,6 +415,6 @@ Tag Table:
 Node: Top0
 Node: coroutines840
 Node: event loop10292
-Node: monotonic time22691
+Node: monotonic time22693
 
 End Tag Table

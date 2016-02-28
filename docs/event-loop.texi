@@ -1,7 +1,7 @@
 
 @node event loop,monotonic time,coroutines,Top
 
-The (async event-loop) module provides the follow procedures:
+The (a-sync event-loop) module provides the follow procedures:
 
 @deffn {Scheme Procedure} make-event-loop
 This constructs a new event loop object.
@@ -222,4 +222,4 @@ loop.
 @end deffn
 
 The (async event-loop) module also loads the @ref{monotonic
-time,,(async monotonic-time)} module.
+time,,(a-sync monotonic-time)} module.

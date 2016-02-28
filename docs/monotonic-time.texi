@@ -2,7 +2,7 @@
 @node monotonic time,,event loop,Top
 
 The (a-sync monotonic-time) module provides two procedures.  It is
-loaded by the @ref{event loop,,(async event-loop)} module.
+loaded by the @ref{event loop,,(a-sync event-loop)} module.
 
 @deffn {Scheme Procedure} have-monotonic-time
 This procedure indicates whether the get-time procedure (see below)
