@@ -100,7 +100,7 @@ blocking.
 </p></blockquote></div>
 
 <div class="defun">
-&mdash; Scheme Procedure: <b>event-loop-remove-watch!</b><var> loop file</var>)<var><a name="index-event_002dloop_002dremove_002dwatch_0021-9"></a></var><br>
+&mdash; Scheme Procedure: <b>event-loop-remove-watch!</b><var> loop file<a name="index-event_002dloop_002dremove_002dwatch_0021-9"></a></var><br>
 <blockquote><p>The file argument may be a port or a file descriptor, and this removes
 any read and write watch previously entered for that port or file
 descriptor.  This is thread safe - any thread may remove a watch.  A
@@ -109,7 +109,7 @@ compare equal for the purposes of removal.
 </p></blockquote></div>
 
 <div class="defun">
-&mdash; Scheme Procedure: <b>event-post!</b><var> loop action</var>)<var><a name="index-event_002dpost_0021-10"></a></var><br>
+&mdash; Scheme Procedure: <b>event-post!</b><var> loop action<a name="index-event_002dpost_0021-10"></a></var><br>
 <blockquote><p>The 'action' callback is a thunk.  This is thread safe - any thread
 may post an event (that is its main purpose), and the action callback
 will execute in the event loop thread.  Actions execute in the order
@@ -119,7 +119,7 @@ beforehand.
 </p></blockquote></div>
 
 <div class="defun">
-&mdash; Scheme Procedure: <b>timeout-post!</b><var> loop msecs action</var>)<var><a name="index-timeout_002dpost_0021-11"></a></var><br>
+&mdash; Scheme Procedure: <b>timeout-post!</b><var> loop msecs action<a name="index-timeout_002dpost_0021-11"></a></var><br>
 <blockquote><p>This adds a timeout to the event loop.  The timeout will repeat unless
 and until the passed-in callback returns #f or timeout-remove! is
 called.  The passed-in callback must be a thunk.  This procedure
@@ -128,13 +128,13 @@ be called by any thread.
 </p></blockquote></div>
 
 <div class="defun">
-&mdash; Scheme Procedure: <b>timeout-remove!</b><var> loop tag</var>)<var><a name="index-timeout_002dremove_0021-12"></a></var><br>
+&mdash; Scheme Procedure: <b>timeout-remove!</b><var> loop tag<a name="index-timeout_002dremove_0021-12"></a></var><br>
 <blockquote><p>This stops the timeout with the given tag from executing in the event
 loop concerned.  It may be called by any thread. 
 </p></blockquote></div>
 
 <div class="defun">
-&mdash; Scheme Procedure: <b>event-loop-block!</b><var> loop val</var>)<var><a name="index-event_002dloop_002dblock_0021-13"></a></var><br>
+&mdash; Scheme Procedure: <b>event-loop-block!</b><var> loop val<a name="index-event_002dloop_002dblock_0021-13"></a></var><br>
 <blockquote><p>By default, upon there being no more watches, timeouts and posted
 events for an event loop, event-loop-run! will return, which is
 normally what you want with a single threaded program.  However, this
@@ -148,7 +148,7 @@ pass #f.  This is thread safe - any thread may call this procedure.
 </p></blockquote></div>
 
 <div class="defun">
-&mdash; Scheme Procedure: <b>event-loop-quit!</b><var> loop</var>)<var><a name="index-event_002dloop_002dquit_0021-14"></a></var><br>
+&mdash; Scheme Procedure: <b>event-loop-quit!</b><var> loop<a name="index-event_002dloop_002dquit_0021-14"></a></var><br>
 <blockquote><p>Causes the event loop to unblock.  Any events remaining in the event
 loop will be discarded.  New events may subsequently be added after
 event-loop-run! has unblocked and event-loop-run! then called for
@@ -156,7 +156,7 @@ them.  This is thread safe - any thread may call this procedure.
 </p></blockquote></div>
 
 <div class="defun">
-&mdash; Scheme Procedure: <b>a-sync-run-task-in-thread!</b><var> loop resume thunk </var>[<var>handler</var>])<var><a name="index-a_002dsync_002drun_002dtask_002din_002dthread_0021-15"></a></var><br>
+&mdash; Scheme Procedure: <b>a-sync-run-task-in-thread!</b><var> loop resume thunk </var>[<var>handler</var>]<var><a name="index-a_002dsync_002drun_002dtask_002din_002dthread_0021-15"></a></var><br>
 <blockquote><p>This is a convenience procedure which will run 'thunk' in its own
 thread, and then post an event to the event loop specified by the
 'loop' argument which applies 'resume' (obtained from a call to
@@ -173,7 +173,7 @@ event-loop-run!.
 </p></blockquote></div>
 
 <div class="defun">
-&mdash; Scheme Procedure: <b>a-sync-run-task!</b><var> loop resume thunk</var>)<var><a name="index-a_002dsync_002drun_002dtask_0021-16"></a></var><br>
+&mdash; Scheme Procedure: <b>a-sync-run-task!</b><var> loop resume thunk<a name="index-a_002dsync_002drun_002dtask_0021-16"></a></var><br>
 <blockquote><p>This is a convenience procedure for use with an event loop, which will
 run 'thunk' in the event loop specified by the 'loop' argument, and
 apply 'resume' (obtained from a call to a-sync) to thunk's return
@@ -191,7 +191,7 @@ wrapper.)
 </p></blockquote></div>
 
 <div class="defun">
-&mdash; Scheme Procedure: <b>a-sync-read-watch!</b><var> loop file resume proc</var>)<var><a name="index-a_002dsync_002dread_002dwatch_0021-17"></a></var><br>
+&mdash; Scheme Procedure: <b>a-sync-read-watch!</b><var> loop file resume proc<a name="index-a_002dsync_002dread_002dwatch_0021-17"></a></var><br>
 <blockquote><p>This is a convenience procedure for use with an event loop, which will
 run 'proc' in the event loop thread whenever 'file' is ready for
 reading, and apply resume (obtained from a call to a-sync) to the
@@ -204,7 +204,7 @@ time by calling event-loop-remove-watch! in the waitable procedure.
 </p></blockquote></div>
 
 <div class="defun">
-&mdash; Scheme Procedure: <b>a-sync-read-watch-once!</b><var> loop file resume proc</var>)<var><a name="index-a_002dsync_002dread_002dwatch_002donce_0021-18"></a></var><br>
+&mdash; Scheme Procedure: <b>a-sync-read-watch-once!</b><var> loop file resume proc<a name="index-a_002dsync_002dread_002dwatch_002donce_0021-18"></a></var><br>
 <blockquote><p>This is a convenience procedure for use with an event loop, which will
 run 'proc' in the event loop thread whenever 'file' is ready for
 reading, and apply resume (obtained from a call to a-sync) to the
@@ -219,7 +219,7 @@ removed.
 </p></blockquote></div>
 
 <div class="defun">
-&mdash; Scheme Procedure: <b>a-sync-write-watch!</b><var> loop file resume proc</var>)<var><a name="index-a_002dsync_002dwrite_002dwatch_0021-19"></a></var><br>
+&mdash; Scheme Procedure: <b>a-sync-write-watch!</b><var> loop file resume proc<a name="index-a_002dsync_002dwrite_002dwatch_0021-19"></a></var><br>
 <blockquote><p>This is a convenience procedure for use with an event loop, which will
 run 'proc' in the event loop thread whenever 'file' is ready for
 writing, and apply resume (obtained from a call to a-sync) to the
@@ -232,7 +232,7 @@ time by calling event-loop-remove-watch! in the waitable procedure.
 </p></blockquote></div>
 
 <div class="defun">
-&mdash; Scheme Procedure: <b>a-sync-write-watch-once!</b><var> loop file resume proc</var>)<var><a name="index-a_002dsync_002dwrite_002dwatch_002donce_0021-20"></a></var><br>
+&mdash; Scheme Procedure: <b>a-sync-write-watch-once!</b><var> loop file resume proc<a name="index-a_002dsync_002dwrite_002dwatch_002donce_0021-20"></a></var><br>
 <blockquote><p>This is a convenience procedure for use with an event loop, which will
 run 'proc' in the event loop thread whenever 'file' is ready for
 writing, and apply resume (obtained from a call to a-sync) to the
@@ -247,7 +247,7 @@ removed.
 </p></blockquote></div>
 
 <div class="defun">
-&mdash; Scheme Procedure: <b>a-sync-timeout!</b><var> loop msec resume thunk</var>)<var><a name="index-a_002dsync_002dtimeout_0021-21"></a></var><br>
+&mdash; Scheme Procedure: <b>a-sync-timeout!</b><var> loop msec resume thunk<a name="index-a_002dsync_002dtimeout_0021-21"></a></var><br>
 <blockquote><p>This is a convenience procedure for use with an event loop, which will
 run 'thunk' in the event loop thread whenever the timeout expires, and
 apply resume (obtained from a call to a-sync) to the return value of
@@ -259,7 +259,7 @@ procedure.
 </p></blockquote></div>
 
 <div class="defun">
-&mdash; Scheme Procedure: <b>a-sync-timeout-once!</b><var> loop msec resume thunk</var>)<var><a name="index-a_002dsync_002dtimeout_002donce_0021-22"></a></var><br>
+&mdash; Scheme Procedure: <b>a-sync-timeout-once!</b><var> loop msec resume thunk<a name="index-a_002dsync_002dtimeout_002donce_0021-22"></a></var><br>
 <blockquote><p>This is a convenience procedure for use with an event loop, which will
 run 'thunk' in the event loop thread when the timeout expires, and
 apply resume (obtained from a call to a-sync) to the return value of

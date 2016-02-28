@@ -238,14 +238,14 @@ File: guile-a-sync.info,  Node: event loop,  Next: monotonic time,  Prev: corout
      a buffered port, buffering will be taken into account in
      indicating whether a write can be made without blocking.
 
- -- Scheme Procedure: event-loop-remove-watch! loop file)
+ -- Scheme Procedure: event-loop-remove-watch! loop file
      The file argument may be a port or a file descriptor, and this
      removes any read and write watch previously entered for that port
      or file descriptor.  This is thread safe - any thread may remove a
      watch.  A file descriptor and a port with the same underlying file
      descriptor compare equal for the purposes of removal.
 
- -- Scheme Procedure: event-post! loop action)
+ -- Scheme Procedure: event-post! loop action
      The 'action' callback is a thunk.  This is thread safe - any thread
      may post an event (that is its main purpose), and the action
      callback will execute in the event loop thread.  Actions execute
@@ -253,18 +253,18 @@ File: guile-a-sync.info,  Node: event loop,  Next: monotonic time,  Prev: corout
      from a worker thread, it will normally be necessary to call
      event-loop-block!  beforehand.
 
- -- Scheme Procedure: timeout-post! loop msecs action)
+ -- Scheme Procedure: timeout-post! loop msecs action
      This adds a timeout to the event loop.  The timeout will repeat
      unless and until the passed-in callback returns #f or
      timeout-remove! is called.  The passed-in callback must be a
      thunk.  This procedure returns a tag symbol to which
      timeout-remove! can be applied.  It may be called by any thread.
 
- -- Scheme Procedure: timeout-remove! loop tag)
+ -- Scheme Procedure: timeout-remove! loop tag
      This stops the timeout with the given tag from executing in the
      event loop concerned.  It may be called by any thread.
 
- -- Scheme Procedure: event-loop-block! loop val)
+ -- Scheme Procedure: event-loop-block! loop val
      By default, upon there being no more watches, timeouts and posted
      events for an event loop, event-loop-run! will return, which is
      normally what you want with a single threaded program.  However,
@@ -277,7 +277,7 @@ File: guile-a-sync.info,  Node: event loop,  Next: monotonic time,  Prev: corout
      non-blocking mode, pass #f.  This is thread safe - any thread may
      call this procedure.
 
- -- Scheme Procedure: event-loop-quit! loop)
+ -- Scheme Procedure: event-loop-quit! loop
      Causes the event loop to unblock.  Any events remaining in the
      event loop will be discarded.  New events may subsequently be
      added after event-loop-run! has unblocked and event-loop-run! then
@@ -285,7 +285,7 @@ File: guile-a-sync.info,  Node: event loop,  Next: monotonic time,  Prev: corout
      procedure.
 
  -- Scheme Procedure: a-sync-run-task-in-thread! loop resume thunk
-          [handler])
+          [handler]
      This is a convenience procedure which will run 'thunk' in its own
      thread, and then post an event to the event loop specified by the
      'loop' argument which applies 'resume' (obtained from a call to
@@ -300,7 +300,7 @@ File: guile-a-sync.info,  Node: event loop,  Next: monotonic time,  Prev: corout
      catch handler (this is implemented using catch).  If 'handler'
      throws, the exception will propagate out of event-loop-run!.
 
- -- Scheme Procedure: a-sync-run-task! loop resume thunk)
+ -- Scheme Procedure: a-sync-run-task! loop resume thunk
      This is a convenience procedure for use with an event loop, which
      will run 'thunk' in the event loop specified by the 'loop'
      argument, and apply 'resume' (obtained from a call to a-sync) to
@@ -316,7 +316,7 @@ File: guile-a-sync.info,  Node: event loop,  Next: monotonic time,  Prev: corout
      (For the latter case though, a-sync-run-task-in-thread! is
      generally a more convenient wrapper.)
 
- -- Scheme Procedure: a-sync-read-watch! loop file resume proc)
+ -- Scheme Procedure: a-sync-read-watch! loop file resume proc
      This is a convenience procedure for use with an event loop, which
      will run 'proc' in the event loop thread whenever 'file' is ready
      for reading, and apply resume (obtained from a call to a-sync) to
@@ -328,7 +328,7 @@ File: guile-a-sync.info,  Node: event loop,  Next: monotonic time,  Prev: corout
      to an end at the right time by calling event-loop-remove-watch! in
      the waitable procedure.
 
- -- Scheme Procedure: a-sync-read-watch-once! loop file resume proc)
+ -- Scheme Procedure: a-sync-read-watch-once! loop file resume proc
      This is a convenience procedure for use with an event loop, which
      will run 'proc' in the event loop thread whenever 'file' is ready
      for reading, and apply resume (obtained from a call to a-sync) to
@@ -341,7 +341,7 @@ File: guile-a-sync.info,  Node: event loop,  Next: monotonic time,  Prev: corout
      Note that once 'proc' has returned, if there is a write watch for
      'file' that will also be removed.
 
- -- Scheme Procedure: a-sync-write-watch! loop file resume proc)
+ -- Scheme Procedure: a-sync-write-watch! loop file resume proc
      This is a convenience procedure for use with an event loop, which
      will run 'proc' in the event loop thread whenever 'file' is ready
      for writing, and apply resume (obtained from a call to a-sync) to
@@ -353,7 +353,7 @@ File: guile-a-sync.info,  Node: event loop,  Next: monotonic time,  Prev: corout
      to an end at the right time by calling event-loop-remove-watch! in
      the waitable procedure.
 
- -- Scheme Procedure: a-sync-write-watch-once! loop file resume proc)
+ -- Scheme Procedure: a-sync-write-watch-once! loop file resume proc
      This is a convenience procedure for use with an event loop, which
      will run 'proc' in the event loop thread whenever 'file' is ready
      for writing, and apply resume (obtained from a call to a-sync) to
@@ -366,7 +366,7 @@ File: guile-a-sync.info,  Node: event loop,  Next: monotonic time,  Prev: corout
      Note that once 'proc' has returned, if there is a read watch for
      'file' that will also be removed.
 
- -- Scheme Procedure: a-sync-timeout! loop msec resume thunk)
+ -- Scheme Procedure: a-sync-timeout! loop msec resume thunk
      This is a convenience procedure for use with an event loop, which
      will run 'thunk' in the event loop thread whenever the timeout
      expires, and apply resume (obtained from a call to a-sync) to the
@@ -376,7 +376,7 @@ File: guile-a-sync.info,  Node: event loop,  Next: monotonic time,  Prev: corout
      end at the right time by applying timeout-remove! in the waitable
      procedure to the tag returned by this procedure.
 
- -- Scheme Procedure: a-sync-timeout-once! loop msec resume thunk)
+ -- Scheme Procedure: a-sync-timeout-once! loop msec resume thunk
      This is a convenience procedure for use with an event loop, which
      will run 'thunk' in the event loop thread when the timeout
      expires, and apply resume (obtained from a call to a-sync) to the
@@ -415,6 +415,6 @@ Tag Table:
 Node: Top0
 Node: coroutines840
 Node: event loop10292
-Node: monotonic time22705
+Node: monotonic time22691
 
 End Tag Table
