@@ -31,3 +31,12 @@ necessary).
 If compiling from git rather than from a release tarball, you will
 need to set up the library by running ./autogen.sh before running
 configure.
+
+After compiling, install with 'make install' as root.
+
+Documentation
+-------------
+
+Html documentation is available after installation in the default html
+directory for the target installation (normally at
+$(prefix)/share/doc/guile-a-sync/html/a-sync.html).

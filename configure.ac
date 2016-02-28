@@ -1,6 +1,9 @@
 dnl Process this file with autoconf to produce a configure script.
 AC_INIT([guile-a-sync], [0.1])
 
+dnl Require autoconf 2.59c or greater for docdir and htmldir
+AC_PREREQ(2.59c)
+
 dnl Set so_version info for libtool (set with -version-info in lib/Makefile.am)
 dnl CURRENT : REVISION : AGE where
 dnl CURRENT =  The most recent interface number that this library implements.

@@ -1,0 +1,21 @@
+
+@node monotonic time
+
+The (a-sync monotonic-time) module provides two procedures.  It is
+loaded by the @ref{event loop,,(async event-loop)} module.
+
+@deffn {Scheme Procedure} have-monotonic-time
+This procedure indicates whether the get-time procedure (see below)
+provides a monotonic clock.  Almost all modern linux/unix-like systems
+will do so.  This procedure may return #f if windows is in use, or if
+the guile-a-sync library was cross-compiled on one architecture for a
+different one.
+@end deffn
+
+@deffn {Scheme Procedure} get-time
+This returns the current time as a (secs . usecs) pair from some
+arbitrary epoch.  If (have-monotonic-time) returns #t, then this will
+be derived from a monotonic clock obtained by applying CLOCK_MONOTONIC
+to the clock_gettime() POSIX function.  This procedure is used by the
+@ref{event loop,,event-loop} timeout implementation.
+@end deffn

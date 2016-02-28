@@ -1,8 +1,10 @@
-The (a-sync coroutines) module contains the following procedures:
 
 
-  (make-iterator proc . args)
+@node coroutines
 
+The (a-sync coroutines) module provides the following procedures:
+
+@deffn {Scheme Procedure} make-iterator proc . args
 This procedure takes a generator procedure, namely a procedure which
 has a 'yield' parameter for its first or only argument, followed by
 such other arguments (other than the one for the 'yield' parameter) as
@@ -22,10 +24,9 @@ it returns an iterator which will do so, (ii) it is resumable, and
 addition to the yield/break argument, to provide an alternative to
 binding them with a lambda closure.  It is similar to ECMAScript
 generators and python generators.
+@end deffn
 
-
-  (make-coroutine proc . args)
-
+@deffn {Scheme Procedure} make-coroutine proc . args
 This procedure takes a generator procedure, namely a procedure which
 has a 'yield' parameter for its first or only argument, followed by
 such other arguments (other than the one for the 'yield' parameter) as
@@ -51,10 +52,9 @@ evaluates is returned by the resumption continuation together with a
 continuation value of #f.  This differs from the behaviour of
 make-iterator, which returns 'stop-iteration when the generator
 procedure finishes to completion and ignores its return value.
+@end deffn
 
-
-  (a-sync waitable . args)
-
+@deffn {Scheme Procedure} a-sync waitable . args
 a-sync takes a waitable procedure (namely a procedure which takes
 'await' as its first parameter, which is a yield procedure obtained by
 a call to make-iterator, and 'resume' as its second parameter, which
@@ -112,7 +112,7 @@ responsibility of the waitable procedure to terminate the watch or
 timeout repetitions).  That way, there can never be a case where the
 callback has been removed from the event loop by returning false but
 the waitable procedure still thinks it has a call to 'await' to be
-made.  The event-loop module has a-sync-run-task!,
+made.  The @ref{event loop,,event-loop} module has a-sync-run-task!,
 a-sync-run-task-in-thread!, a-sync-run-timeout!,
 a-sync-run-timeout-once!, a-sync-run-read-watch!,
 a-sync-run-read-watch-once!, a-sync-run-write-watch! and
@@ -147,4 +147,4 @@ asynchronous events.
 This procedure can be used with any event loop, including the glib
 event loop provided by guile-gnome and so with gtk+ callbacks, and
 with the event loop in the event-loop module.
-
+@end deffn

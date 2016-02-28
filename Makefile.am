@@ -2,10 +2,13 @@
 
 SUBDIRS = a-sync lib docs
 
+.PHONY: docs
+docs:
+	$(MAKE) -C docs docs
+
 snapshot: dist
 	mv @PACKAGE@-@VERSION@.tar.gz @PACKAGE@-`date +%y%m%d`.tar.gz 
 
-EXTRA_DIST = m4/*.m4 autogen.sh config.rpath compile TODO \
-             docs/coroutines docs/event-loop docs/*.scm
+EXTRA_DIST = m4/*.m4 autogen.sh config.rpath compile TODO
 
 ACLOCAL_AMFLAGS = -I m4
