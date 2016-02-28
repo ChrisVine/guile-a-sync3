@@ -56,9 +56,9 @@
 	  (mutable block _block-get _block-set!)))
 
 (define (make-event-loop)
-  (let* ([event-pipe (pipe)]
-	 [in (car event-pipe)]
-	 [out (cdr event-pipe)])
+  (let* ((event-pipe (pipe))
+	 (in (car event-pipe))
+	 (out (cdr event-pipe)))
     ;; the write end of the pipe needs to be set non-blocking so that
     ;; if the pipe fills and the event loop thread is also putting a
     ;; new event in the queue, an exception is thrown rather than a
@@ -104,26 +104,26 @@
 ;; amongst any which have already expired.  However, normalize a
 ;; negative value to 0 before passing it to select.
 (define (_time-remaining abstime)
-  (let ([curr (get-time)])
-   (let ([secs (- (car abstime) (car curr))]
-	  [usecs (- (cdr abstime) (cdr curr))])
+  (let ((curr (get-time)))
+   (let ((secs (- (car abstime) (car curr)))
+	  (usecs (- (cdr abstime) (cdr curr))))
       (+ (exact->inexact secs) (/ (exact->inexact usecs) 1000000)))))
 
 ;; takes a timeout value in milliseconds and returns a (secs . usecs)
 ;; pair representing current time plus the timeout value as an
 ;; absolute time
 (define (_get-abstime msecs)
-  (let* ([curr (get-time)]
-	 [usec-tmp (round (+ (* msecs 1000) (cdr curr)))])
-    (let ([secs (+ (car curr) (quotient usec-tmp 1000000))]
-	  [usecs (remainder usec-tmp 1000000)])
+  (let* ((curr (get-time))
+	 (usec-tmp (round (+ (* msecs 1000) (cdr curr)))))
+    (let ((secs (+ (car curr) (quotient usec-tmp 1000000)))
+	  (usecs (remainder usec-tmp 1000000)))
     (cons secs usecs))))
 
 (define (_process-timeouts el)
   ;; we don't need any mutexes here as we only access the timeouts and
   ;; current-timeout fields of an event loop object, and any
   ;; individual timeout item vectors, in the event loop thread
-  (let ([current-timeout (_current-timeout-get el)])
+  (let ((current-timeout (_current-timeout-get el)))
     (when (and current-timeout
 	       (<= (_time-remaining (vector-ref current-timeout 0)) 0))
       (if ((vector-ref current-timeout 3))
@@ -135,8 +135,8 @@
 ;; This returns a list of timeouts, with the tagged timeout removed
 ;; from the timeout list passed in
 (define (_filter-timeout timeouts tag)
-  (let loop ([remaining timeouts]
-	     [checked '()])
+  (let loop ((remaining timeouts)
+	     (checked '()))
     (if (null? remaining)
 	(begin
 	  ;; it is probably too extreme to error here if the user
@@ -146,7 +146,7 @@
 			 tag)
 	  (force-output (current-error-port))
 	  timeouts)
-	(let ([first (car remaining)])
+	(let ((first (car remaining)))
 	  (if (eq? (vector-ref first 1) tag)
 	      (append (reverse checked) (cdr remaining))
 	      (loop (cdr remaining) (cons first checked)))))))
@@ -155,8 +155,8 @@
 ;; their file descriptors are the same, even if one is a port and one
 ;; is a file descriptor (or both are a file)
 (define (_file-equal? file1 file2)
-  (let ([fd1 (if (port? file1) (fileno file1) file1)]
-	[fd2 (if (port? file2) (fileno file2) file2)])
+  (let ((fd1 (if (port? file1) (fileno file1) file1))
+	(fd2 (if (port? file2) (fileno file2) file2)))
     (= fd1 fd2)))
 
 ;; we don't need any mutexes here as we only access any of the
@@ -205,45 +205,45 @@
          ;; we provide local versions in order to take a consistent view
          ;; on each run, since we might remove items from the lists after
          ;; executing the callbacks
-         (let ([read-files (_read-files-get el)]
-	       [read-files-actions (_read-files-actions-get el)]
-	       [write-files (_write-files-get el)]
-	       [write-files-actions (_write-files-actions-get el)]
-	       [current-timeout (_current-timeout-get el)])
-	   (let ([res (catch 'system-error
+         (let ((read-files (_read-files-get el))
+	       (read-files-actions (_read-files-actions-get el))
+	       (write-files (_write-files-get el))
+	       (write-files-actions (_write-files-actions-get el))
+	       (current-timeout (_current-timeout-get el)))
+	   (let ((res (catch 'system-error
 		        (lambda ()
 			  (select (cons event-fd read-files)
 				  write-files
 				  (delete-duplicates (append read-files write-files) _file-equal?)
 				  (and current-timeout
-				       (let ([secs (_time-remaining (vector-ref current-timeout 0))])
+				       (let ((secs (_time-remaining (vector-ref current-timeout 0))))
 					 (if (< secs 0) 0 secs)))))
 			(lambda args
 			  (if (= EINTR (system-error-errno args))
 			      '(() () ())
-			      (apply throw args))))])
+			      (apply throw args))))))
 	     (for-each (lambda (elt)
-			 (let ([action
-				(let ([item (assoc elt read-files-actions _file-equal?)])
-				  (if item (cdr item) #f))])
+			 (let ((action
+				(let ((item (assoc elt read-files-actions _file-equal?)))
+				  (if item (cdr item) #f))))
 			   (if action
 			       (when (not (action 'in))
 				 (_remove-watch-impl! el elt))
 			       (error "No action in event loop for read file: " elt))))
 		       (delv event-fd (car res)))
 	     (for-each (lambda (elt)
-			 (let ([action
-				(let ([item (assoc elt write-files-actions _file-equal?)])
-				  (if item (cdr item) #f))])
+			 (let ((action
+				(let ((item (assoc elt write-files-actions _file-equal?)))
+				  (if item (cdr item) #f))))
 			   (if action
 			       (when (not (action 'out))
 			         (_remove-watch-impl! el elt))
 			       (error "No action in event loop for write file: " elt))))
 		       (cadr res))
 	     (for-each (lambda (elt)
-			 (let ([action
-				(let ([item (assoc elt (append read-files-actions write-files-actions) _file-equal?)])
-				  (if item (cdr item) #f))])
+			 (let ((action
+				(let ((item (assoc elt (append read-files-actions write-files-actions) _file-equal?)))
+				  (if item (cdr item) #f))))
 			   (if action
 			       (when (not (action 'excpt))
 				 (_remove-watch-impl! el elt))
@@ -251,28 +251,28 @@
 		       (caddr res))
 	     (when (memv event-fd (car res))
 	       (let loop2 ()
-		 (let ([c (read-char event-in)])
+		 (let ((c (read-char event-in)))
 		   (if (eof-object? c)
 		       (with-mutex mutex (_done-set! el #t))
 		       (case c
-			 [(#\x)
+			 ((#\x)
 			  (let loop3 ()
 			    ;; the strategy is to exhaust the entire
 			    ;; event queue when #\x is in the pipe
 			    ;; buffer.  This eliminates any concerns
 			    ;; that events might go missing if the
 			    ;; pipe fills up.
-			    (let ([action (with-mutex mutex
-					    (if (q-empty? q) #f (deq! q)))])
+			    (let ((action (with-mutex mutex
+					    (if (q-empty? q) #f (deq! q)))))
 			      (when action
 			        (action)
 				(when (not (with-mutex mutex (_done-get el)))
 			          (loop3)))))
 			  (when (and (char-ready? event-in)
 				     (not (with-mutex mutex (_done-get el))))
-			    (loop2))]
-			 [else
-			  (error "Invalid character in event pipe: " c)]))))))
+			    (loop2)))
+			 (else
+			  (error "Invalid character in event pipe: " c))))))))
 	   (if (not (with-mutex mutex (_done-get el)))
 	       (loop1)
 	       ;; clear out any stale events before returning and
@@ -303,14 +303,14 @@
 	(unless (= EAGAIN (system-error-errno args))
 	  (apply throw args))))
       
-    (let* ([event-pipe (pipe)]
-	   [in (car event-pipe)]
-	   [out (cdr event-pipe)])
+    (let* ((event-pipe (pipe))
+	   (in (car event-pipe))
+	   (out (cdr event-pipe)))
       (fcntl out F_SETFL (logior O_NONBLOCK
 				 (fcntl out F_GETFL)))
       (_event-in-set! el in)
       (_event-out-set! el out))
-    (let ([q (_q-get el)])
+    (let ((q (_q-get el)))
       (let loop ()
 	(when (not (q-empty? q))
 	  (deq! q)
@@ -402,7 +402,7 @@
 (define (event-post! el action)
   (with-mutex (_mutex-get el)
     (enq! (_q-get el) action)
-    (let ([out (_event-out-get el)])
+    (let ((out (_event-out-get el)))
       ;; if the event pipe is full and an EAGAIN error arises, we
       ;; can just swallow it.  The only purpose of writing #\x is to
       ;; cause the select procedure to return and reloop to pick up
@@ -421,15 +421,15 @@
 ;; This procedure returns a tag symbol to which timeout-remove! can be
 ;; applied.  It may be called by any thread.
 (define (timeout-post! el msecs action)
-  (let ([tag (gensym "timeout-")]
-	[abstime (_get-abstime msecs)])
+  (let ((tag (gensym "timeout-"))
+	(abstime (_get-abstime msecs)))
     (event-post! el
 		 (lambda ()
-		   (let ([new-timeouts (cons (vector abstime
+		   (let ((new-timeouts (cons (vector abstime
 						     tag
 						     msecs
 						     action)
-					     (_timeouts-get el))])
+					     (_timeouts-get el))))
 		     (_timeouts-set! el new-timeouts)
 		     (_current-timeout-set! el (_next-timeout new-timeouts)))))
     tag))
@@ -454,14 +454,14 @@
 ;; call this procedure.
 (define (event-loop-block! el val)
   (with-mutex (_mutex-get el)
-    (let ([old-val (_block-get el)])
+    (let ((old-val (_block-get el)))
       (_block-set! el (not (not val)))
       (when (and old-val (not val))
 	;; if the event pipe is full and an EAGAIN error arises, we
 	;; can just swallow it.  The only purpose of writing #\x is to
 	;; cause the select procedure to return and reloop and then
 	;; exit the event loop if there are no further events.
-	(let ([out (_event-out-get el)])
+	(let ((out (_event-out-get el)))
 	  (catch 'system-error
 	    (lambda ()
 	      (write-char #\x out)
@@ -481,7 +481,7 @@
     ;; if the event pipe is full and an EAGAIN error arises, we can
     ;; just swallow it.  The only purpose of writing #\x is to cause
     ;; the select procedure to return
-    (let ([out (_event-out-get el)])
+    (let ((out (_event-out-get el)))
       (catch 'system-error
 	(lambda ()
 	  (write-char #\x out)
@@ -510,7 +510,7 @@
 	 (catch
 	  #t
 	  (lambda ()
-	    (let ([res (thunk)])
+	    (let ((res (thunk)))
 	      (event-post! loop (lambda ()
 				  (resume res)))))
 	  (lambda args
@@ -518,7 +518,7 @@
 				(resume (apply handler args))))))))
       (call-with-new-thread
        (lambda ()
-	 (let ([res (thunk)])
+	 (let ((res (thunk)))
 	   (event-post! loop (lambda ()
 			       (resume res))))))))
 
