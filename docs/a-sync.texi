@@ -21,3 +21,5 @@ The guile-a-sync library is provided in three modules:
 @include coroutines.texi
 @include event-loop.texi
 @include monotonic-time.texi
+
+@bye
