@@ -39,4 +39,4 @@ Documentation
 
 Html documentation is available after installation in the default html
 directory for the target installation (normally at
-$(prefix)/share/doc/guile-a-sync/html/a-sync.html).
+$(prefix)/share/doc/guile-a-sync/html/index.html).
