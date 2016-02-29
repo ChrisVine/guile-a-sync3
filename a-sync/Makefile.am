@@ -9,9 +9,9 @@ CLEANFILES = $(GOBJECTS)
 SUFFIXES = .scm .go
 
 .scm.go:
-	guild compile -L .. -o "$@" "$<"
+	$(top_builddir)/a-sync/a-sync-compile.sh "$@" "$<"
 
 moduledir = $(GUILE_SITE)/a-sync
 module_DATA = $(SOURCES) $(GOBJECTS)
 
-EXTRA_DIST = $(SOURCES)
+EXTRA_DIST = $(SOURCES) a-sync-compile.sh

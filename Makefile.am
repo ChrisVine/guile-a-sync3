@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-SUBDIRS = a-sync lib docs
+SUBDIRS = lib a-sync docs
 
 .PHONY: docs
 docs:
