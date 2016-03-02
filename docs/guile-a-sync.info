@@ -169,6 +169,95 @@ File: guile-a-sync.info,  Node: coroutines,  Next: event loop,  Prev: Top,  Up: 
      await-resume pair for the purpose of starting other asynchronous
      events.
 
+     So, don't do this:
+
+          (define main-loop (make-event-loop))
+          (a-sync (lambda (await resume)
+
+          	  (timeout-post! main-loop
+          			 100
+          			 (lambda ()
+          			   (resume "expired")
+          			   #f))
+          	  (event-post! main-loop
+          		       (lambda ()
+          			 (resume (+ 1 1))))
+
+          	  (simple-format #t "Timeout ~A\n" (await))
+          	  (simple-format #t "1 + 1 is ~A\n" (await))))
+          (event-loop-run! main-loop)
+
+     Instead do this:
+
+          (define main-loop (make-event-loop))
+          (a-sync (lambda (await resume)
+
+          	  (timeout-post! main-loop 100
+          			 (lambda ()
+          			   (resume "expired")
+          			   #f))
+          	  (simple-format #t "Timeout ~A\n" (await))
+          	  (event-post! main-loop
+          		       (lambda ()
+          			 (resume (+ 1 1))))
+
+          	  (simple-format #t "1 + 1 is ~A\n" (await))))
+          (event-loop-run! main-loop)
+
+     or this:
+
+          (define main-loop (make-event-loop))
+          (a-sync (lambda (await resume)
+          	  (timeout-post! main-loop 100
+          			 (lambda ()
+          			   (resume "expired")
+          			   #f))
+          	  (simple-format #t "Timeout ~A\n" (await))))
+          (a-sync (lambda (await resume)
+          	  (event-post! main-loop
+          		       (lambda ()
+          			 (resume (+ 1 1))))
+          	  (simple-format #t "1 + 1 is ~A\n" (await))))
+
+          (event-loop-run! main-loop)
+
+     Or better still, when composing on the event loop from the *note
+     event-loop: event loop. module, use the await helper procedures,
+     as follows:
+
+          (define main-loop (make-event-loop))
+          (a-sync (lambda (await resume)
+          	  (simple-format #t
+          			 "Timeout ~A\n"
+          			 (await-timeout! main-loop 100
+          					 await resume
+          					 (lambda ()
+          					   "expired")))
+          	  (simple-format #t "1 + 1 is ~A\n"
+          			 (await-task! main-loop
+          				      await resume
+          				      (lambda ()
+          					(+ 1 1))))))
+          (event-loop-run! main-loop)
+
+     or
+
+          (define main-loop (make-event-loop))
+          (a-sync (lambda (await resume)
+          	  (simple-format #t
+          			 "Timeout ~A\n"
+          			 (await-timeout! main-loop 100
+          					 await resume
+          					 (lambda ()
+          					   "expired")))))
+          (a-sync (lambda (await resume)
+          	  (simple-format #t "1 + 1 is ~A\n"
+          			 (await-task! main-loop
+          				      await resume
+          				      (lambda ()
+          					(+ 1 1))))))
+          (event-loop-run! main-loop)
+
      This procedure can be used with any event loop, including the glib
      event loop provided by guile-gnome and so with gtk+ callbacks, and
      with the event loop in the event-loop module.
@@ -299,6 +388,16 @@ File: guile-a-sync.info,  Node: event loop,  Next: monotonic time,  Prev: corout
      catch).  If 'handler' throws, the exception will propagate out of
      event-loop-run!.
 
+     Here is an example:
+          (define main-loop (make-event-loop))
+          (a-sync (lambda (await resume)
+          	  (simple-format #t "1 + 1 is ~A\n"
+          			 (await-task-in-thread! main-loop
+          						await resume
+          						(lambda ()
+          						  (+ 1 1))))))
+          (event-loop-run! main-loop)
+
  -- Scheme Procedure: await-task! loop await resume thunk
      This is a convenience procedure for use with an event loop, which
      will run 'thunk' in the event loop specified by the 'loop'
@@ -316,6 +415,16 @@ File: guile-a-sync.info,  Node: event loop,  Next: monotonic time,  Prev: corout
      in the event loop thread.  (For the latter case though,
      await-task-in-thread! is generally a more convenient wrapper.)
 
+     Here is an example:
+          (define main-loop (make-event-loop))
+          (a-sync (lambda (await resume)
+          	  (simple-format #t "1 + 1 is ~A\n"
+          			 (await-task! main-loop
+          				      await resume
+          				      (lambda ()
+          					(+ 1 1))))))
+          (event-loop-run! main-loop)
+
  -- Scheme Procedure: await-timeout! loop msec await resume thunk
      This is a convenience procedure for use with an event loop, which
      will run 'thunk' in the event loop thread when the timeout
@@ -324,6 +433,17 @@ File: guile-a-sync.info,  Node: event loop,  Next: monotonic time,  Prev: corout
      invoked by a-sync.  The timeout is single shot only - as soon as
      'thunk' has run once and completed, the timeout will be removed
      from the event loop.
+
+     Here is an example:
+          (define main-loop (make-event-loop))
+          (a-sync (lambda (await resume)
+          	  (simple-format #t
+          			 "Timeout ~A\n"
+          			 (await-timeout! main-loop 100
+          					 await resume
+          					 (lambda ()
+          					   "expired")))))
+          (event-loop-run! main-loop)
 
  -- Scheme Procedure: a-sync-read-watch! loop file resume proc
      This is a convenience procedure for use with an event loop, which
@@ -339,6 +459,24 @@ File: guile-a-sync.info,  Node: event loop,  Next: monotonic time,  Prev: corout
      something from which higher-level asynchronous file operations can
      be constructed, such as the await-readline! procedure.
 
+     As an example of how to use a-sync-read-watch!, here is the
+     implementation of await-getline!:
+          (define (await-getline! loop file await resume)
+            (define text '())
+            (a-sync-read-watch! loop
+          		      file
+          		      resume
+          		      (lambda (status)
+          			(read-char file)))
+            (let next ([ch (await)])
+              (if (not (char=? ch #\newline))
+          	(begin
+          	  (set! text (cons ch text))
+          	  (next (await)))
+          	(begin
+          	  (event-loop-remove-watch! loop file)
+          	  (reverse-list->string text)))))
+
  -- Scheme Procedure: await-getline! loop file await resume
      This is a convenience procedure for use with an event loop, which
      will start a file watch and run 'thunk' in the event loop thread
@@ -349,6 +487,17 @@ File: guile-a-sync.info,  Node: event loop,  Next: monotonic time,  Prev: corout
      characters are available at any one time.  It is intended to be
      called in a waitable procedure invoked by a-sync.  This procedure
      is implemented using a-sync-read-watch!.
+
+     Here is an example:
+          (define main-loop (make-event-loop))
+          (a-sync (lambda (await resume)
+          	  (display "Enter a line of text at the keyboard\n")
+          	  (simple-format #t
+          			 "The line was: ~A\n"
+          			 (await-getline! main-loop
+          					  (open "/dev/tty" O_RDONLY)
+          					  await resume))))
+          (event-loop-run! main-loop)
 
  -- Scheme Procedure: a-sync-write-watch! loop file resume proc
      This is a convenience procedure for use with an event loop, which
@@ -393,7 +542,7 @@ loaded by the *note (a-sync event-loop): event loop. module.
 Tag Table:
 Node: Top0
 Node: coroutines840
-Node: event loop10186
-Node: monotonic time21446
+Node: event loop12895
+Node: monotonic time26189
 
 End Tag Table

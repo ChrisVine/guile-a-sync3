@@ -129,6 +129,18 @@ terminate if an unhandled exception propagates out of 'thunk'.
 'handler' should take the same arguments as a guile catch handler
 (this is implemented using catch).  If 'handler' throws, the exception
 will propagate out of event-loop-run!.
+
+Here is an example:
+@example
+(define main-loop (make-event-loop))
+(a-sync (lambda (await resume)
+	  (simple-format #t "1 + 1 is ~A\n"
+			 (await-task-in-thread! main-loop
+						await resume
+						(lambda ()
+						  (+ 1 1))))))
+(event-loop-run! main-loop)
+@end example
 @end deffn
 
 @deffn {Scheme Procedure} await-task! loop await resume thunk
@@ -147,6 +159,18 @@ or when called by a worker thread to report a result expected by a
 waitable procedure running in the event loop thread.  (For the latter
 case though, await-task-in-thread! is generally a more convenient
 wrapper.)
+
+Here is an example:
+@example
+(define main-loop (make-event-loop))
+(a-sync (lambda (await resume)
+	  (simple-format #t "1 + 1 is ~A\n"
+			 (await-task! main-loop
+				      await resume
+				      (lambda ()
+					(+ 1 1))))))
+(event-loop-run! main-loop)
+@end example
 @end deffn
 
 @deffn {Scheme Procedure} await-timeout! loop msec await resume thunk
@@ -156,6 +180,19 @@ procedure calls 'await' and will return the thunk's return value.  It
 is intended to be called in a waitable procedure invoked by a-sync.
 The timeout is single shot only - as soon as 'thunk' has run once and
 completed, the timeout will be removed from the event loop.
+
+Here is an example:
+@example
+(define main-loop (make-event-loop))
+(a-sync (lambda (await resume)
+	  (simple-format #t
+			 "Timeout ~A\n"
+			 (await-timeout! main-loop 100
+					 await resume
+					 (lambda ()
+					   "expired")))))
+(event-loop-run! main-loop)
+@end example
 @end deffn
 
 @deffn {Scheme Procedure} a-sync-read-watch! loop file resume proc
@@ -171,6 +208,26 @@ time by calling event-loop-remove-watch! in the waitable procedure.
 This procedure is mainly intended as something from which higher-level
 asynchronous file operations can be constructed, such as the
 await-readline! procedure.
+
+As an example of how to use a-sync-read-watch!, here is the
+implementation of await-getline!:
+@example
+(define (await-getline! loop file await resume)
+  (define text '())
+  (a-sync-read-watch! loop
+		      file
+		      resume
+		      (lambda (status)
+			(read-char file)))
+  (let next ([ch (await)])
+    (if (not (char=? ch #\newline))
+	(begin
+	  (set! text (cons ch text))
+	  (next (await)))
+	(begin
+	  (event-loop-remove-watch! loop file)
+	  (reverse-list->string text)))))
+@end example
 @end deffn
 
 @deffn {Scheme Procedure} await-getline! loop file await resume
@@ -183,6 +240,19 @@ blocked by this procedure even if only individual characters are
 available at any one time.  It is intended to be called in a waitable
 procedure invoked by a-sync.  This procedure is implemented using
 a-sync-read-watch!.
+
+Here is an example:
+@example
+(define main-loop (make-event-loop))
+(a-sync (lambda (await resume)
+	  (display "Enter a line of text at the keyboard\n")
+	  (simple-format #t
+			 "The line was: ~A\n"
+			 (await-getline! main-loop
+					  (open "/dev/tty" O_RDONLY)
+					  await resume))))
+(event-loop-run! main-loop)
+@end example
 @end deffn
 
 @deffn {Scheme Procedure} a-sync-write-watch! loop file resume proc

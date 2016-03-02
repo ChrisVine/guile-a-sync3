@@ -1,10 +1,6 @@
 In no particular order:
 
-- Improve documentation (get some automatic documentation generation)
-
 - Switch to SRFI-9 records instead of R6RS records for event-loop objects
-
-- Include more examples in the documentation
 
 - Provide some additional wrapper procedures for operations on a glib
   main loop.

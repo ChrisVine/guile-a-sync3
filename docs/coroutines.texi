@@ -143,6 +143,104 @@ examples).  A waitable procedure can itself call a-sync to construct
 another await-resume pair for the purpose of starting other
 asynchronous events.
 
+So, don't do this:
+
+@example
+(define main-loop (make-event-loop))
+(a-sync (lambda (await resume)
+
+	  (timeout-post! main-loop
+			 100
+			 (lambda ()
+			   (resume "expired")
+			   #f))
+	  (event-post! main-loop
+		       (lambda ()
+			 (resume (+ 1 1))))
+
+	  (simple-format #t "Timeout ~A\n" (await))
+	  (simple-format #t "1 + 1 is ~A\n" (await))))
+(event-loop-run! main-loop)
+@end example
+
+Instead do this:
+
+@example
+(define main-loop (make-event-loop))
+(a-sync (lambda (await resume)
+
+	  (timeout-post! main-loop 100
+			 (lambda ()
+			   (resume "expired")
+			   #f))
+	  (simple-format #t "Timeout ~A\n" (await))
+	  (event-post! main-loop
+		       (lambda ()
+			 (resume (+ 1 1))))
+
+	  (simple-format #t "1 + 1 is ~A\n" (await))))
+(event-loop-run! main-loop)
+@end example
+
+or this:
+
+@example
+(define main-loop (make-event-loop))
+(a-sync (lambda (await resume)
+	  (timeout-post! main-loop 100
+			 (lambda ()
+			   (resume "expired")
+			   #f))
+	  (simple-format #t "Timeout ~A\n" (await))))
+(a-sync (lambda (await resume)
+	  (event-post! main-loop
+		       (lambda ()
+			 (resume (+ 1 1))))
+	  (simple-format #t "1 + 1 is ~A\n" (await))))
+	  
+(event-loop-run! main-loop)
+@end example
+
+Or better still, when composing on the event loop from the @ref{event
+loop,,event-loop} module, use the await helper procedures, as follows:
+
+@example
+(define main-loop (make-event-loop))
+(a-sync (lambda (await resume)
+	  (simple-format #t
+			 "Timeout ~A\n"
+			 (await-timeout! main-loop 100
+					 await resume
+					 (lambda ()
+					   "expired")))
+	  (simple-format #t "1 + 1 is ~A\n"
+			 (await-task! main-loop
+				      await resume
+				      (lambda ()
+					(+ 1 1))))))
+(event-loop-run! main-loop)
+@end example
+
+or
+
+@example
+(define main-loop (make-event-loop))
+(a-sync (lambda (await resume)
+	  (simple-format #t
+			 "Timeout ~A\n"
+			 (await-timeout! main-loop 100
+					 await resume
+					 (lambda ()
+					   "expired")))))
+(a-sync (lambda (await resume)
+	  (simple-format #t "1 + 1 is ~A\n"
+			 (await-task! main-loop
+				      await resume
+				      (lambda ()
+					(+ 1 1))))))
+(event-loop-run! main-loop)
+@end example
+
 This procedure can be used with any event loop, including the glib
 event loop provided by guile-gnome and so with gtk+ callbacks, and
 with the event loop in the event-loop module.

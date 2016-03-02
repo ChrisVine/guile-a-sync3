@@ -175,6 +175,93 @@ examples).  A waitable procedure can itself call a-sync to construct
 another await-resume pair for the purpose of starting other
 asynchronous events.
 
+        <p>So, don't do this:
+
+     <pre class="example">          (define main-loop (make-event-loop))
+          (a-sync (lambda (await resume)
+          
+          	  (timeout-post! main-loop
+          			 100
+          			 (lambda ()
+          			   (resume "expired")
+          			   #f))
+          	  (event-post! main-loop
+          		       (lambda ()
+          			 (resume (+ 1 1))))
+          
+          	  (simple-format #t "Timeout ~A\n" (await))
+          	  (simple-format #t "1 + 1 is ~A\n" (await))))
+          (event-loop-run! main-loop)
+</pre>
+        <p>Instead do this:
+
+     <pre class="example">          (define main-loop (make-event-loop))
+          (a-sync (lambda (await resume)
+          
+          	  (timeout-post! main-loop 100
+          			 (lambda ()
+          			   (resume "expired")
+          			   #f))
+          	  (simple-format #t "Timeout ~A\n" (await))
+          	  (event-post! main-loop
+          		       (lambda ()
+          			 (resume (+ 1 1))))
+          
+          	  (simple-format #t "1 + 1 is ~A\n" (await))))
+          (event-loop-run! main-loop)
+</pre>
+        <p>or this:
+
+     <pre class="example">          (define main-loop (make-event-loop))
+          (a-sync (lambda (await resume)
+          	  (timeout-post! main-loop 100
+          			 (lambda ()
+          			   (resume "expired")
+          			   #f))
+          	  (simple-format #t "Timeout ~A\n" (await))))
+          (a-sync (lambda (await resume)
+          	  (event-post! main-loop
+          		       (lambda ()
+          			 (resume (+ 1 1))))
+          	  (simple-format #t "1 + 1 is ~A\n" (await))))
+          
+          (event-loop-run! main-loop)
+</pre>
+        <p>Or better still, when composing on the event loop from the <a href="event-loop.html#event-loop">event-loop</a> module, use the await helper procedures, as follows:
+
+     <pre class="example">          (define main-loop (make-event-loop))
+          (a-sync (lambda (await resume)
+          	  (simple-format #t
+          			 "Timeout ~A\n"
+          			 (await-timeout! main-loop 100
+          					 await resume
+          					 (lambda ()
+          					   "expired")))
+          	  (simple-format #t "1 + 1 is ~A\n"
+          			 (await-task! main-loop
+          				      await resume
+          				      (lambda ()
+          					(+ 1 1))))))
+          (event-loop-run! main-loop)
+</pre>
+        <p>or
+
+     <pre class="example">          (define main-loop (make-event-loop))
+          (a-sync (lambda (await resume)
+          	  (simple-format #t
+          			 "Timeout ~A\n"
+          			 (await-timeout! main-loop 100
+          					 await resume
+          					 (lambda ()
+          					   "expired")))))
+          (a-sync (lambda (await resume)
+          	  (simple-format #t "1 + 1 is ~A\n"
+          			 (await-task! main-loop
+          				      await resume
+          				      (lambda ()
+          					(+ 1 1))))))
+          (event-loop-run! main-loop)
+</pre>
         <p>This procedure can be used with any event loop, including the glib
 event loop provided by guile-gnome and so with gtk+ callbacks, and
 with the event loop in the event-loop module. 
