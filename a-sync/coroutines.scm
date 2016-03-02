@@ -161,15 +161,15 @@
 ;; After the call to 'resume', the callback should normally just
 ;; return (with a #t or #f value in the case of a file watch or a
 ;; timeout on an event-loop object from the event loop module).  If
-;; a-sync is used with a file watch or timeout constructed by
-;; make-event-loop, the watch callback or timeout callback should
-;; normally, when the call to 'resume' returns, either always return
-;; #f (so the callback only fires once) or always return #t (so it is
-;; responsibility of the waitable procedure to terminate the watch or
-;; timeout repetitions).  That way, there can never be a case where
-;; the callback has been removed from the event loop by returning
-;; false but the waitable procedure still thinks it has a call to
-;; 'await' to be made.  The event-loop module has await-task!,
+;; a-sync is used with a file watch or timeout on an event-loop object
+;; constructed by make-event-loop, the watch callback or timeout
+;; callback should normally, when the call to 'resume' returns, either
+;; always return #f (so the callback only fires once) or always return
+;; #t (so it is responsibility of the waitable procedure to terminate
+;; the watch or timeout repetitions).  That way, there can never be a
+;; case where the callback has been removed from the event loop by
+;; returning false but the waitable procedure still thinks it has a
+;; call to 'await' to be made.  The event-loop module has await-task!,
 ;; await-task-in-thread!, await-timeout!, a-sync-read-watch!,
 ;; await-getline! and a-sync-write-watch! convenience procedures which
 ;; will correctly set this up for you automatically.  If those

@@ -24,7 +24,7 @@
 ;; SOFTWARE.
 
 
-(use-modules (a-sync event-loop) (a-sync coroutines) (ice-9 threads))
+(use-modules (a-sync event-loop) (a-sync coroutines))
 
 (define main-loop (make-event-loop))
 
