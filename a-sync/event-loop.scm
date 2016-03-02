@@ -444,10 +444,10 @@
 ;; normally what you want with a single threaded program.  However,
 ;; this is undesirable where a worker thread is intended to post an
 ;; event to the main loop after it has reached a result, say via
-;; a-sync-run-task-in-thread, because the main loop may have ended
-;; before it posts.  Passing #t to the val argument of this procedure
-;; will prevent that from happening, so that the event loop can only
-;; be ended by calling event-loop-quit!.  To switch it back to
+;; await-task-in-thread, because the main loop may have ended before
+;; it posts.  Passing #t to the val argument of this procedure will
+;; prevent that from happening, so that the event loop can only be
+;; ended by calling event-loop-quit!.  To switch it back to
 ;; non-blocking mode, pass #f.  This is thread safe - any thread may
 ;; call this procedure.
 (define (event-loop-block! el val)
