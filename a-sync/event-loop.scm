@@ -32,14 +32,12 @@
 	    timeout-post!
 	    timeout-remove!
 	    event-loop?
-	    a-sync-run-task!
-	    a-sync-run-task-in-thread!
+	    await-task!
+	    await-task-in-thread!
+	    await-timeout!
 	    a-sync-read-watch!
-	    a-sync-read-watch-once!
 	    a-sync-write-watch!
-	    a-sync-write-watch-once!
-	    a-sync-timeout!
-	    a-sync-timeout-once!))
+	    await-getline!))
 
 (define-record-type (event-loop _make-event-loop event-loop?)
   (fields (immutable mutex _mutex-get)
@@ -492,18 +490,19 @@
 
 ;; This is a convenience procedure which will run 'thunk' in its own
 ;; thread, and then post an event to the event loop specified by the
-;; 'loop' argument which applies 'resume' (obtained from a call to
-;; a-sync) to the thunk's return value.  It is intended to be called
-;; in a waitable procedure invoked by a-sync.  It will normally be
-;; necessary to call event-loop-block! before invoking this procedure.
-;; If the optional 'handler' argument is provided, then it will be run
-;; in the event loop thread if 'thunk' throws and its return value
-;; will be passed to 'resume'; otherwise the program will terminate if
-;; an unhandled exception propagates out of 'thunk'.  'handler' should
-;; take the same arguments as a guile catch handler (this is
-;; implemented using catch).  If 'handler' throws, the exception will
-;; propagate out of event-loop-run!.
-(define* (a-sync-run-task-in-thread! loop resume thunk #:optional handler)
+;; 'loop' argument when 'thunk' has finished.  This procedure calls
+;; 'await' and will return the thunk's return value.  It is intended
+;; to be called in a waitable procedure invoked by a-sync.  It will
+;; normally be necessary to call event-loop-block! before invoking
+;; this procedure.  If the optional 'handler' argument is provided,
+;; then it will be run in the event loop thread if 'thunk' throws and
+;; its return value will be the return value of this procedure;
+;; otherwise the program will terminate if an unhandled exception
+;; propagates out of 'thunk'.  'handler' should take the same
+;; arguments as a guile catch handler (this is implemented using
+;; catch).  If 'handler' throws, the exception will propagate out of
+;; event-loop-run!.
+(define* (await-task-in-thread! loop await resume thunk #:optional handler)
   (if handler
       (call-with-new-thread
        (lambda ()
@@ -520,25 +519,42 @@
        (lambda ()
 	 (let ((res (thunk)))
 	   (event-post! loop (lambda ()
-			       (resume res))))))))
+			       (resume res)))))))
+  (await))
 
 ;; This is a convenience procedure for use with an event loop, which
 ;; will run 'thunk' in the event loop specified by the 'loop'
-;; argument, and apply 'resume' (obtained from a call to a-sync) to
-;; thunk's return value.  It is intended to be called in a waitable
-;; procedure invoked by a-sync.  It is the single-threaded corollary
-;; of a-sync-run-task-in-thread!.  This means that (unlike with
-;; a-sync-run-task-in-thread!) while the task is running other events
-;; in the event loop will not make progress.  This is not particularly
-;; useful except when called by the event loop thread for the purpose
-;; of bringing the event loop to an end at its own place in the event
-;; queue, or when called by a worker thread to report a result
-;; expected by a waitable procedure running in the event loop thread.
-;; (For the latter case though, a-sync-run-task-in-thread! is
+;; argument, and then post an event to the event loop specified by the
+;; 'loop' argument when 'thunk' has finished.  This procedure calls
+;; 'await' and will return the thunk's return value.  It is intended
+;; to be called in a waitable procedure invoked by a-sync.  It is the
+;; single-threaded corollary of await-task-in-thread!.  This means
+;; that (unlike with await-task-in-thread!) while the task is running
+;; other events in the event loop will not make progress.  This is not
+;; particularly useful except when called by the event loop thread for
+;; the purpose of bringing the event loop to an end at its own place
+;; in the event queue, or when called by a worker thread to report a
+;; result expected by a waitable procedure running in the event loop
+;; thread.  (For the latter case though, await-task-in-thread! is
 ;; generally a more convenient wrapper.)
-(define (a-sync-run-task! loop resume thunk)
+(define (await-task! loop await resume thunk)
   (event-post! loop (lambda ()
-		      (resume (thunk)))))
+		      (resume (thunk))))
+  (await))
+
+;; This is a convenience procedure for use with an event loop, which
+;; will run 'thunk' in the event loop thread when the timeout expires.
+;; This procedure calls 'await' and will return the thunk's return
+;; value.  It is intended to be called in a waitable procedure invoked
+;; by a-sync.  The timeout is single shot only - as soon as 'thunk'
+;; has run once and completed, the timeout will be removed from the
+;; event loop.
+(define (await-timeout! loop msec await resume thunk)
+  (timeout-post! loop msec
+		 (lambda ()
+		   (resume (thunk))
+		   #f))
+  (await))
 
 ;; This is a convenience procedure for use with an event loop, which
 ;; will run 'proc' in the event loop thread whenever 'file' is ready
@@ -549,7 +565,9 @@
 ;; It is intended to be called in a waitable procedure invoked by
 ;; a-sync.  The watch is multi-shot - it is for the user to bring it
 ;; to an end at the right time by calling event-loop-remove-watch! in
-;; the waitable procedure.
+;; the waitable procedure.  This procedure is mainly intended as
+;; something from which higher-level asynchronous file operations can
+;; be constructed, such as the await-getline! procedure.
 (define (a-sync-read-watch! loop file resume proc)
   (event-loop-add-read-watch! loop file
 			      (lambda (status)
@@ -557,21 +575,29 @@
 				#t)))
 
 ;; This is a convenience procedure for use with an event loop, which
-;; will run 'proc' in the event loop thread whenever 'file' is ready
-;; for reading, and apply resume (obtained from a call to a-sync) to
-;; the return value of 'proc'.  'proc' should take a single argument
-;; which will be set by the event loop to 'in or 'excpt (see the
-;; documentation on event-loop-add-read-watch! for further details).
-;; It is intended to be called in a waitable procedure invoked by
-;; a-sync.  The watch is single shot only - as soon as 'proc' has run
-;; once and completed, the watch will be removed from the event loop.
-;; Note that once 'proc' has returned, if there is a write watch for
-;; 'file' that will also be removed.
-(define (a-sync-read-watch-once! loop file resume proc)
-  (event-loop-add-read-watch! loop file
-			      (lambda (status)
-				(resume (proc status))
-				#f)))
+;; will start a file watch and run 'thunk' in the event loop thread
+;; whenver an entire line of text has been received.  This procedure
+;; calls 'await' while waiting for input and will return the line of
+;; text received (without the terminating '\n' character).  The event
+;; loop will not be blocked by this procedure even if only individual
+;; characters are available at any one time.  It is intended to be
+;; called in a waitable procedure invoked by a-sync.  This procedure
+;; is implemented using a-sync-read-watch!.
+(define (await-getline! loop file await resume)
+  (define text '())
+  (a-sync-read-watch! loop
+		      file
+		      resume
+		      (lambda (status)
+			(read-char file)))
+  (let next ([ch (await)])
+    (if (not (char=? ch #\newline))
+	(begin
+	  (set! text (cons ch text))
+	  (next (await)))
+	(begin
+	  (event-loop-remove-watch! loop file)
+	  (reverse-list->string text)))))
 
 ;; This is a convenience procedure for use with an event loop, which
 ;; will run 'proc' in the event loop thread whenever 'file' is ready
@@ -582,54 +608,11 @@
 ;; It is intended to be called in a waitable procedure invoked by
 ;; a-sync.  The watch is multi-shot - it is for the user to bring it
 ;; to an end at the right time by calling event-loop-remove-watch! in
-;; the waitable procedure.
+;; the waitable procedure.  This procedure is mainly intended as
+;; something from which higher-level asynchronous file operations can
+;; be constructed.
 (define (a-sync-write-watch! loop file resume proc)
   (event-loop-add-write-watch! loop file
 			      (lambda (status)
 				(resume (proc status))
 				#t)))
-
-;; This is a convenience procedure for use with an event loop, which
-;; will run 'proc' in the event loop thread whenever 'file' is ready
-;; for writing, and apply resume (obtained from a call to a-sync) to
-;; the return value of 'proc'.  'proc' should take a single argument
-;; which will be set by the event loop to 'out or 'excpt (see the
-;; documentation on event-loop-add-write-watch! for further details).
-;; It is intended to be called in a waitable procedure invoked by
-;; a-sync.  The watch is single shot only - as soon as 'proc' has run
-;; once and completed, the watch will be removed from the event loop.
-;; Note that once 'proc' has returned, if there is a read watch for
-;; 'file' that will also be removed.
-(define (a-sync-write-watch-once! loop file resume proc)
-  (event-loop-add-write-watch! loop file
-			      (lambda (status)
-				(resume (proc status))
-				#f)))
-
-;; This is a convenience procedure for use with an event loop, which
-;; will run 'thunk' in the event loop thread whenever the timeout
-;; expires, and apply resume (obtained from a call to a-sync) to the
-;; return value of 'thunk'.  It is intended to be called in a waitable
-;; procedure invoked by a-sync in the coroutines module.  The timeout
-;; is multi-shot - it is for the user to bring it to an end at the
-;; right time by applying timeout-remove! in the waitable procedure to
-;; the tag returned by this procedure.
-(define (a-sync-timeout! loop msec resume thunk)
-  (timeout-post! loop msec
-		 (lambda ()
-		   (resume (thunk))
-		   #t)))
-
-;; This is a convenience procedure for use with an event loop, which
-;; will run 'thunk' in the event loop thread when the timeout expires,
-;; and apply resume (obtained from a call to a-sync) to the return
-;; value of 'thunk'.  It is intended to be called in a waitable
-;; procedure invoked by a-sync.  The timeout is single shot only - as
-;; soon as 'thunk' has run once and completed, the timeout will be
-;; removed from the event loop.
-(define (a-sync-timeout-once! loop msec resume thunk)
-  (timeout-post! loop msec
-		 (lambda ()
-		   (resume (thunk))
-		   #f)))
-

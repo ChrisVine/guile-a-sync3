@@ -33,7 +33,7 @@ Up:&nbsp;<a rel="up" accesskey="u" href="index.html#Top">Top</a>
 loaded by the <a href="event-loop.html#event-loop">(a-sync event-loop)</a> module.
 
 <div class="defun">
-&mdash; Scheme Procedure: <b>have-monotonic-time</b><var><a name="index-have_002dmonotonic_002dtime-23"></a></var><br>
+&mdash; Scheme Procedure: <b>have-monotonic-time</b><var><a name="index-have_002dmonotonic_002dtime-21"></a></var><br>
 <blockquote><p>This procedure indicates whether the get-time procedure (see below)
 provides a monotonic clock.  Almost all modern linux/unix-like systems
 will do so.  This procedure may return #f if windows is in use, or if
@@ -42,7 +42,7 @@ different one.
 </p></blockquote></div>
 
 <div class="defun">
-&mdash; Scheme Procedure: <b>get-time</b><var><a name="index-get_002dtime-24"></a></var><br>
+&mdash; Scheme Procedure: <b>get-time</b><var><a name="index-get_002dtime-22"></a></var><br>
 <blockquote><p>This returns the current time as a (secs . usecs) pair from some
 arbitrary epoch.  If (have-monotonic-time) returns #t, then this will
 be derived from a monotonic clock obtained by applying CLOCK_MONOTONIC

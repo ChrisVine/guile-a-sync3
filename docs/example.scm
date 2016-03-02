@@ -27,57 +27,44 @@
 (use-modules (a-sync event-loop) (a-sync coroutines) (ice-9 threads))
 
 (define main-loop (make-event-loop))
+
 (a-sync (lambda (await resume)
-	  (display "In waitable procedure\n")
+
+	  ;; invoke a one second timeout which does not block the
+	  ;; event loop
+	  (display "Beginning timeout\n")
+	  (display (await-timeout! main-loop 1000 await resume 
+				   (lambda ()
+				     "Timeout ended\n")))
+
 	  ;; launch asynchronous task: let's pretend its time
 	  ;; consuming so we need to run it in a worker thread
 	  ;; to avoid blocking any other events in the main loop
 	  ;; (there aren't any in this example)
-	  (a-sync-run-task-in-thread! main-loop
-				      resume
-				      (lambda ()
-					;; do some work
-					(usleep 500000)
-					(display "In first async callback, work done\n")
-					;; this is the result of our extensive computation
-					"Hello via async\n"))
-	  (display "About to make first wait\n")
-	  (display (string-append "Back in waitable procedure, and the callback says: " (await)))
-	  
+	  (display (await-task-in-thread! main-loop await resume
+					  (lambda ()
+					    (usleep 500000)
+					    (display "In worker thread, work done\n")
+					    ;; this is the result of our extensive computation
+					    "Hello via async\n")))
+
+	  ;; obtain a line of text from a port (in this case, the
+	  ;; keyboard)
+	  (display "Enter a line of text at the keyboard\n")
+	  (system* "stty" "--file=/dev/tty" "cbreak")
+	  (simple-format #t
+			 "The line was: ~A\n"
+			 (await-getline! main-loop
+					  (open "/dev/tty" O_RDONLY)
+					  await resume))
+	  (system* "stty" "--file=/dev/tty" "-cbreak")
+
 	  ;; launch another asynchronous task, this time in the event loop thread
-	  (a-sync-run-task! main-loop
-			    resume
-			    (lambda ()
-			      (display "In second async callback\n")))
-	  (display "About to make second wait\n")
-	  (await)
+	  (display (await-task! main-loop await resume
+				(lambda ()
+				  (event-loop-quit! main-loop)
+				  "Quitting\n")))))
 
-	  (display "\nStarting watch on /dev/tty; press 'x' to finish\n")
-	  (system* "stty" "--file=/dev/tty" "cbreak" "-echo")
-	  (let ([keyboard (open "/dev/tty" O_RDONLY)])
-	    ;; we don't need to run a-sync again here to obtain
-	    ;; another await-resume pair, because as coded above the
-	    ;; timeout does not run until the preceding awaits have
-	    ;; returned, but it is OK to do so (and we would need to
-	    ;; do so if we were to interleave the events)
-	    (a-sync (lambda (await resume)
-		      (a-sync-read-watch! main-loop
-					  keyboard
-					  resume
-					  (lambda (status)
-					    (read-char keyboard)))
-		      (let loop ([ch (await)])
-			(if (not (char=? ch #\x))
-			    (begin
-			      (simple-format #t "~A~A" ch (if (char=? ch #\lf) "" " "))
-			      (loop (await)))
-			    (begin
-			      (newline)
-			      (event-loop-block! main-loop #f)
-			      (event-loop-remove-watch! main-loop keyboard)))))))))
-
-;; because the first task runs in another thread
+;; because one task runs in another thread
 (event-loop-block! main-loop #t)
 (event-loop-run! main-loop)
-
-(system* "stty" "--file=/dev/tty" "-cbreak" "echo")
