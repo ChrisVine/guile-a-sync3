@@ -3,9 +3,4 @@ In no particular order:
 - Provide some additional wrapper procedures for operations on a glib
   main loop.
 
-- Do we want get_time() to throw a guile exception if clock_gettime()
-  returns non-zero?  (This shouldn't really be necessary because
-  configure detects whether a monotonic clock is available or not and
-  no other exceptional conditions are possible in this usage.)
-
 - Provide unit tests

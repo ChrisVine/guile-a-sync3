@@ -19,6 +19,7 @@
 
 #include <unistd.h>
 #include <time.h>
+#include <errno.h>
 
 #include <libguile.h>
 
@@ -33,11 +34,23 @@ static SCM have_monotonic_time(void) {
 #endif
 }
 
-/* returns a (sec . usec) pair */
+/* returns a (sec . usec) pair.  It throws an 'a-sync-exception guile
+   exception if the library has been configured for monotonic time at
+   configuration time but it is not in fact supported, but this is not
+   worth testing for by user code as it should never happen - the
+   library configuration macros should always give the correct
+   answer */
 static SCM get_time(void) {
 #ifdef HAVE_MONOTONIC_CLOCK
   struct timespec ts;
-  clock_gettime(CLOCK_MONOTONIC, &ts);
+  if (clock_gettime(CLOCK_MONOTONIC, &ts)) {
+    scm_throw(scm_from_latin1_symbol("a-sync-exception"),
+	      scm_list_4(scm_from_latin1_string("get-time"),
+	      		 scm_from_latin1_string("guile-a-sync: ~A"),
+	      		 scm_list_1(scm_from_latin1_string("monotonic time not supported "
+							   "by underlying implementation")),
+	      		 scm_from_int(errno)));
+  }
   return scm_cons(scm_from_size_t(ts.tv_sec), scm_from_long(ts.tv_nsec/1000L));
 #else
   return scm_gettimeofday();
