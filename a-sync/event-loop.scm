@@ -17,7 +17,7 @@
 (define-module (a-sync event-loop)
   #:use-module (ice-9 q)               ;; for make-q, etc
   #:use-module (srfi srfi-1)           ;; for reduce, delete!, alist-delete!, delete-duplicates and assoc
-  #:use-module (rnrs records syntactic)
+  #:use-module (srfi srfi-9)
   #:use-module (ice-9 threads)         ;; for with-mutex and call-with-new-thread
   #:use-module (a-sync coroutines)     ;; for a-sync
   #:use-module (a-sync monotonic-time) ;; for get-time
@@ -39,20 +39,24 @@
 	    a-sync-write-watch!
 	    await-getline!))
 
-(define-record-type (event-loop _make-event-loop event-loop?)
-  (fields (immutable mutex _mutex-get)
-	  (immutable q _q-get)
-	  (mutable done _done-get _done-set!)
-	  (mutable event-in _event-in-get _event-in-set!)
-	  (mutable event-out _event-out-get _event-out-set!)
-	  (mutable read-files _read-files-get _read-files-set!)
-	  (mutable read-files-actions _read-files-actions-get _read-files-actions-set!)
-	  (mutable write-files _write-files-get _write-files-set!)
-	  (mutable write-files-actions _write-files-actions-get _write-files-actions-set!)
-	  (mutable timeouts _timeouts-get _timeouts-set!)
-	  (mutable current-timeout _current-timeout-get _current-timeout-set!)
-	  (mutable block _block-get _block-set!)))
 
+(define-record-type <event-loop>
+  (_make-event-loop mutex q done event-in event-out read-files read-files-actions
+                    write-files write-files-actions timeouts current-timeout block)
+  event-loop?
+  (mutex _mutex-get)
+  (q _q-get)
+  (done _done-get _done-set!)
+  (event-in _event-in-get _event-in-set!)
+  (event-out _event-out-get _event-out-set!)
+  (read-files _read-files-get _read-files-set!)
+  (read-files-actions _read-files-actions-get _read-files-actions-set!)
+  (write-files _write-files-get _write-files-set!)
+  (write-files-actions _write-files-actions-get _write-files-actions-set!)
+  (timeouts _timeouts-get _timeouts-set!)
+  (current-timeout _current-timeout-get _current-timeout-set!)
+  (block _block-get _block-set!))
+  
 (define (make-event-loop)
   (let* ((event-pipe (pipe))
 	 (in (car event-pipe))
