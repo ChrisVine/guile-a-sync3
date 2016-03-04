@@ -36,6 +36,9 @@ dnl check for guile
 GUILE_SITE_DIR
 PKG_CHECK_MODULES(GUILE, guile-2.0 >= 2.0.2)
 
+dnl check whether to compile scheme files to bytecode
+AC_CHECK_COMPILE_SCHEME
+
 dnl check if we have a monotonic clock
 AC_CHECK_HAVE_MONOTONIC_CLOCK
 
