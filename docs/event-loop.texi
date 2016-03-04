@@ -145,20 +145,18 @@ Here is an example:
 
 @deffn {Scheme Procedure} await-task! loop await resume thunk
 This is a convenience procedure for use with an event loop, which will
-run 'thunk' in the event loop specified by the 'loop' argument, and
-then post an event to the event loop specified by the 'loop' argument
-when 'thunk' has finished.  This procedure calls 'await' and will
-return the thunk's return value.  It is intended to be called in a
-waitable procedure invoked by a-sync.  It is the single-threaded
-corollary of await-task-in-thread!.  This means that (unlike with
-await-task-in-thread!) while the task is running other events in the
-event loop will not make progress.  This is not particularly useful
-except when called by the event loop thread for the purpose of
-bringing the event loop to an end at its own place in the event queue,
-or when called by a worker thread to report a result expected by a
-waitable procedure running in the event loop thread.  (For the latter
-case though, await-task-in-thread! is generally a more convenient
-wrapper.)
+run 'thunk' in the event loop specified by the 'loop' argument.  This
+procedure calls 'await' and will return the thunk's return value.  It
+is intended to be called in a waitable procedure invoked by a-sync.
+It is the single-threaded corollary of await-task-in-thread!.  This
+means that (unlike with await-task-in-thread!) while the task is
+running other events in the event loop will not make progress.  This
+is not particularly useful except when called by the event loop thread
+for the purpose of bringing the event loop to an end at its own place
+in the event queue, or when called by a worker thread to report a
+result expected by a waitable procedure running in the event loop
+thread.  (For the latter case though, await-task-in-thread! is
+generally a more convenient wrapper.)
 
 Here is an example:
 @example
