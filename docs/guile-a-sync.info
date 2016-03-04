@@ -405,7 +405,7 @@ File: guile-a-sync.info,  Node: event loop,  Next: monotonic time,  Prev: corout
      thunk's return value.  It is intended to be called in a waitable
      procedure invoked by a-sync.  It is the single-threaded corollary
      of await-task-in-thread!.  This means that (unlike with
-     await-task-in-thread!) while the task is running other events in
+     await-task-in-thread!) while 'thunk' is running other events in
      the event loop will not make progress.  This is not particularly
      useful except when called by the event loop thread for the purpose
      of bringing the event loop to an end at its own place in the event
@@ -551,6 +551,6 @@ Tag Table:
 Node: Top0
 Node: coroutines840
 Node: event loop12895
-Node: monotonic time26256
+Node: monotonic time26255
 
 End Tag Table

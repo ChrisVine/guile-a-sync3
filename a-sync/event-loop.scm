@@ -531,10 +531,10 @@
 ;; return value.  It is intended to be called in a waitable procedure
 ;; invoked by a-sync.  It is the single-threaded corollary of
 ;; await-task-in-thread!.  This means that (unlike with
-;; await-task-in-thread!) while the task is running other events in
-;; the event loop will not make progress.  This is not particularly
-;; useful except when called by the event loop thread for the purpose
-;; of bringing the event loop to an end at its own place in the event
+;; await-task-in-thread!) while 'thunk' is running other events in the
+;; event loop will not make progress.  This is not particularly useful
+;; except when called by the event loop thread for the purpose of
+;; bringing the event loop to an end at its own place in the event
 ;; queue, or when called by a worker thread to report a result
 ;; expected by a waitable procedure running in the event loop thread.
 ;; (For the latter case though, await-task-in-thread! is generally a
