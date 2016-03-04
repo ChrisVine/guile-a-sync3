@@ -481,14 +481,13 @@ File: guile-a-sync.info,  Node: event loop,  Next: monotonic time,  Prev: corout
 
  -- Scheme Procedure: await-getline! loop port await resume
      This is a convenience procedure for use with an event loop, which
-     will start a read watch on 'port' and run 'thunk' in the event
-     loop thread whenever an entire line of text has been received.
-     This procedure calls 'await' while waiting for input and will
-     return the line of text received (without the terminating '\n'
-     character).  The event loop will not be blocked by this procedure
-     even if only individual characters are available at any one time.
-     It is intended to be called in a waitable procedure invoked by
-     a-sync.  This procedure is implemented using a-sync-read-watch!.
+     will start a read watch on 'port' for a line of input.  It calls
+     'await' while waiting for input and will return the line of text
+     received (without the terminating '\n' character).  The event loop
+     will not be blocked by this procedure even if only individual
+     characters are available at any one time.  It is intended to be
+     called in a waitable procedure invoked by a-sync.  This procedure
+     is implemented using a-sync-read-watch!.
 
      Here is an example:
           (define main-loop (make-event-loop))
@@ -553,6 +552,6 @@ Tag Table:
 Node: Top0
 Node: coroutines840
 Node: event loop12895
-Node: monotonic time26446
+Node: monotonic time26360
 
 End Tag Table

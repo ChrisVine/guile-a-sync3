@@ -275,14 +275,13 @@ implementation of await-getline!:
 <div class="defun">
 &mdash; Scheme Procedure: <b>await-getline!</b><var> loop port await resume<a name="index-await_002dgetline_0021-19"></a></var><br>
 <blockquote><p>This is a convenience procedure for use with an event loop, which will
-start a read watch on 'port' and run 'thunk' in the event loop thread
-whenever an entire line of text has been received.  This procedure
-calls 'await' while waiting for input and will return the line of text
-received (without the terminating '\n' character).  The event loop
-will not be blocked by this procedure even if only individual
-characters are available at any one time.  It is intended to be called
-in a waitable procedure invoked by a-sync.  This procedure is
-implemented using a-sync-read-watch!.
+start a read watch on 'port' for a line of input.  It calls 'await'
+while waiting for input and will return the line of text received
+(without the terminating '\n' character).  The event loop will not be
+blocked by this procedure even if only individual characters are
+available at any one time.  It is intended to be called in a waitable
+procedure invoked by a-sync.  This procedure is implemented using
+a-sync-read-watch!.
 
         <p>Here is an example:
      <pre class="example">          (define main-loop (make-event-loop))
