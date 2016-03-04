@@ -594,7 +594,7 @@
 		      resume
 		      (lambda (status)
 			(read-char port)))
-  (let next ([ch (await)])
+  (let next ((ch (await)))
     (if (not (char=? ch #\newline))
 	(begin
 	  (set! text (cons ch text))
