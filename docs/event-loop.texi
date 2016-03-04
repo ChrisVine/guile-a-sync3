@@ -199,10 +199,12 @@ Here is an example:
 This is a convenience procedure for use with an event loop, which will
 run 'proc' in the event loop thread whenever 'file' is ready for
 reading, and apply resume (obtained from a call to a-sync) to the
-return value of 'proc'.  'proc' should take a single argument which
-will be set by the event loop to 'in or 'excpt (see the documentation
-on event-loop-add-read-watch! for further details).  It is intended to
-be called in a waitable procedure invoked by a-sync.  The watch is
+return value of 'proc'.  'file' can be a port or a file descriptor
+(and if it is a file descriptor, the revealed count is not
+incremented).  'proc' should take a single argument which will be set
+by the event loop to 'in or 'excpt (see the documentation on
+event-loop-add-read-watch! for further details).  It is intended to be
+called in a waitable procedure invoked by a-sync.  The watch is
 multi-shot - it is for the user to bring it to an end at the right
 time by calling event-loop-remove-watch! in the waitable procedure.
 This procedure is mainly intended as something from which higher-level
@@ -212,34 +214,34 @@ await-readline! procedure.
 As an example of how to use a-sync-read-watch!, here is the
 implementation of await-getline!:
 @example
-(define (await-getline! loop file await resume)
+(define (await-getline! loop port await resume)
   (define text '())
   (a-sync-read-watch! loop
-		      file
+		      port
 		      resume
 		      (lambda (status)
-			(read-char file)))
+			(read-char port)))
   (let next ([ch (await)])
     (if (not (char=? ch #\newline))
 	(begin
 	  (set! text (cons ch text))
 	  (next (await)))
 	(begin
-	  (event-loop-remove-watch! loop file)
+	  (event-loop-remove-watch! loop port)
 	  (reverse-list->string text)))))
 @end example
 @end deffn
 
-@deffn {Scheme Procedure} await-getline! loop file await resume
+@deffn {Scheme Procedure} await-getline! loop port await resume
 This is a convenience procedure for use with an event loop, which will
-start a file watch and run 'thunk' in the event loop thread whenver an
-entire line of text has been received.  This procedure calls 'await'
-while waiting for input and will return the line of text received
-(without the terminating '\n' character).  The event loop will not be
-blocked by this procedure even if only individual characters are
-available at any one time.  It is intended to be called in a waitable
-procedure invoked by a-sync.  This procedure is implemented using
-a-sync-read-watch!.
+start a read watch on 'port' and run 'thunk' in the event loop thread
+whenever an entire line of text has been received.  This procedure
+calls 'await' while waiting for input and will return the line of text
+received (without the terminating '\n' character).  The event loop
+will not be blocked by this procedure even if only individual
+characters are available at any one time.  It is intended to be called
+in a waitable procedure invoked by a-sync.  This procedure is
+implemented using a-sync-read-watch!.
 
 Here is an example:
 @example
@@ -259,10 +261,12 @@ Here is an example:
 This is a convenience procedure for use with an event loop, which will
 run 'proc' in the event loop thread whenever 'file' is ready for
 writing, and apply resume (obtained from a call to a-sync) to the
-return value of 'proc'.  'proc' should take a single argument which
-will be set by the event loop to 'out or 'excpt (see the documentation
-on event-loop-add-write-watch! for further details).  It is intended
-to be called in a waitable procedure invoked by a-sync.  The watch is
+return value of 'proc'.  'file' can be a port or a file descriptor
+(and if it is a file descriptor, the revealed count is not
+incremented).  'proc' should take a single argument which will be set
+by the event loop to 'out or 'excpt (see the documentation on
+event-loop-add-write-watch! for further details).  It is intended to
+be called in a waitable procedure invoked by a-sync.  The watch is
 multi-shot - it is for the user to bring it to an end at the right
 time by calling event-loop-remove-watch! in the waitable procedure.
 This procedure is mainly intended as something from which higher-level
