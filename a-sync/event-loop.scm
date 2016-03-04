@@ -19,7 +19,6 @@
   #:use-module (srfi srfi-1)           ;; for reduce, delete!, alist-delete!, delete-duplicates and assoc
   #:use-module (srfi srfi-9)
   #:use-module (ice-9 threads)         ;; for with-mutex and call-with-new-thread
-  #:use-module (a-sync coroutines)     ;; for a-sync
   #:use-module (a-sync monotonic-time) ;; for get-time
   #:export (make-event-loop
 	    event-loop-run!
