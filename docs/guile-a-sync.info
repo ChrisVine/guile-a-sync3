@@ -396,7 +396,9 @@ File: guile-a-sync.info,  Node: event loop,  Next: monotonic time,  Prev: corout
           			 (await-task-in-thread! main-loop
           						await resume
           						(lambda ()
-          						  (+ 1 1))))))
+          						  (+ 1 1))))
+          	  (event-loop-quit! main-loop)))
+          (event-loop-block! main-loop #t) ;; because the task runs in another thread
           (event-loop-run! main-loop)
 
  -- Scheme Procedure: await-task! loop await resume thunk
@@ -743,7 +745,7 @@ Tag Table:
 Node: Top0
 Node: coroutines955
 Node: event loop13010
-Node: monotonic time26370
-Node: gnome glib27804
+Node: monotonic time26498
+Node: gnome glib27932
 
 End Tag Table

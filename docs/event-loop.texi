@@ -138,7 +138,9 @@ Here is an example:
 			 (await-task-in-thread! main-loop
 						await resume
 						(lambda ()
-						  (+ 1 1))))))
+						  (+ 1 1))))
+	  (event-loop-quit! main-loop)))
+(event-loop-block! main-loop #t) ;; because the task runs in another thread
 (event-loop-run! main-loop)
 @end example
 @end deffn
