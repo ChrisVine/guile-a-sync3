@@ -14,15 +14,17 @@ known as ``callback hell''.
 
 @end ifnottex
 
-The guile-a-sync library is provided in three modules:
+The guile-a-sync library is provided in four modules:
 @menu
 * coroutines::     In module (async coroutines) - provides coroutines for await semantics on asynchronous events
 * event loop::     In module (async event-loop) - provides an event loop for asynchronous events
 * monotonic time:: In module (async monotonic-time) - enables monotonic time to be used for timeouts
+* gnome glib::     In module (async gnome-glib) - provides some convenience await procedures for the glib main loop
 @end menu
 
 @include coroutines.texi
 @include event-loop.texi
 @include monotonic-time.texi
+@include gnome-glib.texi
 
 @bye

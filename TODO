@@ -1,6 +1,3 @@
 In no particular order:
 
-- Provide some additional wrapper procedures for operations on a glib
-  main loop.
-
 - Provide unit tests
