@@ -1,18 +1,19 @@
-This is guile-a-sync.info, produced by makeinfo version 4.13 from guile-a-sync.texi.
+This is guile-a-sync.info, produced by makeinfo version 6.1 from
+guile-a-sync.texi.
 
 
 File: guile-a-sync.info,  Node: Top,  Next: coroutines
 
-   *guile-a-sync*
+guile-a-sync reference
+**********************
 
-   This is the guile-a-sync library.  It provides both an asynchronous
+This is the guile-a-sync library.  It provides both an asynchronous
 event loop for guile, and coroutines to enable an event loop (including
 other event loops such as the glib event loop) to be used with 'await'
 semantics to deal with inversion of control - otherwise known as
 "callback hell".
 
    The guile-a-sync library is provided in four modules:
-
 * Menu:
 
 * coroutines::     In module (async coroutines) - provides coroutines for await semantics on asynchronous events
@@ -23,72 +24,71 @@ semantics to deal with inversion of control - otherwise known as
 
 File: guile-a-sync.info,  Node: coroutines,  Next: event loop,  Prev: Top,  Up: Top
 
-   The (a-sync coroutines) module provides the following procedures:
+The (a-sync coroutines) module provides the following procedures:
 
  -- Scheme Procedure: make-iterator proc . args
      This procedure takes a generator procedure, namely a procedure
      which has a 'yield' parameter for its first or only argument,
      followed by such other arguments (other than the one for the
      'yield' parameter) as the generator procedure requires, and
-     constructs an iterator from them.  When the iterator is invoked,
-     it will begin executing the procedure unless and until the
-     argument comprising the yield procedure is called, which will
-     cause the iterator to suspend computation and instead return the
-     value passed to yield (yield is a procedure taking no or one
-     argument).  If invoked again, the iterator will resume computation
-     at the point where it last left off (returning the value, if any,
-     passed to the iterator on resuming).  When the generator procedure
-     has executed to the end, the iterator returns 'stop-iteration.
-     This procedure has some resemblance to call/ec, except that (i)
-     instead of executing the passed procedure immediately, it returns
-     an iterator which will do so, (ii) it is resumable, and (iii) the
-     procedure to be executed can receive starting arguments in
-     addition to the yield/break argument, to provide an alternative to
-     binding them with a lambda closure.  It is similar to ECMAScript
-     generators and python generators.
+     constructs an iterator from them.  When the iterator is invoked, it
+     will begin executing the procedure unless and until the argument
+     comprising the yield procedure is called, which will cause the
+     iterator to suspend computation and instead return the value passed
+     to yield (yield is a procedure taking no or one argument).  If
+     invoked again, the iterator will resume computation at the point
+     where it last left off (returning the value, if any, passed to the
+     iterator on resuming).  When the generator procedure has executed
+     to the end, the iterator returns 'stop-iteration.  This procedure
+     has some resemblance to call/ec, except that (i) instead of
+     executing the passed procedure immediately, it returns an iterator
+     which will do so, (ii) it is resumable, and (iii) the procedure to
+     be executed can receive starting arguments in addition to the
+     yield/break argument, to provide an alternative to binding them
+     with a lambda closure.  It is similar to ECMAScript generators and
+     python generators.
 
  -- Scheme Procedure: make-coroutine proc . args
      This procedure takes a generator procedure, namely a procedure
      which has a 'yield' parameter for its first or only argument,
      followed by such other arguments (other than the one for the
      'yield' parameter) as the generator procedure requires, and
-     constructs a coroutine.  It is similar to make-iterator, in that
-     it takes a generator procedure and returns a lambda object (a
+     constructs a coroutine.  It is similar to make-iterator, in that it
+     takes a generator procedure and returns a lambda object (a
      coroutine) which when called will begin executing the generator
      procedure unless and until the argument comprising the yield
      procedure is called, which will cause computation to be suspended.
-     However unlike make-iterator, the resumption continuation
-     generated on yielding is returned by the coroutine when yielding
-     rather than being stored internally in an iterator, so there is no
-     explicit retained mutable state.  The return value of the
-     coroutine comprises two values: first the resumption continuation,
-     and second the value (if any) passed to 'yield' when called.  If
-     the returned resumption continuation is subsequently called again,
-     computation will be resumed at the point where it last left off
-     (the yield procedure returning the value, if any, passed to the
-     continuation on resuming) until it completes or it again calls the
-     yield procedure.
+     However unlike make-iterator, the resumption continuation generated
+     on yielding is returned by the coroutine when yielding rather than
+     being stored internally in an iterator, so there is no explicit
+     retained mutable state.  The return value of the coroutine
+     comprises two values: first the resumption continuation, and second
+     the value (if any) passed to 'yield' when called.  If the returned
+     resumption continuation is subsequently called again, computation
+     will be resumed at the point where it last left off (the yield
+     procedure returning the value, if any, passed to the continuation
+     on resuming) until it completes or it again calls the yield
+     procedure.
 
-     Upon the generator procedure finally completing, the value to
-     which it evaluates is returned by the resumption continuation
-     together with a continuation value of #f.  This differs from the
-     behaviour of make-iterator, which returns 'stop-iteration when the
-     generator procedure finishes to completion and ignores its return
-     value.
+     Upon the generator procedure finally completing, the value to which
+     it evaluates is returned by the resumption continuation together
+     with a continuation value of #f.  This differs from the behaviour
+     of make-iterator, which returns 'stop-iteration when the generator
+     procedure finishes to completion and ignores its return value.
 
  -- Scheme Procedure: a-sync waitable . args
      a-sync takes a waitable procedure (namely a procedure which takes
-     'await' as its first parameter, which is a yield procedure
-     obtained by a call to make-iterator, and 'resume' as its second
-     parameter, which is an iterator constructed by make-iterator),
-     followed by such other arguments (if any) as the waitable
-     procedure requires to be passed on to it.  The 'resume' argument
-     must only be called by an asynchronous callback, and the 'await'
-     argument must only be called by the waitable procedure in order to
-     block until the callback is ready to let it resume.  When it
-     unblocks, the 'await' argument returns the value (if any) passed
-     to 'resume' by the callback.  This async procedure must be called
-     in the same thread as that in which the event loop runs.
+     'await' as its first parameter, which is a yield procedure obtained
+     by a call to make-iterator, and 'resume' as its second parameter,
+     which is an iterator constructed by make-iterator), followed by
+     such other arguments (if any) as the waitable procedure requires to
+     be passed on to it.  The 'resume' argument must only be called by
+     an asynchronous callback, and the 'await' argument must only be
+     called by the waitable procedure in order to block until the
+     callback is ready to let it resume.  When it unblocks, the 'await'
+     argument returns the value (if any) passed to 'resume' by the
+     callback.  This async procedure must be called in the same thread
+     as that in which the event loop runs.
 
      None of the code in the waitable procedure should block on other
      things in the program, except by calls to await (which do not in
@@ -98,58 +98,57 @@ File: guile-a-sync.info,  Node: coroutines,  Next: event loop,  Prev: Top,  Up: 
      the waitable procedure and will return as soon as the first (or
      only) call to 'await' is made by that procedure, or as soon as the
      waitable procedure returns if it makes no calls to 'await'.  Any
-     subsequent resumptions of the waitable procedure will take place
-     in the event loop concerned as delimited continuations, via the
-     calls to 'resume' made by the callbacks.  The effect of the
-     waitable procedure subsequently ending, or of further calls to
-     'await' being made within the same waitable procedure, is to
-     return control to the event loop by recommencing execution at the
-     point where the most recent previous call to 'resume' was made by
-     the last callback to execute.
+     subsequent resumptions of the waitable procedure will take place in
+     the event loop concerned as delimited continuations, via the calls
+     to 'resume' made by the callbacks.  The effect of the waitable
+     procedure subsequently ending, or of further calls to 'await' being
+     made within the same waitable procedure, is to return control to
+     the event loop by recommencing execution at the point where the
+     most recent previous call to 'resume' was made by the last callback
+     to execute.
 
-     An exception thrown in the waitable procedure before the first
-     call to 'await' which is not handled locally will propagate out of
-     the a-sync procedure normally.  Any exception thrown subsequently
-     in the waitable procedure which is not handled locally will
-     propagate into the previously called callback at the point where
-     'resume' was last called.  If this is handled locally in the
-     callback by putting a catch block around resume, then control will
-     be returned to the event loop and the remainder of the waitable
-     procedure will not execute.  If that exception is not handled
-     locally in the callback, or if the callback throws an exception of
-     its own, then it will propagate out of the event loop.  If the
-     event loop in the event-loop module is used, this means that it
-     will propagate out of the call to event-loop-run!.  If an
-     exception propagates out of event-loop-run! for that or some other
-     reason, then the event loop will be left in a valid state and it
-     will be as if event-loop-quit! had been called on it, but it is
-     then up to the user to catch that exception once it is out of
-     event-loop-run! if she does not want the program to terminate.
+     An exception thrown in the waitable procedure before the first call
+     to 'await' which is not handled locally will propagate out of the
+     a-sync procedure normally.  Any exception thrown subsequently in
+     the waitable procedure which is not handled locally will propagate
+     into the previously called callback at the point where 'resume' was
+     last called.  If this is handled locally in the callback by putting
+     a catch block around resume, then control will be returned to the
+     event loop and the remainder of the waitable procedure will not
+     execute.  If that exception is not handled locally in the callback,
+     or if the callback throws an exception of its own, then it will
+     propagate out of the event loop.  If the event loop in the
+     event-loop module is used, this means that it will propagate out of
+     the call to event-loop-run!.  If an exception propagates out of
+     event-loop-run!  for that or some other reason, then the event loop
+     will be left in a valid state and it will be as if event-loop-quit!
+     had been called on it, but it is then up to the user to catch that
+     exception once it is out of event-loop-run!  if she does not want
+     the program to terminate.
 
      After the call to 'resume', the callback should normally just
      return (with a #t or #f value in the case of a file watch or a
      timeout on an event-loop object from the event loop module).  If
-     a-sync is used with a file watch or timeout on an event-loop
-     object constructed by make-event-loop, the watch callback or
-     timeout callback should normally, when the call to 'resume'
-     returns, either always return #f (so the callback only fires once)
-     or always return #t (so it is responsibility of the waitable
-     procedure to terminate the watch or timeout repetitions).  That
-     way, there can never be a case where the callback has been removed
-     from the event loop by returning false but the waitable procedure
-     still thinks it has a call to 'await' to be made.  The *note
-     event-loop: event loop. module has await-task!,
-     await-task-in-thread!, await-timeout!, a-sync-read-watch!,
-     await-getline! and a-sync-write-watch!  convenience procedures
-     which will correctly set this up for you automatically.  If those
-     convenience procedures are used, exceptions should always be
-     handled locally in the waitable procedure (and if the callback
-     might throw, in the callback also) if it is undesirable that
-     uncaught exceptions propagate out of event-loop-run!.  In the case
-     of await-task-in-thread!, that procedure also takes an optional
-     handler argument which will handle any exceptions thrown by the
-     task: otherwise the task thread throwing would terminate the
-     program if not caught within the task.
+     a-sync is used with a file watch or timeout on an event-loop object
+     constructed by make-event-loop, the watch callback or timeout
+     callback should normally, when the call to 'resume' returns, either
+     always return #f (so the callback only fires once) or always return
+     #t (so it is responsibility of the waitable procedure to terminate
+     the watch or timeout repetitions).  That way, there can never be a
+     case where the callback has been removed from the event loop by
+     returning false but the waitable procedure still thinks it has a
+     call to 'await' to be made.  The *note event-loop: event loop.
+     module has await-task!, await-task-in-thread!, await-timeout!,
+     a-sync-read-watch!, await-getline!  and a-sync-write-watch!
+     convenience procedures which will correctly set this up for you
+     automatically.  If those convenience procedures are used,
+     exceptions should always be handled locally in the waitable
+     procedure (and if the callback might throw, in the callback also)
+     if it is undesirable that uncaught exceptions propagate out of
+     event-loop-run!.  In the case of await-task-in-thread!, that
+     procedure also takes an optional handler argument which will handle
+     any exceptions thrown by the task: otherwise the task thread
+     throwing would terminate the program if not caught within the task.
 
      There can be as many calls to 'await' and asynchronous callbacks in
      any one waitable procedure as wanted, to enable composition of
@@ -157,18 +156,17 @@ File: guile-a-sync.info,  Node: coroutines,  Next: event loop,  Prev: Top,  Up: 
      asynchronous tasks at the same time with the same await-resume pair
      without an intervening call to await except by doing extra work,
      because the first call to 'await' will match the first callback
-     which happens to call 'resume', and so on.  In such cases,
-     'resume' would need to return something like a key-value pair so
-     that the result can be correctly identified.  Accordingly this
-     practice is discouraged.  Instead, when composing asynchronous
-     tasks within any one waitable procedure, operate on a 'start-task
-     -> await-on-result -> start-task -> await-on-result ...' basis,
-     and make calls to a-sync on separate waitable procedures for tasks
-     which are to run independently.  This is easy using the
-     convenience procedures mentioned above (see the examples).  A
-     waitable procedure can itself call a-sync to construct another
-     await-resume pair for the purpose of starting other asynchronous
-     events.
+     which happens to call 'resume', and so on.  In such cases, 'resume'
+     would need to return something like a key-value pair so that the
+     result can be correctly identified.  Accordingly this practice is
+     discouraged.  Instead, when composing asynchronous tasks within any
+     one waitable procedure, operate on a 'start-task -> await-on-result
+     -> start-task -> await-on-result ...'  basis, and make calls to
+     a-sync on separate waitable procedures for tasks which are to run
+     independently.  This is easy using the convenience procedures
+     mentioned above (see the examples).  A waitable procedure can
+     itself call a-sync to construct another await-resume pair for the
+     purpose of starting other asynchronous events.
 
      So, don't do this:
 
@@ -223,8 +221,8 @@ File: guile-a-sync.info,  Node: coroutines,  Next: event loop,  Prev: Top,  Up: 
           (event-loop-run! main-loop)
 
      Or better still, when composing on the event loop from the *note
-     event-loop: event loop. module, use the await helper procedures,
-     as follows:
+     event-loop: event loop. module, use the await helper procedures, as
+     follows:
 
           (define main-loop (make-event-loop))
           (a-sync (lambda (await resume)
@@ -266,7 +264,7 @@ File: guile-a-sync.info,  Node: coroutines,  Next: event loop,  Prev: Top,  Up: 
 
 File: guile-a-sync.info,  Node: event loop,  Next: monotonic time,  Prev: coroutines,  Up: Top
 
-   The (a-sync event-loop) module provides the follow procedures:
+The (a-sync event-loop) module provides the follow procedures:
 
  -- Scheme Procedure: make-event-loop
      This constructs a new event loop object.
@@ -277,32 +275,32 @@ File: guile-a-sync.info,  Node: event loop,  Next: monotonic time,  Prev: corout
 
  -- Scheme Procedure: event-loop-run! loop
      This starts the event loop, which runs in the thread which calls
-     this procedure.  Where event-loop-quit! has been called, this
-     procedure may be called again to restart the same event loop.  If
-     a callback throws, or something else throws in the implementation,
+     this procedure.  Where event-loop-quit!  has been called, this
+     procedure may be called again to restart the same event loop.  If a
+     callback throws, or something else throws in the implementation,
      then this procedure will return and it will be as if
-     event-loop-quit! had been called.
+     event-loop-quit!  had been called.
 
  -- Scheme Procedure: event-loop-add-read-watch! loop file proc
      The 'proc' callback should take a single argument, and when called
      this will be set to 'in or 'excpt.  The same port or file
-     descriptor can also be passed to event-loop-add-write-watch, and
-     if so and the descriptor is also available for writing, the write
+     descriptor can also be passed to event-loop-add-write-watch, and if
+     so and the descriptor is also available for writing, the write
      callback will also be called with its argument set to 'out.  If
-     there is already a read watch for the file passed, the old one
-     will be replaced by the new one.  If proc returns #f, the read
-     watch (and any write watch for the same file) will be removed from
-     the event loop, otherwise the watch will continue.  This is thread
-     safe - any thread may add a watch, and the callback will execute
-     in the event loop thread.  The file argument can be either a port
-     or a file descriptor.  If 'file' is a file descriptor, any port
-     for the descriptor is not referenced for garbage collection
-     purposes - it must remain valid while operations are carried out
-     on the descriptor.  If 'file' is a buffered port, buffering will
-     be taken into account in indicating whether a read can be made
-     without blocking (but on a buffered port, for efficiency purposes
-     each read operation in response to this watch should usually
-     exhaust the buffer by looping on char-ready?).
+     there is already a read watch for the file passed, the old one will
+     be replaced by the new one.  If proc returns #f, the read watch
+     (and any write watch for the same file) will be removed from the
+     event loop, otherwise the watch will continue.  This is thread safe
+     - any thread may add a watch, and the callback will execute in the
+     event loop thread.  The file argument can be either a port or a
+     file descriptor.  If 'file' is a file descriptor, any port for the
+     descriptor is not referenced for garbage collection purposes - it
+     must remain valid while operations are carried out on the
+     descriptor.  If 'file' is a buffered port, buffering will be taken
+     into account in indicating whether a read can be made without
+     blocking (but on a buffered port, for efficiency purposes each read
+     operation in response to this watch should usually exhaust the
+     buffer by looping on char-ready?).
 
  -- Scheme Procedure: event-loop-add-write-watch! loop file proc
      The 'proc' callback should take a single argument, and when called
@@ -313,18 +311,18 @@ File: guile-a-sync.info,  Node: event loop,  Next: monotonic time,  Prev: corout
      or 'excpt (if both a read and a write watch have been set for the
      same file argument, and there is an exceptional condition, it is
      the read watch procedure which will be called with 'excpt rather
-     than the write watch procedure).  If there is already a write
-     watch for the file passed, the old one will be replaced by the new
-     one.  If proc returns #f, the write watch (and any read watch for
-     the same file) will be removed from the event loop, otherwise the
-     watch will continue.  This is thread safe - any thread may add a
-     watch, and the callback will execute in the event loop thread.
-     The file argument can be either a port or a file descriptor.  If
-     'file' is a file descriptor, any port for the descriptor is not
-     referenced for garbage collection purposes - it must remain valid
-     while operations are carried out on the descriptor.  If 'file' is
-     a buffered port, buffering will be taken into account in
-     indicating whether a write can be made without blocking.
+     than the write watch procedure).  If there is already a write watch
+     for the file passed, the old one will be replaced by the new one.
+     If proc returns #f, the write watch (and any read watch for the
+     same file) will be removed from the event loop, otherwise the watch
+     will continue.  This is thread safe - any thread may add a watch,
+     and the callback will execute in the event loop thread.  The file
+     argument can be either a port or a file descriptor.  If 'file' is a
+     file descriptor, any port for the descriptor is not referenced for
+     garbage collection purposes - it must remain valid while operations
+     are carried out on the descriptor.  If 'file' is a buffered port,
+     buffering will be taken into account in indicating whether a write
+     can be made without blocking.
 
  -- Scheme Procedure: event-loop-remove-watch! loop file
      The file argument may be a port or a file descriptor, and this
@@ -336,17 +334,17 @@ File: guile-a-sync.info,  Node: event loop,  Next: monotonic time,  Prev: corout
  -- Scheme Procedure: event-post! loop action
      The 'action' callback is a thunk.  This is thread safe - any thread
      may post an event (that is its main purpose), and the action
-     callback will execute in the event loop thread.  Actions execute
-     in the order in which they were posted.  If an event is posted
-     from a worker thread, it will normally be necessary to call
+     callback will execute in the event loop thread.  Actions execute in
+     the order in which they were posted.  If an event is posted from a
+     worker thread, it will normally be necessary to call
      event-loop-block!  beforehand.
 
  -- Scheme Procedure: timeout-post! loop msecs action
      This adds a timeout to the event loop.  The timeout will repeat
      unless and until the passed-in callback returns #f or
-     timeout-remove! is called.  The passed-in callback must be a
+     timeout-remove!  is called.  The passed-in callback must be a
      thunk.  This procedure returns a tag symbol to which
-     timeout-remove! can be applied.  It may be called by any thread.
+     timeout-remove!  can be applied.  It may be called by any thread.
 
  -- Scheme Procedure: timeout-remove! loop tag
      This stops the timeout with the given tag from executing in the
@@ -354,7 +352,7 @@ File: guile-a-sync.info,  Node: event loop,  Next: monotonic time,  Prev: corout
 
  -- Scheme Procedure: event-loop-block! loop val
      By default, upon there being no more watches, timeouts and posted
-     events for an event loop, event-loop-run! will return, which is
+     events for an event loop, event-loop-run!  will return, which is
      normally what you want with a single threaded program.  However,
      this is undesirable where a worker thread is intended to post an
      event to the main loop after it has reached a result, say via
@@ -367,8 +365,8 @@ File: guile-a-sync.info,  Node: event loop,  Next: monotonic time,  Prev: corout
 
  -- Scheme Procedure: event-loop-quit! loop
      Causes the event loop to unblock.  Any events remaining in the
-     event loop will be discarded.  New events may subsequently be
-     added after event-loop-run! has unblocked and event-loop-run! then
+     event loop will be discarded.  New events may subsequently be added
+     after event-loop-run!  has unblocked and event-loop-run!  then
      called for them.  This is thread safe - any thread may call this
      procedure.
 
@@ -379,7 +377,7 @@ File: guile-a-sync.info,  Node: event loop,  Next: monotonic time,  Prev: corout
      'loop' argument when 'thunk' has finished.  This procedure calls
      'await' and will return the thunk's return value.  It is intended
      to be called in a waitable procedure invoked by a-sync.  It will
-     normally be necessary to call event-loop-block! before invoking
+     normally be necessary to call event-loop-block!  before invoking
      this procedure.  If the optional 'handler' argument is provided,
      then it will be run in the event loop thread if 'thunk' throws and
      its return value will be the return value of this procedure;
@@ -404,17 +402,17 @@ File: guile-a-sync.info,  Node: event loop,  Next: monotonic time,  Prev: corout
  -- Scheme Procedure: await-task! loop await resume thunk
      This is a convenience procedure for use with an event loop, which
      will run 'thunk' in the event loop specified by the 'loop'
-     argument.  This procedure calls 'await' and will return the
-     thunk's return value.  It is intended to be called in a waitable
-     procedure invoked by a-sync.  It is the single-threaded corollary
-     of await-task-in-thread!.  This means that (unlike with
-     await-task-in-thread!) while 'thunk' is running other events in
+     argument.  This procedure calls 'await' and will return the thunk's
+     return value.  It is intended to be called in a waitable procedure
+     invoked by a-sync.  It is the single-threaded corollary of
+     await-task-in-thread!.  This means that (unlike with
+     await-task-in-thread!)  while 'thunk' is running other events in
      the event loop will not make progress.  This is not particularly
      useful except when called by the event loop thread for the purpose
      of bringing the event loop to an end at its own place in the event
      queue, or when called by a worker thread to report a result
      expected by a waitable procedure running in the event loop thread.
-     (For the latter case though, await-task-in-thread! is generally a
+     (For the latter case though, await-task-in-thread!  is generally a
      more convenient wrapper.)
 
      Here is an example:
@@ -429,12 +427,12 @@ File: guile-a-sync.info,  Node: event loop,  Next: monotonic time,  Prev: corout
 
  -- Scheme Procedure: await-timeout! loop msec await resume thunk
      This is a convenience procedure for use with an event loop, which
-     will run 'thunk' in the event loop thread when the timeout
-     expires.  This procedure calls 'await' and will return the thunk's
-     return value.  It is intended to be called in a waitable procedure
-     invoked by a-sync.  The timeout is single shot only - as soon as
-     'thunk' has run once and completed, the timeout will be removed
-     from the event loop.
+     will run 'thunk' in the event loop thread when the timeout expires.
+     This procedure calls 'await' and will return the thunk's return
+     value.  It is intended to be called in a waitable procedure invoked
+     by a-sync.  The timeout is single shot only - as soon as 'thunk'
+     has run once and completed, the timeout will be removed from the
+     event loop.
 
      Here is an example:
           (define main-loop (make-event-loop))
@@ -455,13 +453,13 @@ File: guile-a-sync.info,  Node: event loop,  Next: monotonic time,  Prev: corout
      descriptor (and if it is a file descriptor, the revealed count is
      not incremented).  'proc' should take a single argument which will
      be set by the event loop to 'in or 'excpt (see the documentation on
-     event-loop-add-read-watch! for further details).  It is intended
+     event-loop-add-read-watch!  for further details).  It is intended
      to be called in a waitable procedure invoked by a-sync.  The watch
      is multi-shot - it is for the user to bring it to an end at the
-     right time by calling event-loop-remove-watch! in the waitable
+     right time by calling event-loop-remove-watch!  in the waitable
      procedure.  This procedure is mainly intended as something from
-     which higher-level asynchronous file operations can be
-     constructed, such as the await-readline! procedure.
+     which higher-level asynchronous file operations can be constructed,
+     such as the await-readline!  procedure.
 
      As an example of how to use a-sync-read-watch!, here is the
      implementation of await-getline!:
@@ -510,13 +508,13 @@ File: guile-a-sync.info,  Node: event loop,  Next: monotonic time,  Prev: corout
      descriptor (and if it is a file descriptor, the revealed count is
      not incremented).  'proc' should take a single argument which will
      be set by the event loop to 'out or 'excpt (see the documentation
-     on event-loop-add-write-watch! for further details).  It is
+     on event-loop-add-write-watch!  for further details).  It is
      intended to be called in a waitable procedure invoked by a-sync.
      The watch is multi-shot - it is for the user to bring it to an end
-     at the right time by calling event-loop-remove-watch! in the
-     waitable procedure.  This procedure is mainly intended as
-     something from which higher-level asynchronous file operations can
-     be constructed.
+     at the right time by calling event-loop-remove-watch!  in the
+     waitable procedure.  This procedure is mainly intended as something
+     from which higher-level asynchronous file operations can be
+     constructed.
 
    The (async event-loop) module also loads the *note (a-sync
 monotonic-time): monotonic time. module.
@@ -524,10 +522,10 @@ monotonic-time): monotonic time. module.
 
 File: guile-a-sync.info,  Node: monotonic time,  Next: gnome glib,  Prev: event loop,  Up: Top
 
-   The (a-sync monotonic-time) module provides two procedures.  It is
+The (a-sync monotonic-time) module provides two procedures.  It is
 loaded by the *note (a-sync event-loop): event loop. module.
 
- -- Scheme Procedure: have-monotonic-time
+ -- Scheme Procedure: have-monotonic-time?
      This procedure indicates whether the get-time procedure (see below)
      provides a monotonic clock.  Almost all modern linux/unix-like
      systems will do so.  This procedure may return #f if windows is in
@@ -535,13 +533,13 @@ loaded by the *note (a-sync event-loop): event loop. module.
      architecture for a different one.
 
  -- Scheme Procedure: get-time
-     This returns the current time as a (secs . usecs) pair from some
+     This returns the current time as a (secs .  usecs) pair from some
      arbitrary epoch.  If (have-monotonic-time) returns #t, then this
      will be derived from a monotonic clock obtained by calling the
      clock_gettime() POSIX function with a CLOCK_MONOTONIC argument.
      This procedure is used by the *note event-loop: event loop. timeout
      implementation.  This procedure throws an 'a-sync-exception (which
-     would propagate out of the event-loop-run! procedure if *note
+     would propagate out of the event-loop-run!  procedure if *note
      event-loop: event loop. is in use) if the library has been
      configured for monotonic time at configuration time but it is not
      in fact supported.  However this is not worth catering for by user
@@ -551,22 +549,22 @@ loaded by the *note (a-sync event-loop): event loop. module.
 
 File: guile-a-sync.info,  Node: gnome glib,  Prev: monotonic time,  Up: Top
 
-   When using the scheme (gnome gtk) bindings of guile-gnome with guile,
-in order to provide await semantics on gtk+ callbacks it will normally
-be necessary to use the 'await' and 'resume' procedures provided by the
-a-sync procedure in the *note (a-sync coroutines): coroutines.  module
+When using the scheme (gnome gtk) bindings of guile-gnome with guile, in
+order to provide await semantics on gtk+ callbacks it will normally be
+necessary to use the 'await' and 'resume' procedures provided by the
+a-sync procedure in the *note (a-sync coroutines): coroutines. module
 directly (calling 'resume' in the gtk+ callback when ready, and waiting
 on that callback using 'await').  However when launching timeouts, file
-watches or idle events on the glib main loop, convenience procedures
-are possible similar to those provided for the event loop in the *note
+watches or idle events on the glib main loop, convenience procedures are
+possible similar to those provided for the event loop in the *note
 (a-sync event-loop): event loop. module.  These are set out below.
 
    Note that the g-idle-add procedure in guile-gnome is suspect - there
 appears to be a garbage collection issue, and if you call the procedure
 often enough in a single or multi-threaded program it will eventually
-segfault.  g-io-add-watch is also broken in guile-gnome, so this
-library uses its own glib-add-watch procedure which is exported
-publicly in case it is useful to users.
+segfault.  g-io-add-watch is also broken in guile-gnome, so this library
+uses its own glib-add-watch procedure which is exported publicly in case
+it is useful to users.
 
    All the other scheme files provided by this library are by default
 compiled by this library to bytecode.  That is not the case with this
@@ -607,12 +605,12 @@ module, so as not to create a hard dependency on guile-gnome.
      'thunk' in the default glib main loop.  This procedure calls
      'await' and will return the thunk's return value.  It is intended
      to be called in a waitable procedure invoked by a-sync.  It is the
-     single-threaded corollary of await-glib-task-in-thread.  This
-     means that (unlike with await-glib-task-in-thread) while 'thunk'
-     is running other events in the main loop will not make progress.
-     This is not particularly useful except when called by the main
-     loop thread for the purpose of bringing the loop to an end at its
-     own place in the event queue, or when called by a worker thread to
+     single-threaded corollary of await-glib-task-in-thread.  This means
+     that (unlike with await-glib-task-in-thread) while 'thunk' is
+     running other events in the main loop will not make progress.  This
+     is not particularly useful except when called by the main loop
+     thread for the purpose of bringing the loop to an end at its own
+     place in the event queue, or when called by a worker thread to
      report a result expected by a waitable procedure running in the
      main loop thread.  (For the latter case though,
      await-glib-task-in-thread is generally a more convenient wrapper.)
@@ -661,10 +659,10 @@ module, so as not to create a hard dependency on guile-gnome.
 
  -- Scheme Procedure: a-sync-glib-read-watch port resume proc
      This is a convenience procedure for use with a glib main loop,
-     which will run 'proc' in the default glib main loop whenever
-     'port' is ready for reading, and apply resume (obtained from a
-     call to a-sync) to the return value of 'proc'.  'proc' should take
-     two arguments, the first of which will be set by glib to the
+     which will run 'proc' in the default glib main loop whenever 'port'
+     is ready for reading, and apply resume (obtained from a call to
+     a-sync) to the return value of 'proc'.  'proc' should take two
+     arguments, the first of which will be set by glib to the
      g-io-channel object constructed for the watch and the second of
      which will be set to the GIOCondition ('in, 'pri, 'hup or 'err)
      provided by glib which caused the watch to activate.  It is
@@ -674,10 +672,9 @@ module, so as not to create a hard dependency on guile-gnome.
      procedure on the id tag returned by this procedure.  The revealed
      count of the file descriptor underlying the port is incremented,
      and it is also for the programmer, when removing the watch, to call
-     release-port-handle on the port.  This procedure is mainly
-     intended as something from which higher-level asynchronous file
-     operations can be constructed, such as the await-glib-getline
-     procedure.
+     release-port-handle on the port.  This procedure is mainly intended
+     as something from which higher-level asynchronous file operations
+     can be constructed, such as the await-glib-getline procedure.
 
      As an example of how to use a-sync-glib-read-watch, here is the
      implementation of await-glib-getline:
@@ -701,13 +698,12 @@ module, so as not to create a hard dependency on guile-gnome.
      This is a convenience procedure for use with a glib main loop,
      which will start a file watch and run 'thunk' in the default glib
      main loop whenver an entire line of text has been received.  This
-     procedure calls 'await' while waiting for input and will return
-     the line of text received (without the terminating '\n'
-     character).  The event loop will not be blocked by this procedure
-     even if only individual characters are available at any one time.
-     It is intended to be called in a waitable procedure invoked by
-     a-sync.  This procedure is implemented using
-     a-sync-glib-read-watch.
+     procedure calls 'await' while waiting for input and will return the
+     line of text received (without the terminating '\n' character).
+     The event loop will not be blocked by this procedure even if only
+     individual characters are available at any one time.  It is
+     intended to be called in a waitable procedure invoked by a-sync.
+     This procedure is implemented using a-sync-glib-read-watch.
 
      Here is an example:
           (define main-loop (g-main-loop-new #f #f))
@@ -722,30 +718,30 @@ module, so as not to create a hard dependency on guile-gnome.
 
  -- Scheme Procedure: a-sync-glib-write-watch port resume proc
      This is a convenience procedure for use with a glib main loop,
-     which will run 'proc' in the default glib main loop whenever
-     'port' is ready for writing, and apply resume (obtained from a
-     call to a-sync) to the return value of 'proc'.  'proc' should take
-     two arguments, the first of which will be set by glib to the
+     which will run 'proc' in the default glib main loop whenever 'port'
+     is ready for writing, and apply resume (obtained from a call to
+     a-sync) to the return value of 'proc'.  'proc' should take two
+     arguments, the first of which will be set by glib to the
      g-io-channel object constructed for the watch and the second of
      which will be set to the GIOCondition ('out or 'err) provided by
      glib which caused the watch to activate.  It is intended to be
      called in a waitable procedure invoked by a-sync.  The watch is
      multi-shot - it is for the user to bring it to an end at the right
-     time by calling g-source-remove in the waitable procedure on the
-     id tag returned by this procedure.  The revealed count of the file
+     time by calling g-source-remove in the waitable procedure on the id
+     tag returned by this procedure.  The revealed count of the file
      descriptor underlying the port is incremented, and it is also for
      the programmer, when removing the watch, to call
-     release-port-handle on the port.  This procedure is mainly
-     intended as something from which higher-level asynchronous file
-     operations can be constructed.
+     release-port-handle on the port.  This procedure is mainly intended
+     as something from which higher-level asynchronous file operations
+     can be constructed.
 
 
 
 Tag Table:
-Node: Top0
-Node: coroutines955
-Node: event loop13010
-Node: monotonic time26498
-Node: gnome glib27932
+Node: Top85
+Node: coroutines978
+Node: event loop13019
+Node: monotonic time26518
+Node: gnome glib27952
 
 End Tag Table

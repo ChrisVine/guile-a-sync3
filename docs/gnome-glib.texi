@@ -1,4 +1,3 @@
-
 @node gnome glib,,monotonic time,Top
 
 When using the scheme (gnome gtk) bindings of guile-gnome with guile,

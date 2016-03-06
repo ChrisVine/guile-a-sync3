@@ -1,4 +1,3 @@
-
 @node monotonic time,gnome glib,event loop,Top
 
 The (a-sync monotonic-time) module provides two procedures.  It is

@@ -1,4 +1,3 @@
-
 @node event loop,monotonic time,coroutines,Top
 
 The (a-sync event-loop) module provides the follow procedures:

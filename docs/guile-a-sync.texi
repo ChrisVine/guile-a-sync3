@@ -1,10 +1,13 @@
 \input texinfo
+@c -*-texinfo-*-
+@c %**start of header
 @settitle guile-a-sync
+@setfilename guile-a-sync.info
+@c %**end of header
 
 @ifnottex
 @node Top,coroutines,,
-
-@strong{guile-a-sync}
+@top guile-a-sync reference
 
 This is the guile-a-sync library.  It provides both an asynchronous
 event loop for guile, and coroutines to enable an event loop
