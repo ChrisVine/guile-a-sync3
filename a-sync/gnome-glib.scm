@@ -164,22 +164,34 @@
 ;; The event loop will not be blocked by this procedure even if only
 ;; individual characters are available at any one time.  It is
 ;; intended to be called in a waitable procedure invoked by a-sync.
-;; This procedure is implemented using a-sync-glib-read-watch.
+;; This procedure is implemented using a-sync-glib-read-watch.  If an
+;; exceptional condition ('pri) or an error ('err) is encountered, #f
+;; will be returned.
 (define (await-glib-getline port await resume)
   (define text '())
   (define id (a-sync-glib-read-watch port
 				     resume
 				     (lambda (ioc status)
-				       (read-char port))))
-  (let next ((ch (await)))
-    (if (not (char=? ch #\newline))
-	(begin
-	  (set! text (cons ch text))
-	  (next (await)))
+				       (if (or (eq? status 'pri)
+					       (eq? status 'err))
+					   #f
+					   (let next ()
+					     (let ((ch (read-char port)))
+					       (if (not (or (eof-object? ch)
+							    (char=? ch #\newline)))
+						   (begin
+						     (set! text (cons ch text))
+						     (if (char-ready? port)
+							 (next)
+							 'more))
+						   (reverse-list->string text))))))))
+  (let next ((res (await)))
+    (if (eq? res 'more)
+	(next (await))
 	(begin
 	  (g-source-remove id)
 	  (release-port-handle port)
-	  (reverse-list->string text)))))
+	  res))))
 	
 ;; This is a convenience procedure for use with a glib main loop,
 ;; which will run 'proc' in the default glib main loop whenever 'port'

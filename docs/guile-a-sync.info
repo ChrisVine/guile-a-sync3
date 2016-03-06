@@ -471,20 +471,30 @@ The (a-sync event-loop) module provides the follow procedures:
      As an example of how to use a-sync-read-watch!, here is the
      implementation of await-getline!:
           (define (await-getline! loop port await resume)
-            (define text '())
-            (a-sync-read-watch! loop
-          		      port
-          		      resume
-          		      (lambda (status)
-          			(read-char port)))
-            (let next ([ch (await)])
-              (if (not (char=? ch #\newline))
-          	(begin
-          	  (set! text (cons ch text))
-          	  (next (await)))
+            (let ()
+              (define text '())
+              (a-sync-read-watch! loop
+          			port
+          			resume
+          			(lambda (status)
+          			  (if (eq? status 'excpt)
+          			      #f
+          			      (let next ()
+          				(let ((ch (read-char port)))
+          				  (if (not (or (eof-object? ch)
+          					       (char=? ch #\newline)))
+          				      (begin
+          					(set! text (cons ch text))
+          					(if (char-ready? port)
+          					    (next)
+          					    'more))
+          				      (reverse-list->string text))))))))
+            (let next ((res (await)))
+              (if (eq? res 'more)
+          	(next (await))
           	(begin
           	  (event-loop-remove-read-watch! loop port)
-          	  (reverse-list->string text)))))
+          	  res))))
 
  -- Scheme Procedure: await-getline! loop port await resume
      This is a convenience procedure for use with an event loop, which
@@ -494,7 +504,8 @@ The (a-sync event-loop) module provides the follow procedures:
      will not be blocked by this procedure even if only individual
      characters are available at any one time.  It is intended to be
      called in a waitable procedure invoked by a-sync.  This procedure
-     is implemented using a-sync-read-watch!.
+     is implemented using a-sync-read-watch!.  If an exceptional
+     condition ('excpt) is encountered, #f will be returned.
 
      Here is an example:
           (define main-loop (make-event-loop))
@@ -690,16 +701,26 @@ module, so as not to create a hard dependency on guile-gnome.
             (define id (a-sync-glib-read-watch port
           				     resume
           				     (lambda (ioc status)
-          				       (read-char port))))
-            (let next ((ch (await)))
-              (if (not (char=? ch #\newline))
-          	(begin
-          	  (set! text (cons ch text))
-          	  (next (await)))
+          				       (if (or (eq? status 'pri)
+          					       (eq? status 'err))
+          					   #f
+          					   (let next ()
+          					     (let ((ch (read-char port)))
+          					       (if (not (or (eof-object? ch)
+          							    (char=? ch #\newline)))
+          						   (begin
+          						     (set! text (cons ch text))
+          						     (if (char-ready? port)
+          							 (next)
+          							 'more))
+          						   (reverse-list->string text))))))))
+            (let next ((res (await)))
+              (if (eq? res 'more)
+          	(next (await))
           	(begin
           	  (g-source-remove id)
           	  (release-port-handle port)
-          	  (reverse-list->string text)))))
+          	  res))))
 
  -- Scheme Procedure: await-glib-getline port await resume
      This is a convenience procedure for use with a glib main loop,
@@ -710,7 +731,9 @@ module, so as not to create a hard dependency on guile-gnome.
      The event loop will not be blocked by this procedure even if only
      individual characters are available at any one time.  It is
      intended to be called in a waitable procedure invoked by a-sync.
-     This procedure is implemented using a-sync-glib-read-watch.
+     This procedure is implemented using a-sync-glib-read-watch.  If an
+     exceptional condition ('pri) or an error ('err) is encountered, #f
+     will be returned.
 
      Here is an example:
           (define main-loop (g-main-loop-new #f #f))
@@ -748,7 +771,7 @@ Tag Table:
 Node: Top85
 Node: coroutines978
 Node: event loop13019
-Node: monotonic time26931
-Node: gnome glib28365
+Node: monotonic time27335
+Node: gnome glib28769
 
 End Tag Table

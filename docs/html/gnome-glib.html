@@ -200,16 +200,26 @@ implementation of await-glib-getline:
   (define id (a-sync-glib-read-watch port
 				     resume
 				     (lambda (ioc status)
-				       (read-char port))))
-  (let next ((ch (await)))
-    (if (not (char=? ch #\newline))
-	(begin
-	  (set! text (cons ch text))
-	  (next (await)))
+				       (if (or (eq? status 'pri)
+					       (eq? status 'err))
+					   #f
+					   (let next ()
+					     (let ((ch (read-char port)))
+					       (if (not (or (eof-object? ch)
+							    (char=? ch #\newline)))
+						   (begin
+						     (set! text (cons ch text))
+						     (if (char-ready? port)
+							 (next)
+							 'more))
+						   (reverse-list-&gt;string text))))))))
+  (let next ((res (await)))
+    (if (eq? res 'more)
+	(next (await))
 	(begin
 	  (g-source-remove id)
 	  (release-port-handle port)
-	  (reverse-list-&gt;string text)))))
+	  res))))
 </pre></div>
 </dd></dl>
 
@@ -223,7 +233,8 @@ received (without the terminating &rsquo;\n&rsquo; character).  The event loop
 will not be blocked by this procedure even if only individual
 characters are available at any one time.  It is intended to be called
 in a waitable procedure invoked by a-sync.  This procedure is
-implemented using a-sync-glib-read-watch.
+implemented using a-sync-glib-read-watch.  If an exceptional condition
+(&rsquo;pri) or an error (&rsquo;err) is encountered, #f will be returned.
 </p>
 <p>Here is an example:
 </p><div class="example">

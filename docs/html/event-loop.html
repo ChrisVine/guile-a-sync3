@@ -292,20 +292,30 @@ the await-readline! procedure.
 implementation of await-getline!:
 </p><div class="example">
 <pre class="example">(define (await-getline! loop port await resume)
-  (define text '())
-  (a-sync-read-watch! loop
-		      port
-		      resume
-		      (lambda (status)
-			(read-char port)))
-  (let next ([ch (await)])
-    (if (not (char=? ch #\newline))
-	(begin
-	  (set! text (cons ch text))
-	  (next (await)))
+  (let ()
+    (define text '())
+    (a-sync-read-watch! loop
+			port
+			resume
+			(lambda (status)
+			  (if (eq? status 'excpt)
+			      #f
+			      (let next ()
+				(let ((ch (read-char port)))
+				  (if (not (or (eof-object? ch)
+					       (char=? ch #\newline)))
+				      (begin
+					(set! text (cons ch text))
+					(if (char-ready? port)
+					    (next)
+					    'more))
+				      (reverse-list-&gt;string text))))))))
+  (let next ((res (await)))
+    (if (eq? res 'more)
+	(next (await))
 	(begin
 	  (event-loop-remove-read-watch! loop port)
-	  (reverse-list-&gt;string text)))))
+	  res))))
 </pre></div>
 </dd></dl>
 
@@ -318,7 +328,8 @@ while waiting for input and will return the line of text received
 blocked by this procedure even if only individual characters are
 available at any one time.  It is intended to be called in a waitable
 procedure invoked by a-sync.  This procedure is implemented using
-a-sync-read-watch!.
+a-sync-read-watch!.  If an exceptional condition (&rsquo;excpt) is
+encountered, #f will be returned.
 </p>
 <p>Here is an example:
 </p><div class="example">

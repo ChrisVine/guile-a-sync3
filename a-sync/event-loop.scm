@@ -605,22 +605,33 @@
 ;; will not be blocked by this procedure even if only individual
 ;; characters are available at any one time.  It is intended to be
 ;; called in a waitable procedure invoked by a-sync.  This procedure
-;; is implemented using a-sync-read-watch!.
+;; is implemented using a-sync-read-watch!.  If an exceptional
+;; condition ('excpt) is encountered, #f will be returned.
 (define (await-getline! loop port await resume)
-  (define text '())
-  (a-sync-read-watch! loop
-		      port
-		      resume
-		      (lambda (status)
-			(read-char port)))
-  (let next ((ch (await)))
-    (if (not (char=? ch #\newline))
-	(begin
-	  (set! text (cons ch text))
-	  (next (await)))
+  (let ()
+    (define text '())
+    (a-sync-read-watch! loop
+			port
+			resume
+			(lambda (status)
+			  (if (eq? status 'excpt)
+			      #f
+			      (let next ()
+				(let ((ch (read-char port)))
+				  (if (not (or (eof-object? ch)
+					       (char=? ch #\newline)))
+				      (begin
+					(set! text (cons ch text))
+					(if (char-ready? port)
+					    (next)
+					    'more))
+				      (reverse-list->string text))))))))
+  (let next ((res (await)))
+    (if (eq? res 'more)
+	(next (await))
 	(begin
 	  (event-loop-remove-read-watch! loop port)
-	  (reverse-list->string text)))))
+	  res))))
 
 ;; This is a convenience procedure for use with an event loop, which
 ;; will run 'proc' in the event loop thread whenever 'file' is ready
