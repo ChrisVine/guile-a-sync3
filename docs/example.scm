@@ -55,8 +55,8 @@
 	  (simple-format #t
 			 "The line was: ~A\n"
 			 (await-getline! main-loop
-					  (open "/dev/tty" O_RDONLY)
-					  await resume))
+					 (open "/dev/tty" O_RDONLY)
+					 await resume))
 	  (system* "stty" "--file=/dev/tty" "-cbreak")
 
 	  ;; launch another asynchronous task, this time in the event loop thread

@@ -86,3 +86,125 @@
   (event-loop-run! main-loop)
   (test-result 2 count)
   (print-result))
+
+;; Test 4: event-loop-add-read-watch!
+
+(let ()
+  (define test-pipe (pipe))
+  (define in (car test-pipe))
+  (define out (cdr test-pipe))
+  (define count 0)
+  (event-loop-add-read-watch! main-loop in
+			      (lambda (status)
+				(test-result 'in status)
+				(let ([ch (read-char in)])
+				  (if (not (char=? ch #\x))
+				      (begin
+					(test-result #\a ch)
+					(set! count (1+ count))
+					#t)
+				      #f))))
+  (let loop ((count 0))
+    (if (< count 3)
+	(begin
+	  (write-char #\a out)
+	  (force-output out)
+	  (loop (1+ count))
+	(begin
+	  (write-char #\x out)
+	  (force-output out)))))
+  (event-loop-run! main-loop)
+  (test-result 3 count)
+  (print-result))
+
+;; Test 5: event-loop-add-read-watch! and event-loop-remove-watch!
+
+(let ()
+  (define test-pipe (pipe))
+  (define in (car test-pipe))
+  (define out (cdr test-pipe))
+  (define count 0)
+  (event-loop-add-read-watch! main-loop in
+			      (lambda (status)
+				(test-result 'in status)
+				(let ([ch (read-char in)])
+				  (if (not (char=? ch #\x))
+				      (begin
+					(test-result #\a ch)
+					(set! count (1+ count)))
+				      (event-loop-remove-watch! main-loop in))
+				  #t)))
+  (let loop ((count 0))
+    (if (< count 3)
+	(begin
+	  (write-char #\a out)
+	  (force-output out)
+	  (loop (1+ count))
+	(begin
+	  (write-char #\x out)
+	  (force-output out)))))
+  (event-loop-run! main-loop)
+  (test-result 3 count)
+  (print-result))
+
+;; Test 6: event-loop-add-write-watch!
+
+(let ()
+  (define test-pipe (pipe))
+  (define in (car test-pipe))
+  (define out (cdr test-pipe))
+  (define count 0)
+  (event-loop-add-write-watch! main-loop out
+			       (lambda (status)
+				 (test-result 'out status)
+				 (if (< count 3)
+				     (begin
+				       (set! count (1+ count))
+				       (write-char #\a out)
+				       (force-output out)
+				       #t)
+				     (begin
+				       (write-char #\x out)
+				       (force-output out)
+				       #f))))
+  (event-loop-run! main-loop)
+  (let loop ((ch (read-char in))
+	     (count 0))
+    (if (not (char=? ch #\x))
+	(begin
+	  (test-result #\a ch)
+	  (loop (read-char in) (1+ count)))
+	(test-result 3 count)))
+  (test-result 3 count)
+  (print-result))
+
+;; Test 7: event-loop-add-write-watch! and event-loop-remove-watch!
+
+(let ()
+  (define test-pipe (pipe))
+  (define in (car test-pipe))
+  (define out (cdr test-pipe))
+  (define count 0)
+  (event-loop-add-write-watch! main-loop out
+			       (lambda (status)
+				 (test-result 'out status)
+				 (if (< count 3)
+				     (begin
+				       (set! count (1+ count))
+				       (write-char #\a out)
+				       (force-output out))
+				     (begin
+				       (write-char #\x out)
+				       (force-output out)
+				       (event-loop-remove-watch! main-loop out)))
+				 #t))
+  (event-loop-run! main-loop)
+  (let loop ((ch (read-char in))
+	     (count 0))
+    (if (not (char=? ch #\x))
+	(begin
+	  (test-result #\a ch)
+	  (loop (read-char in) (1+ count)))
+	(test-result 3 count)))
+  (test-result 3 count)
+  (print-result))
