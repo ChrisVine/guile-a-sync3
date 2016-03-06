@@ -13,6 +13,9 @@ test:
 snapshot: dist
 	mv @PACKAGE@-@VERSION@.tar.gz @PACKAGE@-`date +%y%m%d`.tar.gz 
 
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = guile-a-sync.pc
+
 EXTRA_DIST = m4/*.m4 autogen.sh config.rpath compile TODO
 
 ACLOCAL_AMFLAGS = -I m4

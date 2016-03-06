@@ -1,0 +1,8 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: guile-a-sync
+Description: Event loop and coroutine interface for guile
+Version: @VERSION@

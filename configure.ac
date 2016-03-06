@@ -45,5 +45,6 @@ AC_CHECK_HAVE_MONOTONIC_CLOCK
 dnl define MAKE for subdirectories
 AC_PROG_MAKE_SET
 
-AC_CONFIG_FILES([ Makefile a-sync/Makefile lib/Makefile docs/Makefile tests/Makefile ])
+AC_CONFIG_FILES([ Makefile a-sync/Makefile lib/Makefile docs/Makefile \
+                  tests/Makefile guile-a-sync.pc ])
 AC_OUTPUT
