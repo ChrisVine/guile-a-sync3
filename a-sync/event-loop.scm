@@ -16,7 +16,7 @@
 
 (define-module (a-sync event-loop)
   #:use-module (ice-9 q)               ;; for make-q, etc
-  #:use-module (srfi srfi-1)           ;; for reduce, delete!, alist-delete!, delete-duplicates and assoc
+  #:use-module (srfi srfi-1)           ;; for reduce, delete!, member, alist-delete!, delete-duplicates and assoc
   #:use-module (srfi srfi-9)
   #:use-module (ice-9 threads)         ;; for with-mutex and call-with-new-thread
   #:use-module (a-sync monotonic-time) ;; for get-time
@@ -256,7 +256,9 @@
 				  (if item (cdr item) #f))))
 			   (if action
 			       (when (not (action 'excpt))
-				 (_remove-read-watch-impl! el elt))
+				 (if (member elt read-files _file-equal?)
+				     (_remove-read-watch-impl! el elt)
+				     (_remove-write-watch-impl! el elt)))
 			       (error "No action in event loop for file: " elt))))
 		       (caddr res))
 	     (when (memv event-fd (car res))
