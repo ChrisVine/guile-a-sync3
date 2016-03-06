@@ -24,7 +24,8 @@
 	    event-loop-run!
 	    event-loop-add-read-watch!
 	    event-loop-add-write-watch!
-	    event-loop-remove-watch!
+	    event-loop-remove-read-watch!
+	    event-loop-remove-write-watch!
 	    event-loop-block!
 	    event-loop-quit!
 	    event-post!
@@ -162,16 +163,24 @@
 
 ;; we don't need any mutexes here as we only access any of the
 ;; read-files, read-files-actions, write-files and write-files-actions
-;; fields in the event loop thread.  This removes a given file watch
-;; and its action from an event loop object.  If there is both a read
-;; and write watch for the same file, both are removed.  A file
-;; descriptor and a port with the same underlying file descriptor, or
-;; two ports with the same underlying file descriptor, compare equal
-;; for the purposes of removal.
-(define (_remove-watch-impl! el file)
+;; fields in the event loop thread.  This removes a given read file
+;; watch and its action from an event loop object.  A file descriptor
+;; and a port with the same underlying file descriptor, or two ports
+;; with the same underlying file descriptor, compare equal for the
+;; purposes of removal.
+(define (_remove-read-watch-impl! el file)
   (_read-files-set! el (delete! file (_read-files-get el) _file-equal?))
+  (_read-files-actions-set! el (alist-delete! file (_read-files-actions-get el) _file-equal?)))
+
+;; we don't need any mutexes here as we only access any of the
+;; read-files, read-files-actions, write-files and write-files-actions
+;; fields in the event loop thread.  This removes a given write file
+;; watch and its action from an event loop object.  A file descriptor
+;; and a port with the same underlying file descriptor, or two ports
+;; with the same underlying file descriptor, compare equal for the
+;; purposes of removal.
+(define (_remove-write-watch-impl! el file)
   (_write-files-set! el (delete! file (_write-files-get el) _file-equal?))
-  (_read-files-actions-set! el (alist-delete! file (_read-files-actions-get el) _file-equal?))
   (_write-files-actions-set! el (alist-delete! file (_write-files-actions-get el) _file-equal?)))
 
 ;; the event loop runs in the thread which calls this procedure.  If
@@ -229,7 +238,7 @@
 				  (if item (cdr item) #f))))
 			   (if action
 			       (when (not (action 'in))
-				 (_remove-watch-impl! el elt))
+				 (_remove-read-watch-impl! el elt))
 			       (error "No action in event loop for read file: " elt))))
 		       (delv event-fd (car res)))
 	     (for-each (lambda (elt)
@@ -238,7 +247,7 @@
 				  (if item (cdr item) #f))))
 			   (if action
 			       (when (not (action 'out))
-			         (_remove-watch-impl! el elt))
+			         (_remove-write-watch-impl! el elt))
 			       (error "No action in event loop for write file: " elt))))
 		       (cadr res))
 	     (for-each (lambda (elt)
@@ -247,7 +256,7 @@
 				  (if item (cdr item) #f))))
 			   (if action
 			       (when (not (action 'excpt))
-				 (_remove-watch-impl! el elt))
+				 (_remove-read-watch-impl! el elt))
 			       (error "No action in event loop for file: " elt))))
 		       (caddr res))
 	     (when (memv event-fd (car res))
@@ -331,18 +340,17 @@
 ;; callback will also be called with its argument set to 'out.  If
 ;; there is already a read watch for the file passed, the old one will
 ;; be replaced by the new one.  If proc returns #f, the read watch
-;; (and any write watch for the same file) will be removed from the
-;; event loop, otherwise the watch will continue.  This is thread safe
-;; - any thread may add a watch, and the callback will execute in the
-;; event loop thread.  The file argument can be either a port or a
-;; file descriptor.  If 'file' is a file descriptor, any port for the
-;; descriptor is not referenced for garbage collection purposes - it
-;; must remain valid while operations are carried out on the
-;; descriptor.  If 'file' is a buffered port, buffering will be taken
-;; into account in indicating whether a read can be made without
-;; blocking (but on a buffered port, for efficiency purposes each read
-;; operation in response to this watch should usually exhaust the
-;; buffer by looping on char-ready?).
+;; will be removed from the event loop, otherwise the watch will
+;; continue.  This is thread safe - any thread may add a watch, and
+;; the callback will execute in the event loop thread.  The file
+;; argument can be either a port or a file descriptor.  If 'file' is a
+;; file descriptor, any port for the descriptor is not referenced for
+;; garbage collection purposes - it must remain valid while operations
+;; are carried out on the descriptor.  If 'file' is a buffered port,
+;; buffering will be taken into account in indicating whether a read
+;; can be made without blocking (but on a buffered port, for
+;; efficiency purposes each read operation in response to this watch
+;; should usually exhaust the buffer by looping on char-ready?).
 (define (event-loop-add-read-watch! el file proc)
   (event-post! el (lambda ()
 		    (_read-files-set!
@@ -357,17 +365,18 @@
 ;; The 'proc' callback should take a single argument, and when called
 ;; this will be set to 'out or 'excpt.  The same port or file
 ;; descriptor can also be passed to event-loop-add-read-watch, and if
-;; so and the descriptor is also available for reading or in error,
-;; the read callback will also be called with its argument set to 'in
-;; or 'excpt (if both a read and a write watch have been set for the
-;; same file argument, and there is an exceptional condition, it is
-;; the read watch procedure which will be called with 'excpt rather
-;; than the write watch procedure).  If there is already a write watch
-;; for the file passed, the old one will be replaced by the new one.
-;; If proc returns #f, the write watch (and any read watch for the
-;; same file) will be removed from the event loop, otherwise the watch
-;; will continue.  This is thread safe - any thread may add a watch,
-;; and the callback will execute in the event loop thread.  The file
+;; so and the descriptor is also available for reading or in
+;; exceptional condition, the read callback will also be called with
+;; its argument set to 'in or 'excpt (if both a read and a write watch
+;; have been set for the same file argument, and there is an
+;; exceptional condition, it is the read watch procedure which will be
+;; called with 'excpt rather than the write watch procedure, so if
+;; that procedure returns #f only the read watch will be removed).  If
+;; there is already a write watch for the file passed, the old one
+;; will be replaced by the new one.  If proc returns #f, the write
+;; watch will be removed from the event loop, otherwise the watch will
+;; continue.  This is thread safe - any thread may add a watch, and
+;; the callback will execute in the event loop thread.  The file
 ;; argument can be either a port or a file descriptor.  If 'file' is a
 ;; file descriptor, any port for the descriptor is not referenced for
 ;; garbage collection purposes - it must remain valid while operations
@@ -386,13 +395,22 @@
 			    (alist-delete! file (_write-files-actions-get el) _file-equal?))))))
 
 ;; The file argument may be a port or a file descriptor, and this
-;; removes any read and write watch previously entered for that port
-;; or file descriptor.  This is thread safe - any thread may remove a
-;; watch.  A file descriptor and a port with the same underlying file
+;; removes any read watch previously entered for that port or file
+;; descriptor.  This is thread safe - any thread may remove a watch.
+;; A file descriptor and a port with the same underlying file
 ;; descriptor compare equal for the purposes of removal.
-(define (event-loop-remove-watch! el file)
+(define (event-loop-remove-read-watch! el file)
   (event-post! el (lambda ()
-		    (_remove-watch-impl! el file))))
+		    (_remove-read-watch-impl! el file))))
+
+;; The file argument may be a port or a file descriptor, and this
+;; removes any write watch previously entered for that port or file
+;; descriptor.  This is thread safe - any thread may remove a watch.
+;; A file descriptor and a port with the same underlying file
+;; descriptor compare equal for the purposes of removal.
+(define (event-loop-remove-write-watch! el file)
+  (event-post! el (lambda ()
+		    (_remove-write-watch-impl! el file))))
 
 ;; The 'action' callback is a thunk.  This is thread safe - any thread
 ;; may post an event (that is its main purpose), and the action
@@ -568,10 +586,10 @@
 ;; event-loop-add-read-watch! for further details).  It is intended to
 ;; be called in a waitable procedure invoked by a-sync.  The watch is
 ;; multi-shot - it is for the user to bring it to an end at the right
-;; time by calling event-loop-remove-watch! in the waitable procedure.
-;; This procedure is mainly intended as something from which
-;; higher-level asynchronous file operations can be constructed, such
-;; as the await-getline! procedure.
+;; time by calling event-loop-remove-read-watch! in the waitable
+;; procedure.  This procedure is mainly intended as something from
+;; which higher-level asynchronous file operations can be constructed,
+;; such as the await-getline! procedure.
 (define (a-sync-read-watch! loop file resume proc)
   (event-loop-add-read-watch! loop file
 			      (lambda (status)
@@ -599,7 +617,7 @@
 	  (set! text (cons ch text))
 	  (next (await)))
 	(begin
-	  (event-loop-remove-watch! loop port)
+	  (event-loop-remove-read-watch! loop port)
 	  (reverse-list->string text)))))
 
 ;; This is a convenience procedure for use with an event loop, which
@@ -612,7 +630,7 @@
 ;; on event-loop-add-write-watch! for further details).  It is
 ;; intended to be called in a waitable procedure invoked by a-sync.
 ;; The watch is multi-shot - it is for the user to bring it to an end
-;; at the right time by calling event-loop-remove-watch! in the
+;; at the right time by calling event-loop-remove-write-watch! in the
 ;; waitable procedure.  This procedure is mainly intended as something
 ;; from which higher-level asynchronous file operations can be
 ;; constructed.

@@ -84,18 +84,18 @@ can also be passed to event-loop-add-write-watch, and if so and the
 descriptor is also available for writing, the write callback will also
 be called with its argument set to &rsquo;out.  If there is already a read
 watch for the file passed, the old one will be replaced by the new
-one.  If proc returns #f, the read watch (and any write watch for the
-same file) will be removed from the event loop, otherwise the watch
-will continue.  This is thread safe - any thread may add a watch, and
-the callback will execute in the event loop thread.  The file argument
-can be either a port or a file descriptor.  If &rsquo;file&rsquo; is a file
-descriptor, any port for the descriptor is not referenced for garbage
-collection purposes - it must remain valid while operations are
-carried out on the descriptor.  If &rsquo;file&rsquo; is a buffered port,
-buffering will be taken into account in indicating whether a read can
-be made without blocking (but on a buffered port, for efficiency
-purposes each read operation in response to this watch should usually
-exhaust the buffer by looping on char-ready?).
+one.  If proc returns #f, the read watch will be removed from the
+event loop, otherwise the watch will continue.  This is thread safe -
+any thread may add a watch, and the callback will execute in the event
+loop thread.  The file argument can be either a port or a file
+descriptor.  If &rsquo;file&rsquo; is a file descriptor, any port for the
+descriptor is not referenced for garbage collection purposes - it must
+remain valid while operations are carried out on the descriptor.  If
+&rsquo;file&rsquo; is a buffered port, buffering will be taken into account in
+indicating whether a read can be made without blocking (but on a
+buffered port, for efficiency purposes each read operation in response
+to this watch should usually exhaust the buffer by looping on
+char-ready?).
 </p></dd></dl>
 
 <dl>
@@ -103,32 +103,41 @@ exhaust the buffer by looping on char-ready?).
 <dd><p>The &rsquo;proc&rsquo; callback should take a single argument, and when called
 this will be set to &rsquo;out or &rsquo;excpt.  The same port or file descriptor
 can also be passed to event-loop-add-read-watch, and if so and the
-descriptor is also available for reading or in error, the read
-callback will also be called with its argument set to &rsquo;in or &rsquo;excpt
-(if both a read and a write watch have been set for the same file
-argument, and there is an exceptional condition, it is the read watch
-procedure which will be called with &rsquo;excpt rather than the write watch
-procedure).  If there is already a write watch for the file passed,
-the old one will be replaced by the new one.  If proc returns #f, the
-write watch (and any read watch for the same file) will be removed
-from the event loop, otherwise the watch will continue.  This is
-thread safe - any thread may add a watch, and the callback will
-execute in the event loop thread.  The file argument can be either a
-port or a file descriptor.  If &rsquo;file&rsquo; is a file descriptor, any port
-for the descriptor is not referenced for garbage collection purposes -
-it must remain valid while operations are carried out on the
-descriptor.  If &rsquo;file&rsquo; is a buffered port, buffering will be taken
-into account in indicating whether a write can be made without
-blocking.
+descriptor is also available for reading or in exceptional condition,
+the read callback will also be called with its argument set to &rsquo;in or
+&rsquo;excpt (if both a read and a write watch have been set for the same
+file argument, and there is an exceptional condition, it is the read
+watch procedure which will be called with &rsquo;excpt rather than the write
+watch procedure, so if that procedure returns #f only the read watch
+will be removed).  If there is already a write watch for the file
+passed, the old one will be replaced by the new one.  If proc returns
+#f, the write watch will be removed from the event loop, otherwise the
+watch will continue.  This is thread safe - any thread may add a
+watch, and the callback will execute in the event loop thread.  The
+file argument can be either a port or a file descriptor.  If &rsquo;file&rsquo; is
+a file descriptor, any port for the descriptor is not referenced for
+garbage collection purposes - it must remain valid while operations
+are carried out on the descriptor.  If &rsquo;file&rsquo; is a buffered port,
+buffering will be taken into account in indicating whether a write can
+be made without blocking.
 </p></dd></dl>
 
 <dl>
-<dt><a name="index-event_002dloop_002dremove_002dwatch_0021"></a>Scheme Procedure: <strong>event-loop-remove-watch!</strong> <em>loop file</em></dt>
+<dt><a name="index-event_002dloop_002dremove_002dread_002dwatch_0021"></a>Scheme Procedure: <strong>event-loop-remove-read-watch!</strong> <em>loop file</em></dt>
 <dd><p>The file argument may be a port or a file descriptor, and this removes
-any read and write watch previously entered for that port or file
-descriptor.  This is thread safe - any thread may remove a watch.  A
-file descriptor and a port with the same underlying file descriptor
-compare equal for the purposes of removal.
+any read watch previously entered for that port or file descriptor.
+This is thread safe - any thread may remove a watch.  A file
+descriptor and a port with the same underlying file descriptor compare
+equal for the purposes of removal.
+</p></dd></dl>
+
+<dl>
+<dt><a name="index-event_002dloop_002dremove_002dwrite_002dwatch_0021"></a>Scheme Procedure: <strong>event-loop-remove-write-watch!</strong> <em>loop file</em></dt>
+<dd><p>The file argument may be a port or a file descriptor, and this removes
+any write watch previously entered for that port or file descriptor.
+This is thread safe - any thread may remove a watch.  A file
+descriptor and a port with the same underlying file descriptor compare
+equal for the purposes of removal.
 </p></dd></dl>
 
 <dl>
@@ -274,10 +283,10 @@ by the event loop to &rsquo;in or &rsquo;excpt (see the documentation on
 event-loop-add-read-watch! for further details).  It is intended to be
 called in a waitable procedure invoked by a-sync.  The watch is
 multi-shot - it is for the user to bring it to an end at the right
-time by calling event-loop-remove-watch! in the waitable procedure.
-This procedure is mainly intended as something from which higher-level
-asynchronous file operations can be constructed, such as the
-await-readline! procedure.
+time by calling event-loop-remove-read-watch! in the waitable
+procedure.  This procedure is mainly intended as something from which
+higher-level asynchronous file operations can be constructed, such as
+the await-readline! procedure.
 </p>
 <p>As an example of how to use a-sync-read-watch!, here is the
 implementation of await-getline!:
@@ -295,7 +304,7 @@ implementation of await-getline!:
 	  (set! text (cons ch text))
 	  (next (await)))
 	(begin
-	  (event-loop-remove-watch! loop port)
+	  (event-loop-remove-read-watch! loop port)
 	  (reverse-list-&gt;string text)))))
 </pre></div>
 </dd></dl>
@@ -337,9 +346,9 @@ by the event loop to &rsquo;out or &rsquo;excpt (see the documentation on
 event-loop-add-write-watch! for further details).  It is intended to
 be called in a waitable procedure invoked by a-sync.  The watch is
 multi-shot - it is for the user to bring it to an end at the right
-time by calling event-loop-remove-watch! in the waitable procedure.
-This procedure is mainly intended as something from which higher-level
-asynchronous file operations can be constructed.
+time by calling event-loop-remove-write-watch! in the waitable
+procedure.  This procedure is mainly intended as something from which
+higher-level asynchronous file operations can be constructed.
 </p></dd></dl>
 
 <p>The (async event-loop) module also loads the <a href="monotonic-time.html#monotonic-time">(a-sync monotonic-time)</a> module.

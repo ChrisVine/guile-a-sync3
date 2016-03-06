@@ -105,7 +105,7 @@
 				       (begin
 					 (write-char #\x out)
 					 (force-output out)
-					 (event-loop-remove-watch! main-loop out)
+					 (event-loop-remove-write-watch! main-loop out)
 					 'done))))
 	    (let loop ((res (await)))
 	      (let ((ch (read-char in)))

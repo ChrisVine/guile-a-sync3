@@ -289,34 +289,34 @@ The (a-sync event-loop) module provides the follow procedures:
      callback will also be called with its argument set to 'out.  If
      there is already a read watch for the file passed, the old one will
      be replaced by the new one.  If proc returns #f, the read watch
-     (and any write watch for the same file) will be removed from the
-     event loop, otherwise the watch will continue.  This is thread safe
-     - any thread may add a watch, and the callback will execute in the
-     event loop thread.  The file argument can be either a port or a
-     file descriptor.  If 'file' is a file descriptor, any port for the
-     descriptor is not referenced for garbage collection purposes - it
-     must remain valid while operations are carried out on the
-     descriptor.  If 'file' is a buffered port, buffering will be taken
-     into account in indicating whether a read can be made without
-     blocking (but on a buffered port, for efficiency purposes each read
-     operation in response to this watch should usually exhaust the
-     buffer by looping on char-ready?).
+     will be removed from the event loop, otherwise the watch will
+     continue.  This is thread safe - any thread may add a watch, and
+     the callback will execute in the event loop thread.  The file
+     argument can be either a port or a file descriptor.  If 'file' is a
+     file descriptor, any port for the descriptor is not referenced for
+     garbage collection purposes - it must remain valid while operations
+     are carried out on the descriptor.  If 'file' is a buffered port,
+     buffering will be taken into account in indicating whether a read
+     can be made without blocking (but on a buffered port, for
+     efficiency purposes each read operation in response to this watch
+     should usually exhaust the buffer by looping on char-ready?).
 
  -- Scheme Procedure: event-loop-add-write-watch! loop file proc
      The 'proc' callback should take a single argument, and when called
      this will be set to 'out or 'excpt.  The same port or file
      descriptor can also be passed to event-loop-add-read-watch, and if
-     so and the descriptor is also available for reading or in error,
-     the read callback will also be called with its argument set to 'in
-     or 'excpt (if both a read and a write watch have been set for the
-     same file argument, and there is an exceptional condition, it is
-     the read watch procedure which will be called with 'excpt rather
-     than the write watch procedure).  If there is already a write watch
-     for the file passed, the old one will be replaced by the new one.
-     If proc returns #f, the write watch (and any read watch for the
-     same file) will be removed from the event loop, otherwise the watch
-     will continue.  This is thread safe - any thread may add a watch,
-     and the callback will execute in the event loop thread.  The file
+     so and the descriptor is also available for reading or in
+     exceptional condition, the read callback will also be called with
+     its argument set to 'in or 'excpt (if both a read and a write watch
+     have been set for the same file argument, and there is an
+     exceptional condition, it is the read watch procedure which will be
+     called with 'excpt rather than the write watch procedure, so if
+     that procedure returns #f only the read watch will be removed).  If
+     there is already a write watch for the file passed, the old one
+     will be replaced by the new one.  If proc returns #f, the write
+     watch will be removed from the event loop, otherwise the watch will
+     continue.  This is thread safe - any thread may add a watch, and
+     the callback will execute in the event loop thread.  The file
      argument can be either a port or a file descriptor.  If 'file' is a
      file descriptor, any port for the descriptor is not referenced for
      garbage collection purposes - it must remain valid while operations
@@ -324,11 +324,18 @@ The (a-sync event-loop) module provides the follow procedures:
      buffering will be taken into account in indicating whether a write
      can be made without blocking.
 
- -- Scheme Procedure: event-loop-remove-watch! loop file
+ -- Scheme Procedure: event-loop-remove-read-watch! loop file
      The file argument may be a port or a file descriptor, and this
-     removes any read and write watch previously entered for that port
-     or file descriptor.  This is thread safe - any thread may remove a
-     watch.  A file descriptor and a port with the same underlying file
+     removes any read watch previously entered for that port or file
+     descriptor.  This is thread safe - any thread may remove a watch.
+     A file descriptor and a port with the same underlying file
+     descriptor compare equal for the purposes of removal.
+
+ -- Scheme Procedure: event-loop-remove-write-watch! loop file
+     The file argument may be a port or a file descriptor, and this
+     removes any write watch previously entered for that port or file
+     descriptor.  This is thread safe - any thread may remove a watch.
+     A file descriptor and a port with the same underlying file
      descriptor compare equal for the purposes of removal.
 
  -- Scheme Procedure: event-post! loop action
@@ -456,10 +463,10 @@ The (a-sync event-loop) module provides the follow procedures:
      event-loop-add-read-watch!  for further details).  It is intended
      to be called in a waitable procedure invoked by a-sync.  The watch
      is multi-shot - it is for the user to bring it to an end at the
-     right time by calling event-loop-remove-watch!  in the waitable
-     procedure.  This procedure is mainly intended as something from
-     which higher-level asynchronous file operations can be constructed,
-     such as the await-readline!  procedure.
+     right time by calling event-loop-remove-read-watch!  in the
+     waitable procedure.  This procedure is mainly intended as something
+     from which higher-level asynchronous file operations can be
+     constructed, such as the await-readline!  procedure.
 
      As an example of how to use a-sync-read-watch!, here is the
      implementation of await-getline!:
@@ -476,7 +483,7 @@ The (a-sync event-loop) module provides the follow procedures:
           	  (set! text (cons ch text))
           	  (next (await)))
           	(begin
-          	  (event-loop-remove-watch! loop port)
+          	  (event-loop-remove-read-watch! loop port)
           	  (reverse-list->string text)))))
 
  -- Scheme Procedure: await-getline! loop port await resume
@@ -511,7 +518,7 @@ The (a-sync event-loop) module provides the follow procedures:
      on event-loop-add-write-watch!  for further details).  It is
      intended to be called in a waitable procedure invoked by a-sync.
      The watch is multi-shot - it is for the user to bring it to an end
-     at the right time by calling event-loop-remove-watch!  in the
+     at the right time by calling event-loop-remove-write-watch!  in the
      waitable procedure.  This procedure is mainly intended as something
      from which higher-level asynchronous file operations can be
      constructed.
@@ -741,7 +748,7 @@ Tag Table:
 Node: Top85
 Node: coroutines978
 Node: event loop13019
-Node: monotonic time26518
-Node: gnome glib27952
+Node: monotonic time26931
+Node: gnome glib28365
 
 End Tag Table

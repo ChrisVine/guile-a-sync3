@@ -117,7 +117,7 @@
   (test-result 3 count)
   (print-result))
 
-;; Test 5: event-loop-add-read-watch! and event-loop-remove-watch!
+;; Test 5: event-loop-add-read-watch! and event-loop-remove-read-watch!
 
 (let ()
   (define test-pipe (pipe))
@@ -132,7 +132,7 @@
 				      (begin
 					(test-result #\a ch)
 					(set! count (1+ count)))
-				      (event-loop-remove-watch! main-loop in))
+				      (event-loop-remove-read-watch! main-loop in))
 				  #t)))
   (let loop ((count 0))
     (if (< count 3)
@@ -178,7 +178,7 @@
   (test-result 3 count)
   (print-result))
 
-;; Test 7: event-loop-add-write-watch! and event-loop-remove-watch!
+;; Test 7: event-loop-add-write-watch! and event-loop-remove-write-watch!
 
 (let ()
   (define test-pipe (pipe))
@@ -196,7 +196,7 @@
 				     (begin
 				       (write-char #\x out)
 				       (force-output out)
-				       (event-loop-remove-watch! main-loop out)))
+				       (event-loop-remove-write-watch! main-loop out)))
 				 #t))
   (event-loop-run! main-loop)
   (let loop ((ch (read-char in))
