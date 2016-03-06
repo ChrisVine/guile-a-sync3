@@ -26,7 +26,7 @@
 #include <config.h>
 
 
-static SCM have_monotonic_time(void) {
+static SCM have_monotonic_time_p(void) {
 #ifdef HAVE_MONOTONIC_CLOCK
   return SCM_BOOL_T;
 #else
@@ -43,7 +43,7 @@ static SCM have_monotonic_time(void) {
 static SCM get_time(void) {
 #ifdef HAVE_MONOTONIC_CLOCK
   struct timespec ts;
-  if (clock_gettime(CLOCK_MONOTONIC, &ts)) {
+  if (clock_gettime(CLOCK_MONOTONIC, &ts) == -1) {
     scm_throw(scm_from_latin1_symbol("a-sync-exception"),
 	      scm_list_4(scm_from_latin1_string("get-time"),
 	      		 scm_from_latin1_string("guile-a-sync: ~A"),
@@ -58,8 +58,8 @@ static SCM get_time(void) {
 }
 
 void init_a_sync_monotonic_time(void* unused) {
-  scm_c_define_gsubr("have-monotonic-time", 0, 0, 0, have_monotonic_time);
+  scm_c_define_gsubr("have-monotonic-time?", 0, 0, 0, have_monotonic_time_p);
   scm_c_define_gsubr("get-time", 0, 0, 0, get_time);
-  scm_c_export("have-monotonic-time", NULL);
+  scm_c_export("have-monotonic-time?", NULL);
   scm_c_export("get-time", NULL);
 }

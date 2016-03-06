@@ -4,7 +4,7 @@
 The (a-sync monotonic-time) module provides two procedures.  It is
 loaded by the @ref{event loop,,(a-sync event-loop)} module.
 
-@deffn {Scheme Procedure} have-monotonic-time
+@deffn {Scheme Procedure} have-monotonic-time?
 This procedure indicates whether the get-time procedure (see below)
 provides a monotonic clock.  Almost all modern linux/unix-like systems
 will do so.  This procedure may return #f if windows is in use, or if
