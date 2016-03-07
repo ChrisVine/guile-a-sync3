@@ -53,6 +53,16 @@ let-a-sync* macro will do it for you.
 				              line))))
 (event-loop-run! main-loop)
 @end example
+
+Each block of code within a let-a-sync* block will run independently
+of (and concurrently with) code in other let-a-sync* blocks.
+Asynchronous operations are only serialized within any one let-a-sync*
+block.  As soon as any code calls a-sync's 'await' procedure in any
+let-a-sync* block, let-a-sync* will return and begin executing
+whatever follows it.
+
+Other examples of the use of this macro are given in the documentation
+of the @ref{coroutines,,(a-sync coroutines)} module.
 @end deffn
 
 @deffn {Syntax} no-await body0 body1 ...

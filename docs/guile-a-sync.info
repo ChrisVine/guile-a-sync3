@@ -142,14 +142,16 @@ The (a-sync coroutines) module provides the following procedures:
      module has await-task!, await-task-in-thread!, await-timeout!,
      a-sync-read-watch!, await-getline!  and a-sync-write-watch!
      convenience procedures which will correctly set this up for you
-     automatically.  If those convenience procedures are used,
-     exceptions should always be handled locally in the waitable
-     procedure (and if the callback might throw, in the callback also)
-     if it is undesirable that uncaught exceptions propagate out of
-     event-loop-run!.  In the case of await-task-in-thread!, that
-     procedure also takes an optional handler argument which will handle
-     any exceptions thrown by the task: otherwise the task thread
-     throwing would terminate the program if not caught within the task.
+     automatically, and the *note let-a-sync: let-a-sync. module
+     provides a let-a-sync* macro for composition.  If those convenience
+     procedures are used, exceptions should always be handled locally in
+     the waitable procedure (and if the callback might throw, in the
+     callback also) if it is undesirable that uncaught exceptions
+     propagate out of event-loop-run!.  In the case of
+     await-task-in-thread!, that procedure also takes an optional
+     handler argument which will handle any exceptions thrown by the
+     task: otherwise the task thread throwing would terminate the
+     program if not caught within the task.
 
      There can be as many calls to 'await' and asynchronous callbacks in
      any one waitable procedure as wanted, to enable composition of
@@ -164,10 +166,13 @@ The (a-sync coroutines) module provides the following procedures:
      one waitable procedure, operate on a 'start-task -> await-on-result
      -> start-task -> await-on-result ...'  basis, and make calls to
      a-sync on separate waitable procedures for tasks which are to run
-     independently.  This is easy using the convenience procedures
-     mentioned above (see the examples).  A waitable procedure can
-     itself call a-sync to construct another await-resume pair for the
-     purpose of starting other asynchronous events.
+     independently (as soon as any code calls a-sync's 'await' procedure
+     in any a-sync block, a-sync will return and whatever follows it
+     will begin executing, including any following a-sync block).  This
+     approach is easy using the convenience procedures mentioned above
+     (see the examples below).  A waitable procedure can itself call
+     a-sync to construct another await-resume pair for the purpose of
+     starting other asynchronous events.
 
      So, don't do this:
 
@@ -187,7 +192,8 @@ The (a-sync coroutines) module provides the following procedures:
           	  (simple-format #t "1 + 1 is ~A\n" (await))))
           (event-loop-run! main-loop)
 
-     Instead do this:
+     Instead do this, where the two asynchronous operations are to run
+     consecutively:
 
           (define main-loop (make-event-loop))
           (a-sync (lambda (await resume)
@@ -204,7 +210,9 @@ The (a-sync coroutines) module provides the following procedures:
           	  (simple-format #t "1 + 1 is ~A\n" (await))))
           (event-loop-run! main-loop)
 
-     or this:
+     or this, where the two asynchronous operations are to run
+     concurrently (the summing of 1 and 1 will finish before the
+     timeout):
 
           (define main-loop (make-event-loop))
           (a-sync (lambda (await resume)
@@ -223,7 +231,8 @@ The (a-sync coroutines) module provides the following procedures:
 
      Or better still, when composing on the event loop from the *note
      event-loop: event loop. module, use the await helper procedures, as
-     follows:
+     follows (in this example the two asynchronous operations run
+     consecutively):
 
           (define main-loop (make-event-loop))
           (a-sync (lambda (await resume)
@@ -240,7 +249,8 @@ The (a-sync coroutines) module provides the following procedures:
           					(+ 1 1))))))
           (event-loop-run! main-loop)
 
-     or
+     or this, where the two asynchronous operations run concurrently
+     (the summing of 1 and 1 will finish before the timeout)
 
           (define main-loop (make-event-loop))
           (a-sync (lambda (await resume)
@@ -258,23 +268,10 @@ The (a-sync coroutines) module provides the following procedures:
           					(+ 1 1))))))
           (event-loop-run! main-loop)
 
-     or the let-a-sync* macro in the *note let-a-sync: let-a-sync.
-     module can be used so that the last two examples appear as:
-
-          (define main-loop (make-event-loop))
-          (let-a-sync* main-loop
-          	     ((ret (await-timeout! 100
-          				   (lambda ()
-          				     "expired"))))
-          	   ((no-await (simple-format #t "Timeout ~A\n" ret))))
-
-          (let-a-sync* main-loop
-          	     ((ret (await-task! (lambda ()
-          				  (+ 1 1)))))
-          	   ((no-await (simple-format #t "1 + 1 is ~A\n" ret))))
-          (event-loop-run! main-loop)
-
-     and
+     Or the let-a-sync* macro in the *note let-a-sync: let-a-sync.
+     module can be used so that the last two examples are constructed as
+     follows (in this first case the two asynchronous operations run
+     consecutively)
 
           (define main-loop (make-event-loop))
           (let-a-sync* main-loop
@@ -285,6 +282,21 @@ The (a-sync coroutines) module provides the following procedures:
           	      (ret2 (await-task! (lambda ()
           				   (+ 1 1)))))
           	   ((no-await (simple-format #t "1 + 1 is ~A\n" ret2))))
+          (event-loop-run! main-loop)
+
+     and this, where the two asynchronous operations run concurrently
+     (the summing of 1 and 1 will finish before the timeout)
+
+          (define main-loop (make-event-loop))
+          (let-a-sync* main-loop
+          	     ((ret (await-timeout! 100
+          				   (lambda ()
+          				     "expired"))))
+          	   ((no-await (simple-format #t "Timeout ~A\n" ret))))
+          (let-a-sync* main-loop
+          	     ((ret (await-task! (lambda ()
+          				  (+ 1 1)))))
+          	   ((no-await (simple-format #t "1 + 1 is ~A\n" ret))))
           (event-loop-run! main-loop)
 
      The a-sync procedure can be used with any event loop, including the
@@ -852,6 +864,16 @@ coroutines. module.
           				              line))))
           (event-loop-run! main-loop)
 
+     Each block of code within a let-a-sync* block will run
+     independently of (and concurrently with) code in other let-a-sync*
+     blocks.  Asynchronous operations are only serialized within any one
+     let-a-sync* block.  As soon as any code calls a-sync's 'await'
+     procedure in any let-a-sync* block, let-a-sync* will return and
+     begin executing whatever follows it.
+
+     Other examples of the use of this macro are given in the
+     documentation of the *note (a-sync coroutines): coroutines. module.
+
  -- Syntax: no-await body0 body1 ...
      This macro will generate a 'let-a-sync*'-capable procedure from a
      body of code which does not block.  It can be passed to
@@ -864,9 +886,9 @@ coroutines. module.
 Tag Table:
 Node: Top85
 Node: coroutines1099
-Node: event loop14196
-Node: monotonic time28511
-Node: gnome glib29945
-Node: let-a-sync40138
+Node: event loop15116
+Node: monotonic time29431
+Node: gnome glib30865
+Node: let-a-sync41058
 
 End Tag Table

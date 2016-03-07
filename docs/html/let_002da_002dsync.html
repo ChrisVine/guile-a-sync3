@@ -107,7 +107,17 @@ let-a-sync* macro will do it for you.
 				              line))))
 (event-loop-run! main-loop)
 </pre></div>
-</dd></dl>
+
+<p>Each block of code within a let-a-sync* block will run independently
+of (and concurrently with) code in other let-a-sync* blocks.
+Asynchronous operations are only serialized within any one let-a-sync*
+block.  As soon as any code calls a-sync&rsquo;s &rsquo;await&rsquo; procedure in any
+let-a-sync* block, let-a-sync* will return and begin executing
+whatever follows it.
+</p>
+<p>Other examples of the use of this macro are given in the documentation
+of the <a href="coroutines.html#coroutines">(a-sync coroutines)</a> module.
+</p></dd></dl>
 
 <dl>
 <dt><a name="index-no_002dawait"></a>Syntax: <strong>no-await</strong> <em>body0 body1 ...</em></dt>

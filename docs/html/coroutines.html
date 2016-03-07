@@ -169,12 +169,13 @@ callback has been removed from the event loop by returning false but
 the waitable procedure still thinks it has a call to &rsquo;await&rsquo; to be
 made.  The <a href="event-loop.html#event-loop">event-loop</a> module has await-task!,
 await-task-in-thread!, await-timeout!, a-sync-read-watch!,
-await-getline! and a-sync-write-watch!  convenience procedures which
-will correctly set this up for you automatically.  If those
-convenience procedures are used, exceptions should always be handled
-locally in the waitable procedure (and if the callback might throw, in
-the callback also) if it is undesirable that uncaught exceptions
-propagate out of event-loop-run!.  In the case of
+await-getline! and a-sync-write-watch! convenience procedures which
+will correctly set this up for you automatically, and the
+<a href="let_002da_002dsync.html#let_002da_002dsync">let-a-sync</a> module provides a let-a-sync* macro for
+composition.  If those convenience procedures are used, exceptions
+should always be handled locally in the waitable procedure (and if the
+callback might throw, in the callback also) if it is undesirable that
+uncaught exceptions propagate out of event-loop-run!.  In the case of
 await-task-in-thread!, that procedure also takes an optional handler
 argument which will handle any exceptions thrown by the task:
 otherwise the task thread throwing would terminate the program if not
@@ -192,11 +193,14 @@ be correctly identified.  Accordingly this practice is discouraged.
 Instead, when composing asynchronous tasks within any one waitable
 procedure, operate on a &rsquo;start-task &ndash;&gt; await-on-result &ndash;&gt; start-task
 &ndash;&gt; await-on-result ...&rsquo; basis, and make calls to a-sync on separate
-waitable procedures for tasks which are to run independently.  This is
-easy using the convenience procedures mentioned above (see the
-examples).  A waitable procedure can itself call a-sync to construct
-another await-resume pair for the purpose of starting other
-asynchronous events.
+waitable procedures for tasks which are to run independently (as soon
+as any code calls a-sync&rsquo;s &rsquo;await&rsquo; procedure in any a-sync block,
+a-sync will return and whatever follows it will begin executing,
+including any following a-sync block).  This approach is easy using
+the convenience procedures mentioned above (see the examples below).
+A waitable procedure can itself call a-sync to construct another
+await-resume pair for the purpose of starting other asynchronous
+events.
 </p>
 <p>So, don&rsquo;t do this:
 </p>
@@ -218,7 +222,8 @@ asynchronous events.
 (event-loop-run! main-loop)
 </pre></div>
 
-<p>Instead do this:
+<p>Instead do this, where the two asynchronous operations are to run
+consecutively:
 </p>
 <div class="example">
 <pre class="example">(define main-loop (make-event-loop))
@@ -237,7 +242,8 @@ asynchronous events.
 (event-loop-run! main-loop)
 </pre></div>
 
-<p>or this:
+<p>or this, where the two asynchronous operations are to run concurrently
+(the summing of 1 and 1 will finish before the timeout):
 </p>
 <div class="example">
 <pre class="example">(define main-loop (make-event-loop))
@@ -256,7 +262,8 @@ asynchronous events.
 (event-loop-run! main-loop)
 </pre></div>
 
-<p>Or better still, when composing on the event loop from the <a href="event-loop.html#event-loop">event-loop</a> module, use the await helper procedures, as follows:
+<p>Or better still, when composing on the event loop from the <a href="event-loop.html#event-loop">event-loop</a> module, use the await helper procedures, as follows
+(in this example the two asynchronous operations run consecutively):
 </p>
 <div class="example">
 <pre class="example">(define main-loop (make-event-loop))
@@ -275,7 +282,8 @@ asynchronous events.
 (event-loop-run! main-loop)
 </pre></div>
 
-<p>or
+<p>or this, where the two asynchronous operations run concurrently (the
+summing of 1 and 1 will finish before the timeout)
 </p>
 <div class="example">
 <pre class="example">(define main-loop (make-event-loop))
@@ -295,25 +303,9 @@ asynchronous events.
 (event-loop-run! main-loop)
 </pre></div>
 
-<p>or the let-a-sync* macro in the <a href="let_002da_002dsync.html#let_002da_002dsync">let-a-sync</a> module
-can be used so that the last two examples appear as:
-</p>
-<div class="example">
-<pre class="example">(define main-loop (make-event-loop))
-(let-a-sync* main-loop
-	     ((ret (await-timeout! 100
-				   (lambda ()
-				     &quot;expired&quot;))))
-	   ((no-await (simple-format #t &quot;Timeout ~A\n&quot; ret))))
-
-(let-a-sync* main-loop
-	     ((ret (await-task! (lambda ()
-				  (+ 1 1)))))
-	   ((no-await (simple-format #t &quot;1 + 1 is ~A\n&quot; ret))))
-(event-loop-run! main-loop)
-</pre></div>
-
-<p>and
+<p>Or the let-a-sync* macro in the <a href="let_002da_002dsync.html#let_002da_002dsync">let-a-sync</a> module
+can be used so that the last two examples are constructed as follows
+(in this first case the two asynchronous operations run consecutively)
 </p>
 <div class="example">
 <pre class="example">(define main-loop (make-event-loop))
@@ -325,6 +317,23 @@ can be used so that the last two examples appear as:
 	      (ret2 (await-task! (lambda ()
 				   (+ 1 1)))))
 	   ((no-await (simple-format #t &quot;1 + 1 is ~A\n&quot; ret2))))
+(event-loop-run! main-loop)
+</pre></div>
+
+<p>and this, where the two asynchronous operations run concurrently (the
+summing of 1 and 1 will finish before the timeout)
+</p>
+<div class="example">
+<pre class="example">(define main-loop (make-event-loop))
+(let-a-sync* main-loop
+	     ((ret (await-timeout! 100
+				   (lambda ()
+				     &quot;expired&quot;))))
+	   ((no-await (simple-format #t &quot;Timeout ~A\n&quot; ret))))
+(let-a-sync* main-loop
+	     ((ret (await-task! (lambda ()
+				  (+ 1 1)))))
+	   ((no-await (simple-format #t &quot;1 + 1 is ~A\n&quot; ret))))
 (event-loop-run! main-loop)
 </pre></div>
 

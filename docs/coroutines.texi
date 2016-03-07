@@ -112,12 +112,13 @@ callback has been removed from the event loop by returning false but
 the waitable procedure still thinks it has a call to 'await' to be
 made.  The @ref{event loop,,event-loop} module has await-task!,
 await-task-in-thread!, await-timeout!, a-sync-read-watch!,
-await-getline! and a-sync-write-watch!  convenience procedures which
-will correctly set this up for you automatically.  If those
-convenience procedures are used, exceptions should always be handled
-locally in the waitable procedure (and if the callback might throw, in
-the callback also) if it is undesirable that uncaught exceptions
-propagate out of event-loop-run!.  In the case of
+await-getline! and a-sync-write-watch! convenience procedures which
+will correctly set this up for you automatically, and the
+@ref{let-a-sync,,let-a-sync} module provides a let-a-sync* macro for
+composition.  If those convenience procedures are used, exceptions
+should always be handled locally in the waitable procedure (and if the
+callback might throw, in the callback also) if it is undesirable that
+uncaught exceptions propagate out of event-loop-run!.  In the case of
 await-task-in-thread!, that procedure also takes an optional handler
 argument which will handle any exceptions thrown by the task:
 otherwise the task thread throwing would terminate the program if not
@@ -135,11 +136,14 @@ be correctly identified.  Accordingly this practice is discouraged.
 Instead, when composing asynchronous tasks within any one waitable
 procedure, operate on a 'start-task --> await-on-result --> start-task
 --> await-on-result ...' basis, and make calls to a-sync on separate
-waitable procedures for tasks which are to run independently.  This is
-easy using the convenience procedures mentioned above (see the
-examples).  A waitable procedure can itself call a-sync to construct
-another await-resume pair for the purpose of starting other
-asynchronous events.
+waitable procedures for tasks which are to run independently (as soon
+as any code calls a-sync's 'await' procedure in any a-sync block,
+a-sync will return and whatever follows it will begin executing,
+including any following a-sync block).  This approach is easy using
+the convenience procedures mentioned above (see the examples below).
+A waitable procedure can itself call a-sync to construct another
+await-resume pair for the purpose of starting other asynchronous
+events.
 
 So, don't do this:
 
@@ -161,7 +165,8 @@ So, don't do this:
 (event-loop-run! main-loop)
 @end example
 
-Instead do this:
+Instead do this, where the two asynchronous operations are to run
+consecutively:
 
 @example
 (define main-loop (make-event-loop))
@@ -180,7 +185,8 @@ Instead do this:
 (event-loop-run! main-loop)
 @end example
 
-or this:
+or this, where the two asynchronous operations are to run concurrently
+(the summing of 1 and 1 will finish before the timeout):
 
 @example
 (define main-loop (make-event-loop))
@@ -200,7 +206,8 @@ or this:
 @end example
 
 Or better still, when composing on the event loop from the @ref{event
-loop,,event-loop} module, use the await helper procedures, as follows:
+loop,,event-loop} module, use the await helper procedures, as follows
+(in this example the two asynchronous operations run consecutively):
 
 @example
 (define main-loop (make-event-loop))
@@ -219,7 +226,8 @@ loop,,event-loop} module, use the await helper procedures, as follows:
 (event-loop-run! main-loop)
 @end example
 
-or
+or this, where the two asynchronous operations run concurrently (the
+summing of 1 and 1 will finish before the timeout)
 
 @example
 (define main-loop (make-event-loop))
@@ -239,25 +247,9 @@ or
 (event-loop-run! main-loop)
 @end example
 
-or the let-a-sync* macro in the @ref{let-a-sync,,let-a-sync} module
-can be used so that the last two examples appear as:
-
-@example
-(define main-loop (make-event-loop))
-(let-a-sync* main-loop
-	     ((ret (await-timeout! 100
-				   (lambda ()
-				     "expired"))))
-	   ((no-await (simple-format #t "Timeout ~A\n" ret))))
-
-(let-a-sync* main-loop
-	     ((ret (await-task! (lambda ()
-				  (+ 1 1)))))
-	   ((no-await (simple-format #t "1 + 1 is ~A\n" ret))))
-(event-loop-run! main-loop)
-@end example
-
-and
+Or the let-a-sync* macro in the @ref{let-a-sync,,let-a-sync} module
+can be used so that the last two examples are constructed as follows
+(in this first case the two asynchronous operations run consecutively)
 
 @example
 (define main-loop (make-event-loop))
@@ -269,6 +261,23 @@ and
 	      (ret2 (await-task! (lambda ()
 				   (+ 1 1)))))
 	   ((no-await (simple-format #t "1 + 1 is ~A\n" ret2))))
+(event-loop-run! main-loop)
+@end example
+
+and this, where the two asynchronous operations run concurrently (the
+summing of 1 and 1 will finish before the timeout)
+
+@example
+(define main-loop (make-event-loop))
+(let-a-sync* main-loop
+	     ((ret (await-timeout! 100
+				   (lambda ()
+				     "expired"))))
+	   ((no-await (simple-format #t "Timeout ~A\n" ret))))
+(let-a-sync* main-loop
+	     ((ret (await-task! (lambda ()
+				  (+ 1 1)))))
+	   ((no-await (simple-format #t "1 + 1 is ~A\n" ret))))
 (event-loop-run! main-loop)
 @end example
 
