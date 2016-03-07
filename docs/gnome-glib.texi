@@ -1,4 +1,4 @@
-@node gnome glib,,monotonic time,Top
+@node gnome glib,let-a-sync,monotonic time,Top
 
 When using the scheme (gnome gtk) bindings of guile-gnome with guile,
 in order to provide await semantics on gtk+ callbacks it will normally

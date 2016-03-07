@@ -16,6 +16,7 @@
 
 (use-modules (a-sync coroutines)
 	     (a-sync event-loop)
+	     (a-sync let-a-sync)
 	     (ice-9 rdelim) ;; for write-line
 	     (rnrs base))   ;; for assert
 
@@ -118,3 +119,13 @@
 	    (test-result 3 count)
 	    (print-result)))
   (event-loop-run! main-loop))
+
+;; Test 6: let-a-sync* and no-await
+
+(let-a-sync* main-loop ((res (await-task-in-thread! (lambda ()
+						      (+ 5 10)))))
+	     ((no-await (test-result 15 res)
+			(print-result)
+			(event-loop-quit! main-loop))))
+(event-loop-block! main-loop #t)
+(event-loop-run! main-loop)

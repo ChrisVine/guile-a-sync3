@@ -13,13 +13,14 @@ other event loops such as the glib event loop) to be used with 'await'
 semantics to deal with inversion of control - otherwise known as
 "callback hell".
 
-   The guile-a-sync library is provided in four modules:
+   The guile-a-sync library is provided in five modules:
 * Menu:
 
-* coroutines::     In module (async coroutines) - provides coroutines for await semantics on asynchronous events
-* event loop::     In module (async event-loop) - provides an event loop for asynchronous events
-* monotonic time:: In module (async monotonic-time) - enables monotonic time to be used for timeouts
-* gnome glib::     In module (async gnome-glib) - provides some convenience await procedures for the glib main loop
+* coroutines::     In module (a-sync coroutines) - provides coroutines for await semantics on asynchronous events
+* event loop::     In module (a-sync event-loop) - provides an event loop for asynchronous events
+* monotonic time:: In module (a-sync monotonic-time) - enables monotonic time to be used for timeouts
+* gnome glib::     In module (a-sync gnome-glib) - provides some convenience await procedures for the glib main loop
+* let-a-sync::     In module (a-sync let-a-sync) - provides the let-a-sync* macro interface for the a-sync coroutine
 
 
 File: guile-a-sync.info,  Node: coroutines,  Next: event loop,  Prev: Top,  Up: Top
@@ -228,13 +229,13 @@ The (a-sync coroutines) module provides the following procedures:
           (a-sync (lambda (await resume)
           	  (simple-format #t
           			 "Timeout ~A\n"
-          			 (await-timeout! main-loop 100
-          					 await resume
+          			 (await-timeout! await resume
+          					 main-loop 100
           					 (lambda ()
           					   "expired")))
           	  (simple-format #t "1 + 1 is ~A\n"
-          			 (await-task! main-loop
-          				      await resume
+          			 (await-task! await resume
+          				      main-loop
           				      (lambda ()
           					(+ 1 1))))))
           (event-loop-run! main-loop)
@@ -245,21 +246,50 @@ The (a-sync coroutines) module provides the following procedures:
           (a-sync (lambda (await resume)
           	  (simple-format #t
           			 "Timeout ~A\n"
-          			 (await-timeout! main-loop 100
-          					 await resume
+          			 (await-timeout! await resume
+          					 main-loop 100
           					 (lambda ()
           					   "expired")))))
           (a-sync (lambda (await resume)
           	  (simple-format #t "1 + 1 is ~A\n"
-          			 (await-task! main-loop
-          				      await resume
+          			 (await-task! await resume
+          				      main-loop
           				      (lambda ()
           					(+ 1 1))))))
           (event-loop-run! main-loop)
 
-     This procedure can be used with any event loop, including the glib
-     event loop provided by guile-gnome and so with gtk+ callbacks, and
-     with the event loop in the event-loop module.
+     or the let-a-sync* macro in the *note let-a-sync: let-a-sync.
+     module can be used so that the last two examples appear as:
+
+          (define main-loop (make-event-loop))
+          (let-a-sync* main-loop
+          	     ((ret (await-timeout! 100
+          				   (lambda ()
+          				     "expired"))))
+          	   ((no-await (simple-format #t "Timeout ~A\n" ret))))
+
+          (let-a-sync* main-loop
+          	     ((ret (await-task! (lambda ()
+          				  (+ 1 1)))))
+          	   ((no-await (simple-format #t "1 + 1 is ~A\n" ret))))
+          (event-loop-run! main-loop)
+
+     and
+
+          (define main-loop (make-event-loop))
+          (let-a-sync* main-loop
+          	     ((ret1 (await-timeout! 100
+          				   (lambda ()
+          				     "expired")))
+          	      (ignore ((no-await (simple-format #t "Timeout ~A\n" ret1))))
+          	      (ret2 (await-task! (lambda ()
+          				   (+ 1 1)))))
+          	   ((no-await (simple-format #t "1 + 1 is ~A\n" ret2))))
+          (event-loop-run! main-loop)
+
+     The a-sync procedure can be used with any event loop, including the
+     glib event loop provided by guile-gnome and so with gtk+ callbacks,
+     and with the event loop in the event-loop module.
 
 
 File: guile-a-sync.info,  Node: event loop,  Next: monotonic time,  Prev: coroutines,  Up: Top
@@ -432,7 +462,7 @@ The (a-sync event-loop) module provides the follow procedures:
           					(+ 1 1))))))
           (event-loop-run! main-loop)
 
- -- Scheme Procedure: await-timeout! await resume loop msec thunk
+ -- Scheme Procedure: await-timeout! await resume loop msecs thunk
      This is a convenience procedure for use with an event loop, which
      will run 'thunk' in the event loop thread when the timeout expires.
      This procedure calls 'await' and will return the thunk's return
@@ -565,7 +595,7 @@ loaded by the *note (a-sync event-loop): event loop. module.
      should always give the correct answer
 
 
-File: guile-a-sync.info,  Node: gnome glib,  Prev: monotonic time,  Up: Top
+File: guile-a-sync.info,  Node: gnome glib,  Next: let-a-sync,  Prev: monotonic time,  Up: Top
 
 When using the scheme (gnome gtk) bindings of guile-gnome with guile, in
 order to provide await semantics on gtk+ callbacks it will normally be
@@ -646,7 +676,7 @@ module, so as not to create a hard dependency on guile-gnome.
           	  (g-main-loop-quit main-loop)))
           (g-main-loop-run main-loop)
 
- -- Scheme Procedure: await-glib-timeout await resume msec thunk
+ -- Scheme Procedure: await-glib-timeout await resume msecs thunk
      This is a convenience procedure for use with a glib main loop,
      which will run 'thunk' in the default glib main loop when the
      timeout expires.  This procedure calls 'await' and will return the
@@ -765,13 +795,78 @@ module, so as not to create a hard dependency on guile-gnome.
      as something from which higher-level asynchronous file operations
      can be constructed.
 
+
+File: guile-a-sync.info,  Node: let-a-sync,  Prev: gnome glib,  Up: Top
+
+This (a-sync let-a-sync) module provides a let-a-sync* macro interface
+for the a-sync procedure provided by the *note (a-sync coroutines):
+coroutines. module.
+
+ -- Syntax: let-a-sync* loop ((var (await-proc)) ...) await-proc ...
+     This module provides the let-a-sync* macro, which enables
+     asynchronous tasks to be composed on an event loop using let* type
+     syntax.
+
+     The first argument to let-a-sync* is the main loop on which the
+     tasks are to be composed.  This is followed by bindings which are
+     optional (there need not be any), each of which must be initialised
+     by a 'let-a-sync*'-capable procedure, and following the bindings
+     there must be a body of 'let-a-sync*'-capable procedures executed
+     solely for the purpose of asynchronous side effects (this macro
+     does not, and cannot, return a value because as soon as the first
+     await is made control is passed to the event loop).  As in the case
+     of let*, unlike the bindings the body cannot be empty - there must
+     be at least one 'let-a-sync*'-capable procedure in the body.
+
+     As in the case of let*, each 'let-a-sync*'-capable procedure
+     initializing a binding can see the values of the initializations
+     made prior to it.
+
+     A 'let-a-sync*'-capable procedure is one which takes an 'await' and
+     'yield' procedure from a-sync as its first and second arguments,
+     and an event loop as it third argument, followed by such further
+     arguments as it requires.  All the the await-task!,
+     await-task-in-thread!, await-timeout!  and await-getline!
+     procedures provided by the (a-sync event-loop) module are
+     'let-a-sync*'-capable.  In addition, to make an ordinary body of
+     code which does not block (and which does not need to invoke
+     a-sync's await procedure) usable by let-a-sync*, the no-await macro
+     can be used to generate a 'let-a-sync*'-capable procedure for it
+     (see below).
+
+     Each binding is initialized as if sequentially (although it is done
+     asynchronously on the relevant event loop).  An initialization does
+     not begin until an earlier one has completed.  In addition, each
+     clause in the body is executed sequentially in turn, but does so
+     asynchronously on the event loop using 'await' semantics.
+
+     When calling a 'let-a-sync*'-capable procedure within a
+     'let-a-sync*' block (including when initializing its bindings), the
+     'await' and 'yield' and event-loop arguments are not explicitly
+     passed to it.  The let-a-sync* macro will do it for you.
+
+          (define main-loop (make-event-loop))
+          (let-a-sync* main-loop ((line (await-getline! (open "/dev/tty" O_RDONLY))))
+          	            ((no-await (simple-format #t
+          				              "The line was: ~A\n"
+          				              line))))
+          (event-loop-run! main-loop)
+
+ -- Syntax: no-await body0 body1 ...
+     This macro will generate a 'let-a-sync*'-capable procedure from a
+     body of code which does not block.  It can be passed to
+     let-a-sync*, either as an initializer or as a clause in its body.
+
+          ((no-await (display "This is non-blocking code\n")))
+
 
 
 Tag Table:
 Node: Top85
-Node: coroutines978
-Node: event loop13019
-Node: monotonic time27333
-Node: gnome glib28767
+Node: coroutines1099
+Node: event loop14196
+Node: monotonic time28511
+Node: gnome glib29945
+Node: let-a-sync40138
 
 End Tag Table

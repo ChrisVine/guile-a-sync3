@@ -207,13 +207,13 @@ loop,,event-loop} module, use the await helper procedures, as follows:
 (a-sync (lambda (await resume)
 	  (simple-format #t
 			 "Timeout ~A\n"
-			 (await-timeout! main-loop 100
-					 await resume
+			 (await-timeout! await resume
+					 main-loop 100
 					 (lambda ()
 					   "expired")))
 	  (simple-format #t "1 + 1 is ~A\n"
-			 (await-task! main-loop
-				      await resume
+			 (await-task! await resume
+				      main-loop
 				      (lambda ()
 					(+ 1 1))))))
 (event-loop-run! main-loop)
@@ -226,20 +226,53 @@ or
 (a-sync (lambda (await resume)
 	  (simple-format #t
 			 "Timeout ~A\n"
-			 (await-timeout! main-loop 100
-					 await resume
+			 (await-timeout! await resume
+					 main-loop 100
 					 (lambda ()
 					   "expired")))))
 (a-sync (lambda (await resume)
 	  (simple-format #t "1 + 1 is ~A\n"
-			 (await-task! main-loop
-				      await resume
+			 (await-task! await resume
+				      main-loop
 				      (lambda ()
 					(+ 1 1))))))
 (event-loop-run! main-loop)
 @end example
 
-This procedure can be used with any event loop, including the glib
-event loop provided by guile-gnome and so with gtk+ callbacks, and
-with the event loop in the event-loop module.
+or the let-a-sync* macro in the @ref{let-a-sync,,let-a-sync} module
+can be used so that the last two examples appear as:
+
+@example
+(define main-loop (make-event-loop))
+(let-a-sync* main-loop
+	     ((ret (await-timeout! 100
+				   (lambda ()
+				     "expired"))))
+	   ((no-await (simple-format #t "Timeout ~A\n" ret))))
+
+(let-a-sync* main-loop
+	     ((ret (await-task! (lambda ()
+				  (+ 1 1)))))
+	   ((no-await (simple-format #t "1 + 1 is ~A\n" ret))))
+(event-loop-run! main-loop)
+@end example
+
+and
+
+@example
+(define main-loop (make-event-loop))
+(let-a-sync* main-loop
+	     ((ret1 (await-timeout! 100
+				   (lambda ()
+				     "expired")))
+	      (ignore ((no-await (simple-format #t "Timeout ~A\n" ret1))))
+	      (ret2 (await-task! (lambda ()
+				   (+ 1 1)))))
+	   ((no-await (simple-format #t "1 + 1 is ~A\n" ret2))))
+(event-loop-run! main-loop)
+@end example
+
+The a-sync procedure can be used with any event loop, including the
+glib event loop provided by guile-gnome and so with gtk+ callbacks,
+and with the event loop in the event-loop module.
 @end deffn

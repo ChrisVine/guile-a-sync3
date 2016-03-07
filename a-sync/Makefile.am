@@ -3,7 +3,7 @@
 SOURCES = monotonic-time.scm coroutines.scm event-loop.scm
 
 moduledir = $(GUILE_SITE)/a-sync
-module_DATA = $(SOURCES) gnome-glib.scm
+module_DATA = $(SOURCES) gnome-glib.scm let-a-sync.scm
 
 if COMPILE_TO_BYTECODE
 GOBJECTS = $(SOURCES:%.scm=%.go)
@@ -18,4 +18,4 @@ SUFFIXES = .scm .go
 module_DATA += $(GOBJECTS)
 endif
 
-EXTRA_DIST = $(SOURCES) gnome-glib.scm a-sync-compile.sh
+EXTRA_DIST = $(SOURCES) gnome-glib.scm let-a-sync.scm a-sync-compile.sh
