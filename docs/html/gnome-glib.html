@@ -140,7 +140,7 @@ that.
 </dd></dl>
 
 <dl>
-<dt><a name="index-await_002dglib_002dtimeout"></a>Scheme Procedure: <strong>await-glib-timeout</strong> <em>msec await resume thunk</em></dt>
+<dt><a name="index-await_002dglib_002dtimeout"></a>Scheme Procedure: <strong>await-glib-timeout</strong> <em>await resume msec thunk</em></dt>
 <dd><p>This is a convenience procedure for use with a glib main loop, which
 will run &rsquo;thunk&rsquo; in the default glib main loop when the timeout
 expires.  This procedure calls &rsquo;await&rsquo; and will return the thunk&rsquo;s
@@ -155,8 +155,8 @@ the event loop.
 (a-sync (lambda (await resume)
 	  (simple-format #t
 			 &quot;Timeout ~A\n&quot;
-			 (await-glib-timeout 100
-					     await resume
+			 (await-glib-timeout await resume
+					     100
 					     (lambda ()
 					       &quot;expired&quot;)))
 	  (g-main-loop-quit main-loop)))
@@ -174,7 +174,7 @@ be passed subsequently to the g-source-remove procedure.
 </p></dd></dl>
 
 <dl>
-<dt><a name="index-a_002dsync_002dglib_002dread_002dwatch"></a>Scheme Procedure: <strong>a-sync-glib-read-watch</strong> <em>port resume proc</em></dt>
+<dt><a name="index-a_002dsync_002dglib_002dread_002dwatch"></a>Scheme Procedure: <strong>a-sync-glib-read-watch</strong> <em>resume port proc</em></dt>
 <dd><p>This is a convenience procedure for use with a glib main loop, which
 will run &rsquo;proc&rsquo; in the default glib main loop whenever &rsquo;port&rsquo; is ready
 for reading, and apply resume (obtained from a call to a-sync) to the
@@ -195,10 +195,10 @@ constructed, such as the await-glib-getline procedure.
 <p>As an example of how to use a-sync-glib-read-watch, here is the
 implementation of await-glib-getline:
 </p><div class="example">
-<pre class="example">(define (await-glib-getline port await resume)
+<pre class="example">(define (await-glib-getline await resume port)
   (define text '())
-  (define id (a-sync-glib-read-watch port
-				     resume
+  (define id (a-sync-glib-read-watch resume
+				     port
 				     (lambda (ioc status)
 				       (if (or (eq? status 'pri)
 					       (eq? status 'err))
@@ -224,7 +224,7 @@ implementation of await-glib-getline:
 </dd></dl>
 
 <dl>
-<dt><a name="index-await_002dglib_002dgetline"></a>Scheme Procedure: <strong>await-glib-getline</strong> <em>port await resume</em></dt>
+<dt><a name="index-await_002dglib_002dgetline"></a>Scheme Procedure: <strong>await-glib-getline</strong> <em>await resume port</em></dt>
 <dd><p>This is a convenience procedure for use with a glib main loop, which
 will start a file watch and run &rsquo;thunk&rsquo; in the default glib main loop
 whenver an entire line of text has been received.  This procedure
@@ -243,15 +243,15 @@ implemented using a-sync-glib-read-watch.  If an exceptional condition
           (display &quot;Enter a line of text at the keyboard\n&quot;)
           (simple-format #t
                          &quot;The line was: ~A\n&quot;
-                         (await-glib-getline (open &quot;/dev/tty&quot; O_RDONLY)
-					     await resume))
+                         (await-glib-getline await resume
+					     (open &quot;/dev/tty&quot; O_RDONLY)))
 	  (g-main-loop-quit main-loop)))
 (g-main-loop-run main-loop)
 </pre></div>
 </dd></dl>
 
 <dl>
-<dt><a name="index-a_002dsync_002dglib_002dwrite_002dwatch"></a>Scheme Procedure: <strong>a-sync-glib-write-watch</strong> <em>port resume proc</em></dt>
+<dt><a name="index-a_002dsync_002dglib_002dwrite_002dwatch"></a>Scheme Procedure: <strong>a-sync-glib-write-watch</strong> <em>resume port proc</em></dt>
 <dd><p>This is a convenience procedure for use with a glib main loop, which
 will run &rsquo;proc&rsquo; in the default glib main loop whenever &rsquo;port&rsquo; is ready
 for writing, and apply resume (obtained from a call to a-sync) to the

@@ -111,8 +111,8 @@
 ;; procedure invoked by a-sync.  The timeout is single shot only - as
 ;; soon as 'thunk' has run once and completed, the timeout will be
 ;; removed from the event loop.
-(define (await-glib-timeout msec await resume thunk)
-  (g-timeout-add msec
+(define (await-glib-timeout await resume msecs thunk)
+  (g-timeout-add msecs
 		 (lambda ()
 		   (resume (thunk))
 		   #f))
@@ -149,7 +149,7 @@
 ;; release-port-handle on the port.  This procedure is mainly intended
 ;; as something from which higher-level asynchronous file operations
 ;; can be constructed, such as the await-glib-getline procedure.
-(define (a-sync-glib-read-watch port resume proc)
+(define (a-sync-glib-read-watch resume port proc)
   (glib-add-watch (g-io-channel-unix-new (port->fdes port))
 		  '(in pri hup err)
 		  (lambda (a b)
@@ -167,10 +167,10 @@
 ;; This procedure is implemented using a-sync-glib-read-watch.  If an
 ;; exceptional condition ('pri) or an error ('err) is encountered, #f
 ;; will be returned.
-(define (await-glib-getline port await resume)
+(define (await-glib-getline await resume port)
   (define text '())
-  (define id (a-sync-glib-read-watch port
-				     resume
+  (define id (a-sync-glib-read-watch resume
+				     port
 				     (lambda (ioc status)
 				       (if (or (eq? status 'pri)
 					       (eq? status 'err))
@@ -210,7 +210,7 @@
 ;; release-port-handle on the port.  This procedure is mainly intended
 ;; as something from which higher-level asynchronous file operations
 ;; can be constructed.
-(define (a-sync-glib-write-watch port resume proc)
+(define (a-sync-glib-write-watch resume port proc)
   (glib-add-watch (g-io-channel-unix-new (port->fdes port))
 		  '(out err)
 		  (lambda (a b)

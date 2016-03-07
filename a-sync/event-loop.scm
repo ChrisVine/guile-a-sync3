@@ -525,7 +525,7 @@
 ;; arguments as a guile catch handler (this is implemented using
 ;; catch).  If 'handler' throws, the exception will propagate out of
 ;; event-loop-run!.
-(define* (await-task-in-thread! loop await resume thunk #:optional handler)
+(define* (await-task-in-thread! await resume loop thunk #:optional handler)
   (if handler
       (call-with-new-thread
        (lambda ()
@@ -559,7 +559,7 @@
 ;; expected by a waitable procedure running in the event loop thread.
 ;; (For the latter case though, await-task-in-thread! is generally a
 ;; more convenient wrapper.)
-(define (await-task! loop await resume thunk)
+(define (await-task! await resume loop thunk)
   (event-post! loop (lambda ()
 		      (resume (thunk))))
   (await))
@@ -571,8 +571,8 @@
 ;; by a-sync.  The timeout is single shot only - as soon as 'thunk'
 ;; has run once and completed, the timeout will be removed from the
 ;; event loop.
-(define (await-timeout! loop msec await resume thunk)
-  (timeout-post! loop msec
+(define (await-timeout! await resume loop msecs thunk)
+  (timeout-post! loop msecs
 		 (lambda ()
 		   (resume (thunk))
 		   #f))
@@ -592,7 +592,7 @@
 ;; procedure.  This procedure is mainly intended as something from
 ;; which higher-level asynchronous file operations can be constructed,
 ;; such as the await-getline! procedure.
-(define (a-sync-read-watch! loop file resume proc)
+(define (a-sync-read-watch! resume loop file proc)
   (event-loop-add-read-watch! loop file
 			      (lambda (status)
 				(resume (proc status))
@@ -607,12 +607,12 @@
 ;; called in a waitable procedure invoked by a-sync.  This procedure
 ;; is implemented using a-sync-read-watch!.  If an exceptional
 ;; condition ('excpt) is encountered, #f will be returned.
-(define (await-getline! loop port await resume)
+(define (await-getline! await resume loop port)
   (let ()
     (define text '())
-    (a-sync-read-watch! loop
+    (a-sync-read-watch! resume
+			loop
 			port
-			resume
 			(lambda (status)
 			  (if (eq? status 'excpt)
 			      #f
@@ -647,7 +647,7 @@
 ;; waitable procedure.  This procedure is mainly intended as something
 ;; from which higher-level asynchronous file operations can be
 ;; constructed.
-(define (a-sync-write-watch! loop file resume proc)
+(define (a-sync-write-watch! resume loop file proc)
   (event-loop-add-write-watch! loop file
 			      (lambda (status)
 				(resume (proc status))

@@ -33,7 +33,7 @@
 	  ;; invoke a one second timeout which does not block the
 	  ;; event loop
 	  (display "Beginning timeout\n")
-	  (display (await-timeout! main-loop 1000 await resume 
+	  (display (await-timeout! await resume main-loop 1000
 				   (lambda ()
 				     "Timeout ended\n")))
 
@@ -41,7 +41,7 @@
 	  ;; consuming so we need to run it in a worker thread
 	  ;; to avoid blocking any other events in the main loop
 	  ;; (there aren't any in this example)
-	  (display (await-task-in-thread! main-loop await resume
+	  (display (await-task-in-thread! await resume main-loop
 					  (lambda ()
 					    (usleep 500000)
 					    (display "In worker thread, work done\n")
@@ -54,13 +54,13 @@
 	  (system* "stty" "--file=/dev/tty" "cbreak")
 	  (simple-format #t
 			 "The line was: ~A\n"
-			 (await-getline! main-loop
-					 (open "/dev/tty" O_RDONLY)
-					 await resume))
+			 (await-getline! await resume
+					 main-loop
+					 (open "/dev/tty" O_RDONLY)))
 	  (system* "stty" "--file=/dev/tty" "-cbreak")
 
 	  ;; launch another asynchronous task, this time in the event loop thread
-	  (display (await-task! main-loop await resume
+	  (display (await-task! await resume main-loop
 				(lambda ()
 				  (event-loop-quit! main-loop)
 				  "Quitting\n")))))

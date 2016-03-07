@@ -189,7 +189,7 @@ them.  This is thread safe - any thread may call this procedure.
 </p></dd></dl>
 
 <dl>
-<dt><a name="index-await_002dtask_002din_002dthread_0021"></a>Scheme Procedure: <strong>await-task-in-thread!</strong> <em>loop await resume thunk [handler]</em></dt>
+<dt><a name="index-await_002dtask_002din_002dthread_0021"></a>Scheme Procedure: <strong>await-task-in-thread!</strong> <em>await resume loop thunk [handler]</em></dt>
 <dd><p>This is a convenience procedure which will run &rsquo;thunk&rsquo; in its own
 thread, and then post an event to the event loop specified by the
 &rsquo;loop&rsquo; argument when &rsquo;thunk&rsquo; has finished.  This procedure calls
@@ -209,8 +209,8 @@ will propagate out of event-loop-run!.
 <pre class="example">(define main-loop (make-event-loop))
 (a-sync (lambda (await resume)
 	  (simple-format #t &quot;1 + 1 is ~A\n&quot;
-			 (await-task-in-thread! main-loop
-						await resume
+			 (await-task-in-thread! await resume
+						main-loop
 						(lambda ()
 						  (+ 1 1))))
 	  (event-loop-quit! main-loop)))
@@ -220,7 +220,7 @@ will propagate out of event-loop-run!.
 </dd></dl>
 
 <dl>
-<dt><a name="index-await_002dtask_0021"></a>Scheme Procedure: <strong>await-task!</strong> <em>loop await resume thunk</em></dt>
+<dt><a name="index-await_002dtask_0021"></a>Scheme Procedure: <strong>await-task!</strong> <em>await resume loop thunk</em></dt>
 <dd><p>This is a convenience procedure for use with an event loop, which will
 run &rsquo;thunk&rsquo; in the event loop specified by the &rsquo;loop&rsquo; argument.  This
 procedure calls &rsquo;await&rsquo; and will return the thunk&rsquo;s return value.  It
@@ -240,8 +240,8 @@ generally a more convenient wrapper.)
 <pre class="example">(define main-loop (make-event-loop))
 (a-sync (lambda (await resume)
 	  (simple-format #t &quot;1 + 1 is ~A\n&quot;
-			 (await-task! main-loop
-				      await resume
+			 (await-task! await resume
+				      main-loop
 				      (lambda ()
 					(+ 1 1))))))
 (event-loop-run! main-loop)
@@ -249,7 +249,7 @@ generally a more convenient wrapper.)
 </dd></dl>
 
 <dl>
-<dt><a name="index-await_002dtimeout_0021"></a>Scheme Procedure: <strong>await-timeout!</strong> <em>loop msec await resume thunk</em></dt>
+<dt><a name="index-await_002dtimeout_0021"></a>Scheme Procedure: <strong>await-timeout!</strong> <em>await resume loop msec thunk</em></dt>
 <dd><p>This is a convenience procedure for use with an event loop, which will
 run &rsquo;thunk&rsquo; in the event loop thread when the timeout expires.  This
 procedure calls &rsquo;await&rsquo; and will return the thunk&rsquo;s return value.  It
@@ -263,8 +263,8 @@ completed, the timeout will be removed from the event loop.
 (a-sync (lambda (await resume)
 	  (simple-format #t
 			 &quot;Timeout ~A\n&quot;
-			 (await-timeout! main-loop 100
-					 await resume
+			 (await-timeout! await resume
+					 main-loop 100
 					 (lambda ()
 					   &quot;expired&quot;)))))
 (event-loop-run! main-loop)
@@ -272,7 +272,7 @@ completed, the timeout will be removed from the event loop.
 </dd></dl>
 
 <dl>
-<dt><a name="index-a_002dsync_002dread_002dwatch_0021"></a>Scheme Procedure: <strong>a-sync-read-watch!</strong> <em>loop file resume proc</em></dt>
+<dt><a name="index-a_002dsync_002dread_002dwatch_0021"></a>Scheme Procedure: <strong>a-sync-read-watch!</strong> <em>resume loop file proc</em></dt>
 <dd><p>This is a convenience procedure for use with an event loop, which will
 run &rsquo;proc&rsquo; in the event loop thread whenever &rsquo;file&rsquo; is ready for
 reading, and apply resume (obtained from a call to a-sync) to the
@@ -291,12 +291,12 @@ the await-readline! procedure.
 <p>As an example of how to use a-sync-read-watch!, here is the
 implementation of await-getline!:
 </p><div class="example">
-<pre class="example">(define (await-getline! loop port await resume)
+<pre class="example">(define (await-getline! await resume loop port)
   (let ()
     (define text '())
-    (a-sync-read-watch! loop
+    (a-sync-read-watch! resume
+			loop
 			port
-			resume
 			(lambda (status)
 			  (if (eq? status 'excpt)
 			      #f
@@ -320,7 +320,7 @@ implementation of await-getline!:
 </dd></dl>
 
 <dl>
-<dt><a name="index-await_002dgetline_0021"></a>Scheme Procedure: <strong>await-getline!</strong> <em>loop port await resume</em></dt>
+<dt><a name="index-await_002dgetline_0021"></a>Scheme Procedure: <strong>await-getline!</strong> <em>await resume loop port</em></dt>
 <dd><p>This is a convenience procedure for use with an event loop, which will
 start a read watch on &rsquo;port&rsquo; for a line of input.  It calls &rsquo;await&rsquo;
 while waiting for input and will return the line of text received
@@ -338,15 +338,15 @@ encountered, #f will be returned.
 	  (display &quot;Enter a line of text at the keyboard\n&quot;)
 	  (simple-format #t
 			 &quot;The line was: ~A\n&quot;
-			 (await-getline! main-loop
-					  (open &quot;/dev/tty&quot; O_RDONLY)
-					  await resume))))
+			 (await-getline! await resume
+					 main-loop
+					 (open &quot;/dev/tty&quot; O_RDONLY)))))
 (event-loop-run! main-loop)
 </pre></div>
 </dd></dl>
 
 <dl>
-<dt><a name="index-a_002dsync_002dwrite_002dwatch_0021"></a>Scheme Procedure: <strong>a-sync-write-watch!</strong> <em>loop file resume proc</em></dt>
+<dt><a name="index-a_002dsync_002dwrite_002dwatch_0021"></a>Scheme Procedure: <strong>a-sync-write-watch!</strong> <em>resume loop file proc</em></dt>
 <dd><p>This is a convenience procedure for use with an event loop, which will
 run &rsquo;proc&rsquo; in the event loop thread whenever &rsquo;file&rsquo; is ready for
 writing, and apply resume (obtained from a call to a-sync) to the

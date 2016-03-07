@@ -37,7 +37,7 @@
 
 (a-sync (lambda (await resume)
 	  (let ((res
-		 (await-task! main-loop await resume
+		 (await-task! await resume main-loop
 			      (lambda ()
 				(+ 5 10)))))
 	    (test-result 15 res)
@@ -48,7 +48,7 @@
 
 (a-sync (lambda (await resume)
 	  (let ((res
-	  	 (await-task-in-thread! main-loop await resume
+	  	 (await-task-in-thread! await resume main-loop
 	  				(lambda ()
 	  				  (+ 5 10)))))
 	    (test-result 15 res)
@@ -62,7 +62,7 @@
 
 (a-sync (lambda (await resume)
 	  (let ((res
-		 (await-timeout! main-loop 10 await resume
+		 (await-timeout! await resume main-loop 10
 				 (lambda ()
 				   (+ 5 10)))))
 	    (test-result 15 res)
@@ -76,9 +76,9 @@
   (define in (car test-pipe))
   (define out (cdr test-pipe))
   (a-sync (lambda (await resume)
-	    (let ((res (await-getline! main-loop
-				       in
-				       await resume)))
+	    (let ((res (await-getline! await resume
+				       main-loop
+				       in)))
 	      (assert (string=? res "test-string"))
 	      (print-result))))
   (write-line "test-string" out)
@@ -93,7 +93,7 @@
   (define out (cdr test-pipe))
   (define count 0)
   (a-sync (lambda (await resume)
-	    (a-sync-write-watch! main-loop out resume
+	    (a-sync-write-watch! resume main-loop out
 				 (lambda (status)
 				   (test-result 'out status)
 				   (if (< count 3)

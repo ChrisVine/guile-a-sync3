@@ -122,7 +122,7 @@ event-loop-run! has unblocked and event-loop-run! then called for
 them.  This is thread safe - any thread may call this procedure.
 @end deffn
 
-@deffn {Scheme Procedure} await-task-in-thread! loop await resume thunk [handler]
+@deffn {Scheme Procedure} await-task-in-thread! await resume loop thunk [handler]
 This is a convenience procedure which will run 'thunk' in its own
 thread, and then post an event to the event loop specified by the
 'loop' argument when 'thunk' has finished.  This procedure calls
@@ -142,8 +142,8 @@ Here is an example:
 (define main-loop (make-event-loop))
 (a-sync (lambda (await resume)
 	  (simple-format #t "1 + 1 is ~A\n"
-			 (await-task-in-thread! main-loop
-						await resume
+			 (await-task-in-thread! await resume
+						main-loop
 						(lambda ()
 						  (+ 1 1))))
 	  (event-loop-quit! main-loop)))
@@ -152,7 +152,7 @@ Here is an example:
 @end example
 @end deffn
 
-@deffn {Scheme Procedure} await-task! loop await resume thunk
+@deffn {Scheme Procedure} await-task! await resume loop thunk
 This is a convenience procedure for use with an event loop, which will
 run 'thunk' in the event loop specified by the 'loop' argument.  This
 procedure calls 'await' and will return the thunk's return value.  It
@@ -172,15 +172,15 @@ Here is an example:
 (define main-loop (make-event-loop))
 (a-sync (lambda (await resume)
 	  (simple-format #t "1 + 1 is ~A\n"
-			 (await-task! main-loop
-				      await resume
+			 (await-task! await resume
+				      main-loop
 				      (lambda ()
 					(+ 1 1))))))
 (event-loop-run! main-loop)
 @end example
 @end deffn
 
-@deffn {Scheme Procedure} await-timeout! loop msec await resume thunk
+@deffn {Scheme Procedure} await-timeout! await resume loop msecs thunk
 This is a convenience procedure for use with an event loop, which will
 run 'thunk' in the event loop thread when the timeout expires.  This
 procedure calls 'await' and will return the thunk's return value.  It
@@ -194,15 +194,15 @@ Here is an example:
 (a-sync (lambda (await resume)
 	  (simple-format #t
 			 "Timeout ~A\n"
-			 (await-timeout! main-loop 100
-					 await resume
+			 (await-timeout! await resume
+					 main-loop 100
 					 (lambda ()
 					   "expired")))))
 (event-loop-run! main-loop)
 @end example
 @end deffn
 
-@deffn {Scheme Procedure} a-sync-read-watch! loop file resume proc
+@deffn {Scheme Procedure} a-sync-read-watch! resume loop file proc
 This is a convenience procedure for use with an event loop, which will
 run 'proc' in the event loop thread whenever 'file' is ready for
 reading, and apply resume (obtained from a call to a-sync) to the
@@ -221,12 +221,12 @@ the await-readline! procedure.
 As an example of how to use a-sync-read-watch!, here is the
 implementation of await-getline!:
 @example
-(define (await-getline! loop port await resume)
+(define (await-getline! await resume loop port)
   (let ()
     (define text '())
-    (a-sync-read-watch! loop
+    (a-sync-read-watch! resume
+			loop
 			port
-			resume
 			(lambda (status)
 			  (if (eq? status 'excpt)
 			      #f
@@ -249,7 +249,7 @@ implementation of await-getline!:
 @end example
 @end deffn
 
-@deffn {Scheme Procedure} await-getline! loop port await resume
+@deffn {Scheme Procedure} await-getline! await resume loop port
 This is a convenience procedure for use with an event loop, which will
 start a read watch on 'port' for a line of input.  It calls 'await'
 while waiting for input and will return the line of text received
@@ -267,14 +267,14 @@ Here is an example:
 	  (display "Enter a line of text at the keyboard\n")
 	  (simple-format #t
 			 "The line was: ~A\n"
-			 (await-getline! main-loop
-					  (open "/dev/tty" O_RDONLY)
-					  await resume))))
+			 (await-getline! await resume
+					 main-loop
+					 (open "/dev/tty" O_RDONLY)))))
 (event-loop-run! main-loop)
 @end example
 @end deffn
 
-@deffn {Scheme Procedure} a-sync-write-watch! loop file resume proc
+@deffn {Scheme Procedure} a-sync-write-watch! resume loop file proc
 This is a convenience procedure for use with an event loop, which will
 run 'proc' in the event loop thread whenever 'file' is ready for
 writing, and apply resume (obtained from a call to a-sync) to the

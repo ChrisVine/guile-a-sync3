@@ -33,7 +33,7 @@
           ;; invoke a one second timeout which does not block the
           ;; event loop
           (display "Beginning timeout\n")
-          (display (await-glib-timeout 1000 await resume 
+          (display (await-glib-timeout await resume 1000
 				       (lambda ()
 					 "Timeout ended\n")))
 
@@ -55,8 +55,8 @@
           (system* "stty" "--file=/dev/tty" "cbreak")
           (simple-format #t
                          "The line was: ~A\n"
-                         (await-glib-getline (open "/dev/tty" O_RDONLY)
-					     await resume))
+                         (await-glib-getline await resume
+					     (open "/dev/tty" O_RDONLY)))
           (system* "stty" "--file=/dev/tty" "-cbreak")
 
           ;; launch another asynchronous task, this time in the event loop thread
