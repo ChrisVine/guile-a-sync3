@@ -11,16 +11,16 @@ tasks to be composed on an event loop using let* type syntax.
 The 'loop' argument of let-a-sync* is optional.  If an event loop
 constructed by make-event-loop is passed to 'loop', then that is the
 main loop on which the tasks will be composed, otherwise if there is
-no 'loop' argument (or #f is passed to it) the default main loop will
-be used.  This is followed by bindings which are optional (there need
-not be any), each of which must be initialised by a
-'let-a-sync*'-capable procedure, and following the bindings there must
-be a body of 'let-a-sync*'-capable procedures executed solely for the
-purpose of asynchronous side effects (this macro does not, and cannot,
-return a value because as soon as the first await is made control is
-passed to the event loop).  As in the case of let*, unlike the
-bindings the body cannot be empty - there must be at least one
-'let-a-sync*'-capable procedure in the body.
+no 'loop' argument passed, the default main loop will be used.  This
+is followed by bindings which are optional (there need not be any),
+each of which must be initialised by a 'let-a-sync*'-capable
+procedure, and following the bindings there must be a body of
+'let-a-sync*'-capable procedures executed solely for the purpose of
+asynchronous side effects (this macro does not, and cannot, return a
+value because as soon as the first await is made control is passed to
+the event loop).  As in the case of let*, unlike the bindings the body
+cannot be empty - there must be at least one 'let-a-sync*'-capable
+procedure in the body.
 
 As in the case of let*, each 'let-a-sync*'-capable procedure
 initializing a binding can see the values of the initializations made
@@ -28,14 +28,15 @@ prior to it.
 
 A 'let-a-sync*'-capable procedure is one which takes an 'await' and
 'yield' procedure from a-sync as its first and second arguments, and
-an event loop (or #f) as it third argument, followed by such further
-arguments as it requires.  All the the await-task!,
-await-task-in-thread!, await-timeout! and await-getline! procedures
-provided by the (a-sync event-loop) module are 'let-a-sync*'-capable.
-In addition, to make an ordinary body of code which does not block
-(and which does not need to invoke a-sync's await procedure) usable by
-let-a-sync*, the no-await macro can be used to generate a
-'let-a-sync*'-capable procedure for it (see below).
+(if the optional 'loop' argument of this macro is used) takes the
+event loop as its third argument, followed by such further arguments
+as it requires.  All of the await-task!, await-task-in-thread!,
+await-timeout! and await-getline! procedures provided by the (a-sync
+event-loop) module are 'let-a-sync*'-capable.  In addition, to make an
+ordinary body of code which does not block (and which does not need to
+invoke a-sync's await procedure) usable by let-a-sync*, the no-await
+macro can be used to generate a 'let-a-sync*'-capable procedure for it
+(see below).
 
 Each binding is initialized as if sequentially (although it is done
 asynchronously on the relevant event loop).  An initialization does
@@ -55,6 +56,21 @@ let-a-sync* macro will do it for you.
 				    "The line was: ~A\n"
 				     line))))
 (event-loop-run!)
+@end example
+
+The await-glib-task, await-glib-task-in-thread, await-glib-timeout and
+await-glib-getline procedures in the @ref{gnome glib,,(a-sync
+gnome-glib)} module also meet the 'let-a-sync*'-capable requirements.
+Here is the same example using those procedures:
+
+@example
+(define main-loop (g-main-loop-new #f #f))
+(let-a-sync* ((line (await-glib-getline (open "/dev/tty" O_RDONLY))))
+	  ((no-await (simple-format #t
+				    "The line was: ~A\n"
+				     line)
+		     (g-main-loop-quit main-loop))))
+(g-main-loop-run main-loop)
 @end example
 
 Each block of code within a let-a-sync* block will run independently

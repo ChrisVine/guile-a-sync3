@@ -28,9 +28,9 @@
 ;; The 'loop' argument of let-a-sync* is optional.  If an event loop
 ;; constructed by make-event-loop is passed to 'loop', then that is
 ;; the main loop on which the tasks will be composed, otherwise if
-;; there is no 'loop' argument (or #f is passedto it) the default main
-;; loop will be used.  This is followed by bindings which are optional
-;; (there need not be any), each of which must be initialised by a
+;; there is no 'loop' argument passed, the default main loop will be
+;; used.  This is followed by bindings which are optional (there need
+;; not be any), each of which must be initialised by a
 ;; 'let-a-sync*'-capable procedure, and following the bindings there
 ;; must be a body of 'let-a-sync*'-capable procedures executed solely
 ;; for the purpose of asynchronous side effects (this macro does not,
@@ -45,8 +45,9 @@
 ;;
 ;; A 'let-a-sync*'-capable procedure is one which takes an 'await' and
 ;; 'yield' procedure from a-sync as its first and second arguments,
-;; and an event loop (or #f) as it third argument, followed by such
-;; further arguments as it requires.  All the the await-task!,
+;; and (if the optional 'loop' argument of this macro is used) takes
+;; the event loop as its third argument, followed by such further
+;; arguments as it requires.  All of the await-task!,
 ;; await-task-in-thread!, await-timeout! and await-getline! procedures
 ;; provided by the (a-sync event-loop) module are
 ;; 'let-a-sync*'-capable.  In addition, to make an ordinary body of
@@ -54,6 +55,10 @@
 ;; a-sync's await procedure) usable by let-a-sync*, the no-await macro
 ;; can be used to generate a 'let-a-sync*'-capable procedure for it
 ;; (see below).
+;;
+;; The await-glib-task, await-glib-task-in-thread, await-glib-timeout
+;; and await-glib-getline procedures in the (a-sync gnome-glib) module
+;; also meet the 'let-a-sync*'-capable requirements.
 ;;
 ;; Each binding is initialized as if sequentially (although it is done
 ;; asynchronously on the relevant event loop).  An initialization does
@@ -65,16 +70,17 @@
 ;; 'let-a-sync*' block (including when initializing its bindings), the
 ;; 'await' and 'yield' and event-loop arguments are not explicitly
 ;; passed to it.  The let-a-sync* macro will do it for you.  See the
-;; example.scm file with the distribution for further particulars.
+;; example.scm and example-glib.scm files with the distribution for
+;; further particulars.
 (define-syntax let-a-sync*
   (syntax-rules ()
     ((_ ((val (await-proc0 arg0 ...)) ...)
 	(await-proc1 arg1 ...)
 	(await-proc2 arg2 ...) ...)
      (a-sync (lambda (await resume)
-	       (let* ((val (await-proc0 await resume #f arg0 ...)) ...)
-		 (await-proc1 await resume #f arg1 ...)
-		 (await-proc2 await resume #f arg2 ...) ...))))
+	       (let* ((val (await-proc0 await resume arg0 ...)) ...)
+		 (await-proc1 await resume arg1 ...)
+		 (await-proc2 await resume arg2 ...) ...))))
     ((_ loop ((val (await-proc0 arg0 ...)) ...)
 	(await-proc1 arg1 ...)
 	(await-proc2 arg2 ...) ...)
@@ -89,5 +95,5 @@
 (define-syntax no-await
   (syntax-rules ()
     ((_ body0 body1 ...)
-     (lambda (ignore0 ignore1 ignore2)
+     (lambda ignore
 	body0 body1 ...))))

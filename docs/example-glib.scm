@@ -24,7 +24,8 @@
 ;; SOFTWARE.
 
 
-(use-modules (a-sync gnome-glib) (a-sync coroutines) (gnome glib))
+(use-modules (a-sync gnome-glib) (a-sync coroutines)
+	     (a-sync let-a-sync) (gnome glib))
 
 (define main-loop (g-main-loop-new #f #f))
 
@@ -64,5 +65,34 @@
 				    (lambda ()
 				      (g-main-loop-quit main-loop)
 				      "Quitting\n")))))
+
+(g-main-loop-run main-loop)
+
+;; this is the identical code using let-a-sync* for composition:
+
+(display "\nBeginning timeout\n")
+(let-a-sync* ((ret-timeout (await-glib-timeout 1000 (lambda ()
+						      "Timeout ended\n")))
+	      ;; the return value here can be ignored - this is easier
+	      ;; than starting another let-a-sync* block for
+	      ;; await-task-in-thread!
+	      (ignore1 ((no-await (display ret-timeout))))
+	      (ret-task (await-glib-task-in-thread (lambda ()
+						     (usleep 500000)
+						     (display "In worker thread, work done\n")
+						     "Hello via async\n")))
+	      ;; ditto
+	      (ignore2 ((no-await (display ret-task)
+				  (display "Enter a line of text at the keyboard\n")
+				  (system* "stty" "--file=/dev/tty" "cbreak"))))
+	      (ret-getline (await-glib-getline (open "/dev/tty" O_RDONLY))))
+	     ;; body clauses begin here
+	   ((no-await (simple-format #t
+				     "The line was: ~A\n"
+				     ret-getline)
+		      (system* "stty" "--file=/dev/tty" "-cbreak")))
+	   (await-glib-task (lambda ()
+			      (g-main-loop-quit main-loop)
+			      (display "Quitting\n"))))
 
 (g-main-loop-run main-loop)
