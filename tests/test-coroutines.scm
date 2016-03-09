@@ -69,9 +69,9 @@
 
 (define main-loop (make-event-loop))
 (a-sync (lambda (await resume)
-	  (event-post! main-loop
-		       (lambda ()
-			 (resume 5)))
+	  (event-post! (lambda ()
+			 (resume 5))
+		       main-loop)
 	  (test-result 5 (await))
 	  (print-result)))
 (event-loop-run! main-loop)

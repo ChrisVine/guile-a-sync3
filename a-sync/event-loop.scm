@@ -16,11 +16,14 @@
 
 (define-module (a-sync event-loop)
   #:use-module (ice-9 q)               ;; for make-q, etc
+  #:use-module (ice-9 match)
+  #:use-module (ice-9 threads)         ;; for with-mutex and call-with-new-thread
   #:use-module (srfi srfi-1)           ;; for reduce, delete!, member, alist-delete!, delete-duplicates and assoc
   #:use-module (srfi srfi-9)
-  #:use-module (ice-9 threads)         ;; for with-mutex and call-with-new-thread
   #:use-module (a-sync monotonic-time) ;; for get-time
-  #:export (make-event-loop
+  #:export (set-default-event-loop!
+	    get-default-event-loop
+	    make-event-loop
 	    event-loop-run!
 	    event-loop-add-read-watch!
 	    event-loop-add-write-watch!
@@ -39,6 +42,38 @@
 	    a-sync-write-watch!
 	    await-getline!))
 
+
+;; this variable is not exported - use the accessors below
+(define ***default-event-loop*** #f)
+
+;; The 'el' (event loop) argument is optional.  This procedure sets
+;; the default event loop for the procedures in this module to the one
+;; passed in (which must have been constructed by the make-event-loop
+;; procedure), or if no argument is passed (or #f is passed), a new
+;; event loop will be constructed for you as the default, which can be
+;; accessed via the get-default-event-loop procedure.  The default
+;; loop variable is not a fluid or a parameter - it is intended that
+;; the default event loop is the same for every thread in the program,
+;; and that the default event loop would normally run in the thread
+;; with which the program started.  This procedure is not thread safe
+;; - if it might be called by a different thread from others which
+;; might access the default event loop, then external synchronization
+;; may be required.  However, that should not normally be an issue.
+;; The normal course would be to call this procedure once only on
+;; program start up as soon as the main program event loop has been
+;; constructed, before other threads have started.  It is usually a
+;; mistake to call this procedure twice: if there are asynchronous
+;; events pending (that is, if event-loop-run!  has not returned) you
+;; will probably not get the results you expect.
+(define* (set-default-event-loop! #:optional el)
+  (if el
+      (set! ***default-event-loop*** el)
+      (set! ***default-event-loop*** (make-event-loop))))
+
+;; This returns the default loop set by the set-default-event-loop!
+;; procedure, or #f if none has been set.
+(define (get-default-event-loop)
+  ***default-event-loop***)
 
 (define-record-type <event-loop>
   (_make-event-loop mutex q done event-in event-out read-files read-files-actions
@@ -168,7 +203,7 @@
 ;; and a port with the same underlying file descriptor, or two ports
 ;; with the same underlying file descriptor, compare equal for the
 ;; purposes of removal.
-(define (_remove-read-watch-impl! el file)
+(define (_remove-read-watch-impl! file el)
   (_read-files-set! el (delete! file (_read-files-get el) _file-equal?))
   (_read-files-actions-set! el (alist-delete! file (_read-files-actions-get el) _file-equal?)))
 
@@ -179,18 +214,28 @@
 ;; and a port with the same underlying file descriptor, or two ports
 ;; with the same underlying file descriptor, compare equal for the
 ;; purposes of removal.
-(define (_remove-write-watch-impl! el file)
+(define (_remove-write-watch-impl! file el)
   (_write-files-set! el (delete! file (_write-files-get el) _file-equal?))
   (_write-files-actions-set! el (alist-delete! file (_write-files-actions-get el) _file-equal?)))
 
-;; the event loop runs in the thread which calls this procedure.  If
-;; this is different from the thread which called make-event-loop,
-;; external synchronization is required to ensure visibility.  Where
-;; event-loop-quit! has been called, this procedure may be called
-;; again to restart the same event loop.  If a callback throws, or
-;; something else throws in the implementation, then this procedure
-;; will return and it will be as if event-loop-quit! had been called.
-(define (event-loop-run! el)
+;; the 'el' (event loop) argument is optional.  This procedure starts
+;; the event loop passed in as an argument, or if none is passed (or
+;; #f is passed) it starts the default event loop.  The event loop
+;; will run in the thread which calls this procedure.  If this is
+;; different from the thread which called make-event-loop, external
+;; synchronization is required to ensure visibility.  If this
+;; procedure has returned, including after a call to event-loop-quit!,
+;; this procedure may be called again to restart the event loop.  If a
+;; callback throws, or something else throws in the implementation,
+;; then this procedure will return and it will be as if
+;; event-loop-quit! had been called.
+(define* (event-loop-run! #:optional el)
+  (let ((el (or el (get-default-event-loop))))
+    (when (not el) 
+      (error "No default event loop set for call to event-loop-run!"))
+    (_event-loop-run-impl! el)))
+
+(define (_event-loop-run-impl! el)
   (define mutex (_mutex-get el))
   (define q (_q-get el))
   (define event-in (_event-in-get el))
@@ -238,7 +283,7 @@
 				  (if item (cdr item) #f))))
 			   (if action
 			       (when (not (action 'in))
-				 (_remove-read-watch-impl! el elt))
+				 (_remove-read-watch-impl! elt el))
 			       (error "No action in event loop for read file: " elt))))
 		       (delv event-fd (car res)))
 	     (for-each (lambda (elt)
@@ -247,7 +292,7 @@
 				  (if item (cdr item) #f))))
 			   (if action
 			       (when (not (action 'out))
-			         (_remove-write-watch-impl! el elt))
+			         (_remove-write-watch-impl! elt el))
 			       (error "No action in event loop for write file: " elt))))
 		       (cadr res))
 	     (for-each (lambda (elt)
@@ -257,8 +302,8 @@
 			   (if action
 			       (when (not (action 'excpt))
 				 (if (member elt read-files _file-equal?)
-				     (_remove-read-watch-impl! el elt)
-				     (_remove-write-watch-impl! el elt)))
+				     (_remove-read-watch-impl! elt el)
+				     (_remove-write-watch-impl! elt el)))
 			       (error "No action in event loop for file: " elt))))
 		       (caddr res))
 	     (when (memv event-fd (car res))
@@ -335,6 +380,9 @@
   (_timeouts-set! el '())
   (_current-timeout-set! el #f))
 
+;; The 'el' (event loop) argument is optional.  This procedure will
+;; start a read watch in the event loop passed in as an argument, or
+;; if none is passed (or #f is passed), in the default event loop.
 ;; The 'proc' callback should take a single argument, and when called
 ;; this will be set to 'in or 'excpt.  The same port or file
 ;; descriptor can also be passed to event-loop-add-write-watch, and if
@@ -353,17 +401,24 @@
 ;; can be made without blocking (but on a buffered port, for
 ;; efficiency purposes each read operation in response to this watch
 ;; should usually exhaust the buffer by looping on char-ready?).
-(define (event-loop-add-read-watch! el file proc)
-  (event-post! el (lambda ()
-		    (_read-files-set!
-		     el
-		     (cons file
-			   (delete! file (_read-files-get el) _file-equal?)))
-		    (_read-files-actions-set!
-		     el
-		     (acons file proc
-			    (alist-delete! file (_read-files-actions-get el) _file-equal?))))))
+(define* (event-loop-add-read-watch! file proc #:optional el)
+  (let ((el (or el (get-default-event-loop))))
+    (when (not el) 
+      (error "No default event loop set for call to event-loop-add-read-watch!"))
+    (event-post! (lambda ()
+		   (_read-files-set!
+		    el
+		    (cons file
+			  (delete! file (_read-files-get el) _file-equal?)))
+		   (_read-files-actions-set!
+		    el
+		    (acons file proc
+			   (alist-delete! file (_read-files-actions-get el) _file-equal?))))
+		 el)))
 
+;; The 'el' (event loop) argument is optional.  This procedure will
+;; start a write watch in the event loop passed in as an argument, or
+;; if none is passed (or #f is passed), in the default event loop.
 ;; The 'proc' callback should take a single argument, and when called
 ;; this will be set to 'out or 'excpt.  The same port or file
 ;; descriptor can also be passed to event-loop-add-read-watch, and if
@@ -385,138 +440,189 @@
 ;; are carried out on the descriptor.  If 'file' is a buffered port,
 ;; buffering will be taken into account in indicating whether a write
 ;; can be made without blocking.
-(define (event-loop-add-write-watch! el file proc)
-  (event-post! el (lambda ()
-		    (_write-files-set!
-		     el
-		     (cons file
-			   (delete! file (_write-files-get el) _file-equal?)))
-		    (_write-files-actions-set!
-		     el
-		     (acons file proc
-			    (alist-delete! file (_write-files-actions-get el) _file-equal?))))))
+(define* (event-loop-add-write-watch! file proc #:optional el)
+  (let ((el (or el (get-default-event-loop))))
+    (when (not el) 
+      (error "No default event loop set for call to event-loop-add-write-watch!"))
+    (event-post! (lambda ()
+		   (_write-files-set!
+		    el
+		    (cons file
+			  (delete! file (_write-files-get el) _file-equal?)))
+		   (_write-files-actions-set!
+		    el
+		    (acons file proc
+			   (alist-delete! file (_write-files-actions-get el) _file-equal?))))
+		 el)))
 
-;; The file argument may be a port or a file descriptor, and this
-;; removes any read watch previously entered for that port or file
-;; descriptor.  This is thread safe - any thread may remove a watch.
-;; A file descriptor and a port with the same underlying file
-;; descriptor compare equal for the purposes of removal.
-(define (event-loop-remove-read-watch! el file)
-  (event-post! el (lambda ()
-		    (_remove-read-watch-impl! el file))))
+;; The 'el' (event loop) argument is optional.  This procedure will
+;; remove a read watch from the event loop passed in as an argument,
+;; or if none is passed (or #f is passed), from the default event
+;; loop.  The file argument may be a port or a file descriptor.  This
+;; is thread safe - any thread may remove a watch.  A file descriptor
+;; and a port with the same underlying file descriptor compare equal
+;; for the purposes of removal.
+(define* (event-loop-remove-read-watch! file #:optional el)
+  (let ((el (or el (get-default-event-loop))))
+    (when (not el) 
+      (error "No default event loop set for call to event-loop-remove-read-watch!"))
+    (event-post! (lambda ()
+		   (_remove-read-watch-impl! file el))
+		 el)))
 
-;; The file argument may be a port or a file descriptor, and this
-;; removes any write watch previously entered for that port or file
-;; descriptor.  This is thread safe - any thread may remove a watch.
-;; A file descriptor and a port with the same underlying file
-;; descriptor compare equal for the purposes of removal.
-(define (event-loop-remove-write-watch! el file)
-  (event-post! el (lambda ()
-		    (_remove-write-watch-impl! el file))))
+;; The 'el' (event loop) argument is optional.  This procedure will
+;; remove a write watch from the event loop passed in as an argument,
+;; or if none is passed (or #f is passed), from the default event
+;; loop.  The file argument may be a port or a file descriptor.  This
+;; is thread safe - any thread may remove a watch.  A file descriptor
+;; and a port with the same underlying file descriptor compare equal
+;; for the purposes of removal.
+(define* (event-loop-remove-write-watch! file #:optional el)
+  (let ((el (or el (get-default-event-loop))))
+    (when (not el) 
+      (error "No default event loop set for call to event-loop-remove-write-watch!"))
+    (event-post! (lambda ()
+		   (_remove-write-watch-impl! file el))
+		 el)))
 
-;; The 'action' callback is a thunk.  This is thread safe - any thread
-;; may post an event (that is its main purpose), and the action
-;; callback will execute in the event loop thread.  Actions execute in
-;; the order in which they were posted.  If an event is posted from a
-;; worker thread, it will normally be necessary to call
+;; The 'el' (event loop) argument is optional.  This procedure will
+;; post a callback for execution in the event loop passed in as an
+;; argument, or if none is passed (or #f is passed), in the default
+;; event loop.  The 'action' callback is a thunk.  This is thread safe
+;; - any thread may post an event (that is its main purpose), and the
+;; action callback will execute in the event loop thread.  Actions
+;; execute in the order in which they were posted.  If an event is
+;; posted from a worker thread, it will normally be necessary to call
 ;; event-loop-block! beforehand.
-(define (event-post! el action)
-  (with-mutex (_mutex-get el)
-    (enq! (_q-get el) action)
-    (let ((out (_event-out-get el)))
-      ;; if the event pipe is full and an EAGAIN error arises, we
-      ;; can just swallow it.  The only purpose of writing #\x is to
-      ;; cause the select procedure to return and reloop to pick up
-      ;; any new entries in the event queue.
-      (catch 'system-error
-	(lambda ()
-	  (write-char #\x out)
-	  (force-output out))
-	(lambda args
-	  (unless (= EAGAIN (system-error-errno args))
-	    (apply throw args)))))))
+(define* (event-post! action #:optional el)
+  (let ((el (or el (get-default-event-loop))))
+    (when (not el) 
+      (error "No default event loop set for call to event-post!"))
+    (with-mutex (_mutex-get el)
+      (enq! (_q-get el) action)
+      (let ((out (_event-out-get el)))
+	;; if the event pipe is full and an EAGAIN error arises, we
+	;; can just swallow it.  The only purpose of writing #\x is to
+	;; cause the select procedure to return and reloop to pick up
+	;; any new entries in the event queue.
+	(catch 'system-error
+	  (lambda ()
+	    (write-char #\x out)
+	    (force-output out))
+	  (lambda args
+	    (unless (= EAGAIN (system-error-errno args))
+	      (apply throw args))))))))
 
-;; This adds a timeout to the event loop.  The timeout will repeat
-;; unless and until the passed-in callback returns #f or
+;; The 'el' (event loop) argument is optional.  This procedure adds a
+;; timeout to the event loop passed in as an argument, or if none is
+;; passed (or #f is passed), to the default event loop.  The timeout
+;; will repeat unless and until the passed-in callback returns #f or
 ;; timeout-remove! is called.  The passed-in callback must be a thunk.
 ;; This procedure returns a tag symbol to which timeout-remove! can be
-;; applied.  It may be called by any thread.
-(define (timeout-post! el msecs action)
-  (let ((tag (gensym "timeout-"))
-	(abstime (_get-abstime msecs)))
-    (event-post! el
-		 (lambda ()
-		   (let ((new-timeouts (cons (vector abstime
-						     tag
-						     msecs
-						     action)
-					     (_timeouts-get el))))
-		     (_timeouts-set! el new-timeouts)
-		     (_current-timeout-set! el (_next-timeout new-timeouts)))))
-    tag))
+;; applied.  It may be called by any thread, and the timeout callback
+;; will execute in the event loop thread.
+(define* (timeout-post! msecs action #:optional el)
+  (let ((el (or el (get-default-event-loop))))
+    (when (not el) 
+      (error "No default event loop set for call to timeout-post!"))
+    (let ((tag (gensym "timeout-"))
+	  (abstime (_get-abstime msecs)))
+      (event-post! (lambda ()
+		     (let ((new-timeouts (cons (vector abstime
+						       tag
+						       msecs
+						       action)
+					       (_timeouts-get el))))
+		       (_timeouts-set! el new-timeouts)
+		       (_current-timeout-set! el (_next-timeout new-timeouts))))
+		   el)
+      tag)))
 
-;; This stops the timeout with the given tag from executing in the
-;; event loop concerned.  It may be called by any thread.
-(define (timeout-remove! el tag)
-  (event-post! el
-	       (lambda ()
-		 (_timeouts-set! el (_filter-timeout (_timeouts-get el) tag)))))
+;; The 'el' (event loop) argument is optional.  This procedure stops
+;; the timeout with the given tag from executing in the event loop
+;; passed in as an argument, or if none is passed (or #f is passed),
+;; in the default event loop.  It may be called by any thread.
+(define* (timeout-remove! tag #:optional el)
+  (let ((el (or el (get-default-event-loop))))
+    (when (not el) 
+      (error "No default event loop set for call to timeout-remove!"))
+    (event-post! (lambda ()
+		   (_timeouts-set! el (_filter-timeout (_timeouts-get el) tag)))
+		 el)))
       
-;; by default, upon there being no more watches, timeouts and posted
+;; By default, upon there being no more watches, timeouts and posted
 ;; events for an event loop, event-loop-run! will return, which is
 ;; normally what you want with a single threaded program.  However,
 ;; this is undesirable where a worker thread is intended to post an
 ;; event to the main loop after it has reached a result, say via
-;; await-task-in-thread, because the main loop may have ended before
+;; await-task-in-thread!, because the main loop may have ended before
 ;; it posts.  Passing #t to the val argument of this procedure will
 ;; prevent that from happening, so that the event loop can only be
 ;; ended by calling event-loop-quit!.  To switch it back to
 ;; non-blocking mode, pass #f.  This is thread safe - any thread may
-;; call this procedure.
-(define (event-loop-block! el val)
-  (with-mutex (_mutex-get el)
-    (let ((old-val (_block-get el)))
-      (_block-set! el (not (not val)))
-      (when (and old-val (not val))
-	;; if the event pipe is full and an EAGAIN error arises, we
-	;; can just swallow it.  The only purpose of writing #\x is to
-	;; cause the select procedure to return and reloop and then
-	;; exit the event loop if there are no further events.
-	(let ((out (_event-out-get el)))
-	  (catch 'system-error
-	    (lambda ()
-	      (write-char #\x out)
-	      (force-output out))
-	    (lambda args
-	      (unless (= EAGAIN (system-error-errno args))
-		(apply throw args)))))))))
+;; call this procedure.  The 'el' (event loop) argument is optional:
+;; this procedure operates on the event loop passed in as an argument,
+;; or if none is passed (or #f is passed), on the default event loop.
+(define* (event-loop-block! val #:optional el)
+  (let ((el (or el (get-default-event-loop))))
+    (when (not el) 
+      (error "No default event loop set for call to event-loop-block!"))
+    (with-mutex (_mutex-get el)
+      (let ((old-val (_block-get el)))
+	(_block-set! el (not (not val)))
+	(when (and old-val (not val))
+	  ;; if the event pipe is full and an EAGAIN error arises, we
+	  ;; can just swallow it.  The only purpose of writing #\x is
+	  ;; to cause the select procedure to return and reloop and
+	  ;; then exit the event loop if there are no further events.
+	  (let ((out (_event-out-get el)))
+	    (catch 'system-error
+	      (lambda ()
+		(write-char #\x out)
+		(force-output out))
+	      (lambda args
+		(unless (= EAGAIN (system-error-errno args))
+		  (apply throw args))))))))))
 
-;; Causes the event loop to unblock.  Any events remaining in the
-;; event loop will be discarded.  New events may subsequently be added
-;; after event-loop-run! has unblocked and event-loop-run! then called
-;; for them.  This is thread safe - any thread may call this
-;; procedure.
-(define (event-loop-quit! el)
-  (with-mutex (_mutex-get el)
-    (_done-set! el #t)
-    ;; if the event pipe is full and an EAGAIN error arises, we can
-    ;; just swallow it.  The only purpose of writing #\x is to cause
-    ;; the select procedure to return
-    (let ((out (_event-out-get el)))
-      (catch 'system-error
-	(lambda ()
-	  (write-char #\x out)
-	  (force-output out))
-	(lambda args
-	  (unless (= EAGAIN (system-error-errno args))
-	    (apply throw args)))))))
+;; This procedure causes an event loop to unblock.  Any events
+;; remaining in the event loop will be discarded.  New events may
+;; subsequently be added after event-loop-run! has unblocked and
+;; event-loop-run! then called for them.  This is thread safe - any
+;; thread may call this procedure.  The 'el' (event loop) argument is
+;; optional: this procedure operates on the event loop passed in as an
+;; argument, or if none is passed (or #f is passed), on the default
+;; event loop.
+(define* (event-loop-quit! #:optional el)
+  (let ((el (or el (get-default-event-loop))))
+    (when (not el) 
+      (error "No default event loop set for call to event-loop-quit!"))
+    (with-mutex (_mutex-get el)
+      (_done-set! el #t)
+      ;; if the event pipe is full and an EAGAIN error arises, we can
+      ;; just swallow it.  The only purpose of writing #\x is to cause
+      ;; the select procedure to return
+      (let ((out (_event-out-get el)))
+	(catch 'system-error
+	  (lambda ()
+	    (write-char #\x out)
+	    (force-output out))
+	  (lambda args
+	    (unless (= EAGAIN (system-error-errno args))
+	      (apply throw args))))))))
 
-;; This is a convenience procedure which will run 'thunk' in its own
-;; thread, and then post an event to the event loop specified by the
-;; 'loop' argument when 'thunk' has finished.  This procedure calls
+;; This is a convenience procedure whose signature is:
+;;
+;;   (await-task-in-thread! await resume [loop] thunk [handler])
+;;
+;; The loop and handler arguments are optional.  The procedure will
+;; run 'thunk' in its own thread, and then post an event to the event
+;; loop specified by the 'loop' argument when 'thunk' has finished, or
+;; to the default event loop if no 'loop' argument is provided or if
+;; #f is provided as the 'loop' argument (pattern matching is used to
+;; detect the type of the third argument).  This procedure calls
 ;; 'await' and will return the thunk's return value.  It is intended
 ;; to be called in a waitable procedure invoked by a-sync.  It will
-;; normally be necessary to call event-loop-block! before invoking
+;; normally be necessary to call event-loop-block!  before invoking
 ;; this procedure.  If the optional 'handler' argument is provided,
 ;; then it will be run in the event loop thread if 'thunk' throws and
 ;; its return value will be the return value of this procedure;
@@ -525,32 +631,62 @@
 ;; arguments as a guile catch handler (this is implemented using
 ;; catch).  If 'handler' throws, the exception will propagate out of
 ;; event-loop-run!.
-(define* (await-task-in-thread! await resume loop thunk #:optional handler)
-  (if handler
-      (call-with-new-thread
-       (lambda ()
-	 (catch
-	  #t
-	  (lambda ()
-	    (let ((res (thunk)))
-	      (event-post! loop (lambda ()
-				  (resume res)))))
-	  (lambda args
-	    (event-post! loop (lambda ()
-				(resume (apply handler args))))))))
-      (call-with-new-thread
-       (lambda ()
-	 (let ((res (thunk)))
-	   (event-post! loop (lambda ()
-			       (resume res)))))))
-  (await))
+(define (await-task-in-thread! await resume . rest)
+  (match rest
+    [(_ _ _)
+     (apply _await-task-in-thread-impl! await resume rest)]
+    [(#f _)
+     (apply _await-task-in-thread-impl! await resume rest)]
+    [(($ <event-loop>) _)
+     (apply _await-task-in-thread-impl! await resume rest)]
+    [(_ _)
+     (apply (lambda (await resume thunk handler)
+	      (_await-task-in-thread-impl! await resume #f thunk handler))
+	    await resume rest)]
+    [(_)
+     (apply (lambda (await resume thunk)
+	      (_await-task-in-thread-impl! await resume #f thunk #f))
+	    await resume rest)]
+    [_
+     (error "Wrong number of arguments passed to await-task-in-thread!" await resume rest)]))
 
-;; This is a convenience procedure for use with an event loop, which
-;; will run 'thunk' in the event loop specified by the 'loop'
-;; argument.  This procedure calls 'await' and will return the thunk's
-;; return value.  It is intended to be called in a waitable procedure
-;; invoked by a-sync.  It is the single-threaded corollary of
-;; await-task-in-thread!.  This means that (unlike with
+(define* (_await-task-in-thread-impl! await resume loop thunk #:optional handler)
+  ;; set the event loop value here so that if the default event
+  ;; loop is chosen, it is the one pertaining at the time this
+  ;; procedure is called
+  (let ((loop (or loop (get-default-event-loop))))
+    (when (not loop) 
+      (error "No default event loop set for call to await-task-in-thread!"))
+    (if handler
+	(call-with-new-thread
+	 (lambda ()
+	   (catch
+	     #t
+	     (lambda ()
+	       (let ((res (thunk)))
+		 (event-post! (lambda () (resume res))
+			      loop)))
+	     (lambda args
+	       (event-post! (lambda () (resume (apply handler args)))
+			    loop)))))
+	(call-with-new-thread
+	 (lambda ()
+	   (let ((res (thunk)))
+	     (event-post! (lambda () (resume res))
+			   loop)))))
+    (await)))
+
+;; This is a convenience procedure whose signature is:
+;;
+;;   (await-task! await resume [loop] thunk)
+;;
+;; The 'loop' argument is optional.  This will run 'thunk' in the
+;; event loop specified by the 'loop' argument, or in the default
+;; event loop if no 'loop' argument is provided or #f is provided as
+;; the 'loop' argument.  This procedure calls 'await' and will return
+;; the thunk's return value.  It is intended to be called in a
+;; waitable procedure invoked by a-sync.  It is the single-threaded
+;; corollary of await-task-in-thread!.  This means that (unlike with
 ;; await-task-in-thread!) while 'thunk' is running other events in the
 ;; event loop will not make progress.  This is not particularly useful
 ;; except when called by the event loop thread for the purpose of
@@ -559,24 +695,39 @@
 ;; expected by a waitable procedure running in the event loop thread.
 ;; (For the latter case though, await-task-in-thread! is generally a
 ;; more convenient wrapper.)
-(define (await-task! await resume loop thunk)
-  (event-post! loop (lambda ()
-		      (resume (thunk))))
-  (await))
+(define await-task!
+  (case-lambda
+    ((await resume thunk)
+     (await-task! await resume #f thunk))
+    ((await resume loop thunk)
+     (event-post! (lambda ()
+		    (resume (thunk)))
+		  loop)
+     (await))))
 
-;; This is a convenience procedure for use with an event loop, which
-;; will run 'thunk' in the event loop thread when the timeout expires.
-;; This procedure calls 'await' and will return the thunk's return
-;; value.  It is intended to be called in a waitable procedure invoked
-;; by a-sync.  The timeout is single shot only - as soon as 'thunk'
-;; has run once and completed, the timeout will be removed from the
-;; event loop.
-(define (await-timeout! await resume loop msecs thunk)
-  (timeout-post! loop msecs
-		 (lambda ()
-		   (resume (thunk))
-		   #f))
-  (await))
+;; This is a convenience procedure whose signature is:
+;;
+;;   (await-timeout! await resume [loop] msecs thunk)
+;;
+;; This procedure will run 'thunk' in the event loop thread when the
+;; timeout expires.  It calls 'await' and will return the thunk's
+;; return value.  It is intended to be called in a waitable procedure
+;; invoked by a-sync.  The timeout is single shot only - as soon as
+;; 'thunk' has run once and completed, the timeout will be removed
+;; from the event loop.  The 'loop' argument is optional: this
+;; procedure operates on the event loop passed in as an argument, or
+;; if none is passed (or #f is passed), on the default event loop.
+(define await-timeout!
+  (case-lambda
+    ((await resume msecs thunk)
+     (await-timeout! await resume #f msecs thunk))
+    ((await resume loop msecs thunk)
+     (timeout-post! msecs
+		    (lambda ()
+		      (resume (thunk))
+		      #f)
+		    loop)
+     (await))))
 
 ;; This is a convenience procedure for use with an event loop, which
 ;; will run 'proc' in the event loop thread whenever 'file' is ready
@@ -591,47 +742,61 @@
 ;; time by calling event-loop-remove-read-watch! in the waitable
 ;; procedure.  This procedure is mainly intended as something from
 ;; which higher-level asynchronous file operations can be constructed,
-;; such as the await-getline! procedure.
-(define (a-sync-read-watch! resume loop file proc)
-  (event-loop-add-read-watch! loop file
+;; such as the await-getline! procedure.  The 'loop' argument is
+;; optional: this procedure operates on the event loop passed in as an
+;; argument, or if none is passed (or #f is passed), on the default
+;; event loop.
+(define* (a-sync-read-watch! resume file proc #:optional loop)
+  (event-loop-add-read-watch! file
 			      (lambda (status)
 				(resume (proc status))
-				#t)))
+				#t)
+			      loop))
 
-;; This is a convenience procedure for use with an event loop, which
-;; will start a read watch on 'port' for a line of input.  It calls
-;; 'await' while waiting for input and will return the line of text
-;; received (without the terminating '\n' character).  The event loop
-;; will not be blocked by this procedure even if only individual
-;; characters are available at any one time.  It is intended to be
-;; called in a waitable procedure invoked by a-sync.  This procedure
-;; is implemented using a-sync-read-watch!.  If an exceptional
-;; condition ('excpt) is encountered, #f will be returned.
-(define (await-getline! await resume loop port)
-  (let ()
-    (define text '())
-    (a-sync-read-watch! resume
-			loop
-			port
-			(lambda (status)
-			  (if (eq? status 'excpt)
-			      #f
-			      (let next ()
-				(let ((ch (read-char port)))
-				  (if (not (or (eof-object? ch)
-					       (char=? ch #\newline)))
-				      (begin
-					(set! text (cons ch text))
-					(if (char-ready? port)
-					    (next)
-					    'more))
-				      (reverse-list->string text))))))))
-  (let next ((res (await)))
-    (if (eq? res 'more)
-	(next (await))
-	(begin
-	  (event-loop-remove-read-watch! loop port)
-	  res))))
+;; This is a convenience procedure whose signature is:
+;;
+;;   (await-getline! await resume [loop] port)
+;;
+;; This procedure will start a read watch on 'port' for a line of
+;; input.  It calls 'await' while waiting for input and will return
+;; the line of text received (without the terminating '\n' character).
+;; The event loop will not be blocked by this procedure even if only
+;; individual characters are available at any one time.  It is
+;; intended to be called in a waitable procedure invoked by a-sync.
+;; This procedure is implemented using a-sync-read-watch!.  If an
+;; exceptional condition ('excpt) is encountered, #f will be returned.
+;; The 'loop' argument is optional: this procedure operates on the
+;; event loop passed in as an argument, or if none is passed (or #f is
+;; passed), on the default event loop.
+(define await-getline!
+   (case-lambda
+    ((await resume port)
+     (await-getline! await resume #f port))
+    ((await resume loop port)
+     (let ()
+       (define text '())
+       (a-sync-read-watch! resume
+			   port
+			   (lambda (status)
+			     (if (eq? status 'excpt)
+				 #f
+				 (let next ()
+				   (let ((ch (read-char port)))
+				     (if (not (or (eof-object? ch)
+						  (char=? ch #\newline)))
+					 (begin
+					   (set! text (cons ch text))
+					   (if (char-ready? port)
+					       (next)
+					       'more))
+					 (reverse-list->string text))))))
+			   loop))
+     (let next ((res (await)))
+       (if (eq? res 'more)
+	   (next (await))
+	   (begin
+	     (event-loop-remove-read-watch! port loop)
+	     res))))))
 
 ;; This is a convenience procedure for use with an event loop, which
 ;; will run 'proc' in the event loop thread whenever 'file' is ready
@@ -646,9 +811,12 @@
 ;; at the right time by calling event-loop-remove-write-watch! in the
 ;; waitable procedure.  This procedure is mainly intended as something
 ;; from which higher-level asynchronous file operations can be
-;; constructed.
-(define (a-sync-write-watch! resume loop file proc)
-  (event-loop-add-write-watch! loop file
-			      (lambda (status)
-				(resume (proc status))
-				#t)))
+;; constructed.  The 'loop' argument is optional: this procedure
+;; operates on the event loop passed in as an argument, or if none is
+;; passed (or #f is passed), on the default event loop.
+(define* (a-sync-write-watch! resume file proc #:optional loop)
+  (event-loop-add-write-watch! file
+			       (lambda (status)
+				 (resume (proc status))
+				 #t)
+			       loop))

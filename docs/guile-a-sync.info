@@ -176,128 +176,119 @@ The (a-sync coroutines) module provides the following procedures:
 
      So, don't do this:
 
-          (define main-loop (make-event-loop))
+          (set-default-event-loop!) ;; if none has yet been set
           (a-sync (lambda (await resume)
 
-          	  (timeout-post! main-loop
-          			 100
+          	  (timeout-post! 100
           			 (lambda ()
           			   (resume "expired")
           			   #f))
-          	  (event-post! main-loop
-          		       (lambda ()
+          	  (event-post! (lambda ()
           			 (resume (+ 1 1))))
 
           	  (simple-format #t "Timeout ~A\n" (await))
           	  (simple-format #t "1 + 1 is ~A\n" (await))))
-          (event-loop-run! main-loop)
+          (event-loop-run!)
 
      Instead do this, where the two asynchronous operations are to run
      consecutively:
 
-          (define main-loop (make-event-loop))
+          (set-default-event-loop!) ;; if none has yet been set
           (a-sync (lambda (await resume)
 
-          	  (timeout-post! main-loop 100
+          	  (timeout-post! 100
           			 (lambda ()
           			   (resume "expired")
           			   #f))
           	  (simple-format #t "Timeout ~A\n" (await))
-          	  (event-post! main-loop
-          		       (lambda ()
+          	  (event-post! (lambda ()
           			 (resume (+ 1 1))))
 
           	  (simple-format #t "1 + 1 is ~A\n" (await))))
-          (event-loop-run! main-loop)
+          (event-loop-run!)
 
      or this, where the two asynchronous operations are to run
      concurrently (the summing of 1 and 1 will finish before the
      timeout):
 
-          (define main-loop (make-event-loop))
+          (set-default-event-loop!) ;; if none has yet been set
           (a-sync (lambda (await resume)
-          	  (timeout-post! main-loop 100
+          	  (timeout-post! 100
           			 (lambda ()
           			   (resume "expired")
           			   #f))
           	  (simple-format #t "Timeout ~A\n" (await))))
           (a-sync (lambda (await resume)
-          	  (event-post! main-loop
-          		       (lambda ()
+          	  (event-post! (lambda ()
           			 (resume (+ 1 1))))
           	  (simple-format #t "1 + 1 is ~A\n" (await))))
 
-          (event-loop-run! main-loop)
+          (event-loop-run!)
 
      Or better still, when composing on the event loop from the *note
      event-loop: event loop. module, use the await helper procedures, as
      follows (in this example the two asynchronous operations run
      consecutively):
 
-          (define main-loop (make-event-loop))
+          (set-default-event-loop!) ;; if none has yet been set
           (a-sync (lambda (await resume)
           	  (simple-format #t
           			 "Timeout ~A\n"
           			 (await-timeout! await resume
-          					 main-loop 100
+          					 100
           					 (lambda ()
           					   "expired")))
           	  (simple-format #t "1 + 1 is ~A\n"
           			 (await-task! await resume
-          				      main-loop
           				      (lambda ()
           					(+ 1 1))))))
-          (event-loop-run! main-loop)
+          (event-loop-run!)
 
      or this, where the two asynchronous operations run concurrently
      (the summing of 1 and 1 will finish before the timeout)
 
-          (define main-loop (make-event-loop))
+          (set-default-event-loop!) ;; if none has yet been set
           (a-sync (lambda (await resume)
           	  (simple-format #t
           			 "Timeout ~A\n"
           			 (await-timeout! await resume
-          					 main-loop 100
+          					 100
           					 (lambda ()
           					   "expired")))))
           (a-sync (lambda (await resume)
           	  (simple-format #t "1 + 1 is ~A\n"
           			 (await-task! await resume
-          				      main-loop
           				      (lambda ()
           					(+ 1 1))))))
-          (event-loop-run! main-loop)
+          (event-loop-run!)
 
      Or the let-a-sync* macro in the *note let-a-sync: let-a-sync.
      module can be used so that the last two examples are constructed as
      follows (in this first case the two asynchronous operations run
      consecutively)
 
-          (define main-loop (make-event-loop))
-          (let-a-sync* main-loop
-          	     ((ret1 (await-timeout! 100
+          (set-default-event-loop!) ;; if none has yet been set
+          (let-a-sync* ((ret1 (await-timeout! 100
           				   (lambda ()
           				     "expired")))
           	      (ignore ((no-await (simple-format #t "Timeout ~A\n" ret1))))
           	      (ret2 (await-task! (lambda ()
           				   (+ 1 1)))))
           	   ((no-await (simple-format #t "1 + 1 is ~A\n" ret2))))
-          (event-loop-run! main-loop)
+          (event-loop-run!)
 
      and this, where the two asynchronous operations run concurrently
      (the summing of 1 and 1 will finish before the timeout)
 
-          (define main-loop (make-event-loop))
-          (let-a-sync* main-loop
-          	     ((ret (await-timeout! 100
+          (set-default-event-loop!) ;; if none has yet been set
+          (let-a-sync* ((ret (await-timeout! 100
           				   (lambda ()
           				     "expired"))))
           	   ((no-await (simple-format #t "Timeout ~A\n" ret))))
-          (let-a-sync* main-loop
-          	     ((ret (await-task! (lambda ()
+          (let-a-sync* ((ret (await-task! (lambda ()
           				  (+ 1 1)))))
           	   ((no-await (simple-format #t "1 + 1 is ~A\n" ret))))
-          (event-loop-run! main-loop)
+          (event-loop-run!)
 
      The a-sync procedure can be used with any event loop, including the
      glib event loop provided by guile-gnome and so with gtk+ callbacks,
@@ -308,6 +299,31 @@ File: guile-a-sync.info,  Node: event loop,  Next: monotonic time,  Prev: corout
 
 The (a-sync event-loop) module provides the follow procedures:
 
+ -- Scheme Procedure: set-default-event-loop! [loop]
+     The 'loop' (event loop) argument is optional.  This procedure sets
+     the default event loop for the procedures in this module to the one
+     passed in (which must have been constructed by the make-event-loop
+     procedure), or if no argument is passed (or #f is passed), a new
+     event loop will be constructed for you as the default, which can be
+     accessed via the get-default-event-loop procedure.  The default
+     loop variable is not a fluid or a parameter - it is intended that
+     the default event loop is the same for every thread in the program,
+     and that the default event loop would normally run in the thread
+     with which the program started.  This procedure is not thread safe
+     - if it might be called by a different thread from others which
+     might access the default event loop, then external synchronization
+     may be required.  However, that should not normally be an issue.
+     The normal course would be to call this procedure once only on
+     program start up as soon as the main program event loop has been
+     constructed, before other threads have started.  It is usually a
+     mistake to call this procedure twice: if there are asynchronous
+     events pending (that is, if event-loop-run!  has not returned) you
+     will probably not get the results you expect.
+
+ -- Scheme Procedure: get-default-event-loop
+     This returns the default loop set by the set-default-event-loop!
+     procedure, or #f if none has been set.
+
  -- Scheme Procedure: make-event-loop
      This constructs a new event loop object.
 
@@ -315,15 +331,21 @@ The (a-sync event-loop) module provides the follow procedures:
      This procedure indicates whether 'obj' is an event-loop object
      constructed by make-event-loop.
 
- -- Scheme Procedure: event-loop-run! loop
-     This starts the event loop, which runs in the thread which calls
-     this procedure.  Where event-loop-quit!  has been called, this
-     procedure may be called again to restart the same event loop.  If a
-     callback throws, or something else throws in the implementation,
-     then this procedure will return and it will be as if
-     event-loop-quit!  had been called.
+ -- Scheme Procedure: event-loop-run! [loop]
+     The 'loop' (event loop) argument is optional.  This procedure
+     starts the event loop passed in as an argument, or if none is
+     passed (or #f is passed) it starts the default event loop.  The
+     event loop will run in the thread which calls this procedure.  If
+     this procedure has returned, including after a call to
+     event-loop-quit!, this procedure may be called again to restart the
+     event loop.  If a callback throws, or something else throws in the
+     implementation, then this procedure will return and it will be as
+     if event-loop-quit!  had been called.
 
- -- Scheme Procedure: event-loop-add-read-watch! loop file proc
+ -- Scheme Procedure: event-loop-add-read-watch! file proc [loop]
+     The 'loop' (event loop) argument is optional.  This procedure will
+     start a read watch in the event loop passed in as an argument, or
+     if none is passed (or #f is passed), in the default event loop.
      The 'proc' callback should take a single argument, and when called
      this will be set to 'in or 'excpt.  The same port or file
      descriptor can also be passed to event-loop-add-write-watch, and if
@@ -343,7 +365,10 @@ The (a-sync event-loop) module provides the follow procedures:
      efficiency purposes each read operation in response to this watch
      should usually exhaust the buffer by looping on char-ready?).
 
- -- Scheme Procedure: event-loop-add-write-watch! loop file proc
+ -- Scheme Procedure: event-loop-add-write-watch! file proc [loop]
+     The 'loop' (event loop) argument is optional.  This procedure will
+     start a write watch in the event loop passed in as an argument, or
+     if none is passed (or #f is passed), in the default event loop.
      The 'proc' callback should take a single argument, and when called
      this will be set to 'out or 'excpt.  The same port or file
      descriptor can also be passed to event-loop-add-read-watch, and if
@@ -366,64 +391,84 @@ The (a-sync event-loop) module provides the follow procedures:
      buffering will be taken into account in indicating whether a write
      can be made without blocking.
 
- -- Scheme Procedure: event-loop-remove-read-watch! loop file
-     The file argument may be a port or a file descriptor, and this
-     removes any read watch previously entered for that port or file
-     descriptor.  This is thread safe - any thread may remove a watch.
-     A file descriptor and a port with the same underlying file
-     descriptor compare equal for the purposes of removal.
+ -- Scheme Procedure: event-loop-remove-read-watch! file [loop]
+     The 'loop' (event loop) argument is optional.  This procedure will
+     remove a read watch from the event loop passed in as an argument,
+     or if none is passed (or #f is passed), from the default event
+     loop.  The file argument may be a port or a file descriptor.  This
+     is thread safe - any thread may remove a watch.  A file descriptor
+     and a port with the same underlying file descriptor compare equal
+     for the purposes of removal.
 
- -- Scheme Procedure: event-loop-remove-write-watch! loop file
-     The file argument may be a port or a file descriptor, and this
-     removes any write watch previously entered for that port or file
-     descriptor.  This is thread safe - any thread may remove a watch.
-     A file descriptor and a port with the same underlying file
-     descriptor compare equal for the purposes of removal.
+ -- Scheme Procedure: event-loop-remove-write-watch! file [loop]
+     The 'loop' (event loop) argument is optional.  This procedure will
+     remove a write watch from the event loop passed in as an argument,
+     or if none is passed (or #f is passed), from the default event
+     loop.  The file argument may be a port or a file descriptor.  This
+     is thread safe - any thread may remove a watch.  A file descriptor
+     and a port with the same underlying file descriptor compare equal
+     for the purposes of removal.
 
- -- Scheme Procedure: event-post! loop action
-     The 'action' callback is a thunk.  This is thread safe - any thread
-     may post an event (that is its main purpose), and the action
-     callback will execute in the event loop thread.  Actions execute in
-     the order in which they were posted.  If an event is posted from a
-     worker thread, it will normally be necessary to call
+ -- Scheme Procedure: event-post! action [loop]
+     The 'loop' (event loop) argument is optional.  This procedure will
+     post a callback for execution in the event loop passed in as an
+     argument, or if none is passed (or #f is passed), in the default
+     event loop.  The 'action' callback is a thunk.  This is thread safe
+     - any thread may post an event (that is its main purpose), and the
+     action callback will execute in the event loop thread.  Actions
+     execute in the order in which they were posted.  If an event is
+     posted from a worker thread, it will normally be necessary to call
      event-loop-block!  beforehand.
 
- -- Scheme Procedure: timeout-post! loop msecs action
-     This adds a timeout to the event loop.  The timeout will repeat
-     unless and until the passed-in callback returns #f or
+ -- Scheme Procedure: timeout-post! msecs action [loop]
+     The 'loop' (event loop) argument is optional.  This procedure adds
+     a timeout to the event loop passed in as an argument, or if none is
+     passed (or #f is passed), to the default event loop.  The timeout
+     will repeat unless and until the passed-in callback returns #f or
      timeout-remove!  is called.  The passed-in callback must be a
      thunk.  This procedure returns a tag symbol to which
-     timeout-remove!  can be applied.  It may be called by any thread.
+     timeout-remove!  can be applied.  It may be called by any thread,
+     and the timeout callback will execute in the event loop thread.
 
- -- Scheme Procedure: timeout-remove! loop tag
-     This stops the timeout with the given tag from executing in the
-     event loop concerned.  It may be called by any thread.
+ -- Scheme Procedure: timeout-remove! tag [loop]
+     The 'loop' (event loop) argument is optional.  This procedure stops
+     the timeout with the given tag from executing in the event loop
+     passed in as an argument, or if none is passed (or #f is passed),
+     in the default event loop.  It may be called by any thread.
 
- -- Scheme Procedure: event-loop-block! loop val
+ -- Scheme Procedure: event-loop-block! val [loop]
      By default, upon there being no more watches, timeouts and posted
      events for an event loop, event-loop-run!  will return, which is
      normally what you want with a single threaded program.  However,
      this is undesirable where a worker thread is intended to post an
      event to the main loop after it has reached a result, say via
-     await-task-in-thread, because the main loop may have ended before
+     await-task-in-thread!, because the main loop may have ended before
      it posts.  Passing #t to the val argument of this procedure will
      prevent that from happening, so that the event loop can only be
      ended by calling event-loop-quit!.  To switch it back to
      non-blocking mode, pass #f.  This is thread safe - any thread may
-     call this procedure.
+     call this procedure.  The 'loop' (event loop) argument is optional:
+     this procedure operates on the event loop passed in as an argument,
+     or if none is passed (or #f is passed), on the default event loop.
 
- -- Scheme Procedure: event-loop-quit! loop
-     Causes the event loop to unblock.  Any events remaining in the
-     event loop will be discarded.  New events may subsequently be added
-     after event-loop-run!  has unblocked and event-loop-run!  then
-     called for them.  This is thread safe - any thread may call this
-     procedure.
+ -- Scheme Procedure: event-loop-quit! [loop]
+     This procedure causes an event loop to unblock.  Any events
+     remaining in the event loop will be discarded.  New events may
+     subsequently be added after event-loop-run!  has unblocked and
+     event-loop-run!  then called for them.  This is thread safe - any
+     thread may call this procedure.  The 'loop' (event loop) argument
+     is optional: this procedure operates on the event loop passed in as
+     an argument, or if none is passed (or #f is passed), on the default
+     event loop.
 
- -- Scheme Procedure: await-task-in-thread! await resume loop thunk
+ -- Scheme Procedure: await-task-in-thread! await resume [loop] thunk
           [handler]
-     This is a convenience procedure which will run 'thunk' in its own
-     thread, and then post an event to the event loop specified by the
-     'loop' argument when 'thunk' has finished.  This procedure calls
+     The loop and handler arguments are optional.  The procedure will
+     run 'thunk' in its own thread, and then post an event to the event
+     loop specified by the 'loop' argument when 'thunk' has finished, or
+     to the default event loop if no 'loop' argument is provided or if
+     #f is provided as the 'loop' argument (pattern matching is used to
+     detect the type of the third argument).  This procedure calls
      'await' and will return the thunk's return value.  It is intended
      to be called in a waitable procedure invoked by a-sync.  It will
      normally be necessary to call event-loop-block!  before invoking
@@ -437,20 +482,21 @@ The (a-sync event-loop) module provides the follow procedures:
      event-loop-run!.
 
      Here is an example:
-          (define main-loop (make-event-loop))
+          (set-default-event-loop!) ;; if none has yet been set
           (a-sync (lambda (await resume)
           	  (simple-format #t "1 + 1 is ~A\n"
           			 (await-task-in-thread! await resume
-          						main-loop
           						(lambda ()
           						  (+ 1 1))))
-          	  (event-loop-quit! main-loop)))
-          (event-loop-block! main-loop #t) ;; because the task runs in another thread
-          (event-loop-run! main-loop)
+          	  (event-loop-quit!)))
+          (event-loop-block! #t) ;; because the task runs in another thread
+          (event-loop-run!)
 
- -- Scheme Procedure: await-task! await resume loop thunk
-     This is a convenience procedure for use with an event loop, which
-     will run 'thunk' in the event loop specified by the 'loop'
+ -- Scheme Procedure: await-task! await resume [loop] thunk
+     The 'loop' argument is optional.  This is a convenience procedure
+     for use with an event loop, which will run 'thunk' in the event
+     loop specified by the 'loop' argument, or in the default event loop
+     if no 'loop' argument is provided or #f is provided as the 'loop'
      argument.  This procedure calls 'await' and will return the thunk's
      return value.  It is intended to be called in a waitable procedure
      invoked by a-sync.  It is the single-threaded corollary of
@@ -465,36 +511,37 @@ The (a-sync event-loop) module provides the follow procedures:
      more convenient wrapper.)
 
      Here is an example:
-          (define main-loop (make-event-loop))
+          (set-default-event-loop!) ;; if none has yet been set
           (a-sync (lambda (await resume)
           	  (simple-format #t "1 + 1 is ~A\n"
           			 (await-task! await resume
-          				      main-loop
           				      (lambda ()
           					(+ 1 1))))))
-          (event-loop-run! main-loop)
+          (event-loop-run!)
 
- -- Scheme Procedure: await-timeout! await resume loop msecs thunk
+ -- Scheme Procedure: await-timeout! await resume [loop] msecs thunk
      This is a convenience procedure for use with an event loop, which
      will run 'thunk' in the event loop thread when the timeout expires.
      This procedure calls 'await' and will return the thunk's return
      value.  It is intended to be called in a waitable procedure invoked
      by a-sync.  The timeout is single shot only - as soon as 'thunk'
      has run once and completed, the timeout will be removed from the
-     event loop.
+     event loop.  The 'loop' argument is optional: this procedure
+     operates on the event loop passed in as an argument, or if none is
+     passed (or #f is passed), on the default event loop.
 
      Here is an example:
-          (define main-loop (make-event-loop))
+          (set-default-event-loop!) ;; if none has yet been set
           (a-sync (lambda (await resume)
           	  (simple-format #t
           			 "Timeout ~A\n"
           			 (await-timeout! await resume
-          					 main-loop 100
+          					 100
           					 (lambda ()
           					   "expired")))))
-          (event-loop-run! main-loop)
+          (event-loop-run!)
 
- -- Scheme Procedure: a-sync-read-watch! resume loop file proc
+ -- Scheme Procedure: a-sync-read-watch! resume file proc [loop]
      This is a convenience procedure for use with an event loop, which
      will run 'proc' in the event loop thread whenever 'file' is ready
      for reading, and apply resume (obtained from a call to a-sync) to
@@ -508,37 +555,44 @@ The (a-sync event-loop) module provides the follow procedures:
      right time by calling event-loop-remove-read-watch!  in the
      waitable procedure.  This procedure is mainly intended as something
      from which higher-level asynchronous file operations can be
-     constructed, such as the await-readline!  procedure.
+     constructed, such as the await-readline!  procedure.  The 'loop'
+     argument is optional: this procedure operates on the event loop
+     passed in as an argument, or if none is passed (or #f is passed),
+     on the default event loop
 
      As an example of how to use a-sync-read-watch!, here is the
      implementation of await-getline!:
-          (define (await-getline! await resume loop port)
-            (let ()
-              (define text '())
-              (a-sync-read-watch! resume
-          			loop
-          			port
-          			(lambda (status)
-          			  (if (eq? status 'excpt)
-          			      #f
-          			      (let next ()
-          				(let ((ch (read-char port)))
-          				  (if (not (or (eof-object? ch)
-          					       (char=? ch #\newline)))
-          				      (begin
-          					(set! text (cons ch text))
-          					(if (char-ready? port)
-          					    (next)
-          					    'more))
-          				      (reverse-list->string text))))))))
-            (let next ((res (await)))
-              (if (eq? res 'more)
-          	(next (await))
-          	(begin
-          	  (event-loop-remove-read-watch! loop port)
-          	  res))))
+          (define await-getline!
+             (case-lambda
+              ((await resume port)
+               (await-getline! await resume #f port))
+              ((await resume loop port)
+               (let ()
+                 (define text '())
+                 (a-sync-read-watch! resume
+          			   port
+          			   (lambda (status)
+          			     (if (eq? status 'excpt)
+          				 #f
+          				 (let next ()
+          				   (let ((ch (read-char port)))
+          				     (if (not (or (eof-object? ch)
+          						  (char=? ch #\newline)))
+          					 (begin
+          					   (set! text (cons ch text))
+          					   (if (char-ready? port)
+          					       (next)
+          					       'more))
+          					 (reverse-list->string text))))))
+          			   loop))
+               (let next ((res (await)))
+                 (if (eq? res 'more)
+          	   (next (await))
+          	   (begin
+          	     (event-loop-remove-read-watch! port loop)
+          	     res))))))
 
- -- Scheme Procedure: await-getline! await resume loop port
+ -- Scheme Procedure: await-getline! await resume [loop] port
      This is a convenience procedure for use with an event loop, which
      will start a read watch on 'port' for a line of input.  It calls
      'await' while waiting for input and will return the line of text
@@ -547,20 +601,22 @@ The (a-sync event-loop) module provides the follow procedures:
      characters are available at any one time.  It is intended to be
      called in a waitable procedure invoked by a-sync.  This procedure
      is implemented using a-sync-read-watch!.  If an exceptional
-     condition ('excpt) is encountered, #f will be returned.
+     condition ('excpt) is encountered, #f will be returned.  The 'loop'
+     argument is optional: this procedure operates on the event loop
+     passed in as an argument, or if none is passed (or #f is passed),
+     on the default event loop.
 
      Here is an example:
-          (define main-loop (make-event-loop))
+          (set-default-event-loop!) ;; if none has yet been set
           (a-sync (lambda (await resume)
           	  (display "Enter a line of text at the keyboard\n")
           	  (simple-format #t
           			 "The line was: ~A\n"
           			 (await-getline! await resume
-          					 main-loop
           					 (open "/dev/tty" O_RDONLY)))))
-          (event-loop-run! main-loop)
+          (event-loop-run!)
 
- -- Scheme Procedure: a-sync-write-watch! resume loop file proc
+ -- Scheme Procedure: a-sync-write-watch! resume file proc [loop]
      This is a convenience procedure for use with an event loop, which
      will run 'proc' in the event loop thread whenever 'file' is ready
      for writing, and apply resume (obtained from a call to a-sync) to
@@ -574,7 +630,9 @@ The (a-sync event-loop) module provides the follow procedures:
      at the right time by calling event-loop-remove-write-watch!  in the
      waitable procedure.  This procedure is mainly intended as something
      from which higher-level asynchronous file operations can be
-     constructed.
+     constructed.  The 'loop' argument is optional: this procedure
+     operates on the event loop passed in as an argument, or if none is
+     passed (or #f is passed), on the default event loop
 
    The (async event-loop) module also loads the *note (a-sync
 monotonic-time): monotonic time. module.
@@ -814,13 +872,16 @@ This (a-sync let-a-sync) module provides a let-a-sync* macro interface
 for the a-sync procedure provided by the *note (a-sync coroutines):
 coroutines. module.
 
- -- Syntax: let-a-sync* loop ((var (await-proc)) ...) await-proc ...
+ -- Syntax: (let-a-sync* [loop] ((var (await-proc)) ...) await-proc ...)
      This module provides the let-a-sync* macro, which enables
      asynchronous tasks to be composed on an event loop using let* type
      syntax.
 
-     The first argument to let-a-sync* is the main loop on which the
-     tasks are to be composed.  This is followed by bindings which are
+     The 'loop' argument of let-a-sync* is optional.  If an event loop
+     constructed by make-event-loop is passed to 'loop', then that is
+     the main loop on which the tasks will be composed, otherwise if
+     there is no 'loop' argument (or #f is passed to it) the default
+     main loop will be used.  This is followed by bindings which are
      optional (there need not be any), each of which must be initialised
      by a 'let-a-sync*'-capable procedure, and following the bindings
      there must be a body of 'let-a-sync*'-capable procedures executed
@@ -836,8 +897,8 @@ coroutines. module.
 
      A 'let-a-sync*'-capable procedure is one which takes an 'await' and
      'yield' procedure from a-sync as its first and second arguments,
-     and an event loop as it third argument, followed by such further
-     arguments as it requires.  All the the await-task!,
+     and an event loop (or #f) as it third argument, followed by such
+     further arguments as it requires.  All the the await-task!,
      await-task-in-thread!, await-timeout!  and await-getline!
      procedures provided by the (a-sync event-loop) module are
      'let-a-sync*'-capable.  In addition, to make an ordinary body of
@@ -857,12 +918,12 @@ coroutines. module.
      'await' and 'yield' and event-loop arguments are not explicitly
      passed to it.  The let-a-sync* macro will do it for you.
 
-          (define main-loop (make-event-loop))
-          (let-a-sync* main-loop ((line (await-getline! (open "/dev/tty" O_RDONLY))))
-          	            ((no-await (simple-format #t
-          				              "The line was: ~A\n"
-          				              line))))
-          (event-loop-run! main-loop)
+          (set-default-event-loop!) ;; if none has yet been set
+          (let-a-sync* ((line (await-getline! (open "/dev/tty" O_RDONLY))))
+          	  ((no-await (simple-format #t
+          				    "The line was: ~A\n"
+          				     line))))
+          (event-loop-run!)
 
      Each block of code within a let-a-sync* block will run
      independently of (and concurrently with) code in other let-a-sync*
@@ -874,7 +935,7 @@ coroutines. module.
      Other examples of the use of this macro are given in the
      documentation of the *note (a-sync coroutines): coroutines. module.
 
- -- Syntax: no-await body0 body1 ...
+ -- Syntax: (no-await body0 body1 ...)
      This macro will generate a 'let-a-sync*'-capable procedure from a
      body of code which does not block.  It can be passed to
      let-a-sync*, either as an initializer or as a clause in its body.
@@ -886,9 +947,9 @@ coroutines. module.
 Tag Table:
 Node: Top85
 Node: coroutines1099
-Node: event loop15116
-Node: monotonic time29431
-Node: gnome glib30865
-Node: let-a-sync41058
+Node: event loop14876
+Node: monotonic time33836
+Node: gnome glib35270
+Node: let-a-sync45463
 
 End Tag Table

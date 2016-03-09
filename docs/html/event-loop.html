@@ -57,6 +57,34 @@ Next: <a href="monotonic-time.html#monotonic-time" accesskey="n" rel="next">mono
 <p>The (a-sync event-loop) module provides the follow procedures:
 </p>
 <dl>
+<dt><a name="index-set_002ddefault_002devent_002dloop_0021"></a>Scheme Procedure: <strong>set-default-event-loop!</strong> <em>[loop]</em></dt>
+<dd><p>The &rsquo;loop&rsquo; (event loop) argument is optional.  This procedure sets the
+default event loop for the procedures in this module to the one passed
+in (which must have been constructed by the make-event-loop
+procedure), or if no argument is passed (or #f is passed), a new event
+loop will be constructed for you as the default, which can be accessed
+via the get-default-event-loop procedure.  The default loop variable
+is not a fluid or a parameter - it is intended that the default event
+loop is the same for every thread in the program, and that the default
+event loop would normally run in the thread with which the program
+started.  This procedure is not thread safe - if it might be called by
+a different thread from others which might access the default event
+loop, then external synchronization may be required.  However, that
+should not normally be an issue.  The normal course would be to call
+this procedure once only on program start up as soon as the main
+program event loop has been constructed, before other threads have
+started.  It is usually a mistake to call this procedure twice: if
+there are asynchronous events pending (that is, if event-loop-run!
+has not returned) you will probably not get the results you expect.
+</p></dd></dl>
+
+<dl>
+<dt><a name="index-get_002ddefault_002devent_002dloop"></a>Scheme Procedure: <strong>get-default-event-loop</strong></dt>
+<dd><p>This returns the default loop set by the set-default-event-loop!
+procedure, or #f if none has been set.
+</p></dd></dl>
+
+<dl>
 <dt><a name="index-make_002devent_002dloop"></a>Scheme Procedure: <strong>make-event-loop</strong></dt>
 <dd><p>This constructs a new event loop object.
 </p></dd></dl>
@@ -68,19 +96,25 @@ constructed by make-event-loop.
 </p></dd></dl>
 
 <dl>
-<dt><a name="index-event_002dloop_002drun_0021"></a>Scheme Procedure: <strong>event-loop-run!</strong> <em>loop</em></dt>
-<dd><p>This starts the event loop, which runs in the thread which calls this
-procedure.  Where event-loop-quit! has been called, this procedure may
-be called again to restart the same event loop.  If a callback throws,
+<dt><a name="index-event_002dloop_002drun_0021"></a>Scheme Procedure: <strong>event-loop-run!</strong> <em>[loop]</em></dt>
+<dd><p>The &rsquo;loop&rsquo; (event loop) argument is optional.  This procedure starts
+the event loop passed in as an argument, or if none is passed (or #f
+is passed) it starts the default event loop.  The event loop will run
+in the thread which calls this procedure.  If this procedure has
+returned, including after a call to event-loop-quit!, this procedure
+may be called again to restart the event loop.  If a callback throws,
 or something else throws in the implementation, then this procedure
 will return and it will be as if event-loop-quit! had been called.
 </p></dd></dl>
 
 <dl>
-<dt><a name="index-event_002dloop_002dadd_002dread_002dwatch_0021"></a>Scheme Procedure: <strong>event-loop-add-read-watch!</strong> <em>loop file proc</em></dt>
-<dd><p>The &rsquo;proc&rsquo; callback should take a single argument, and when called
-this will be set to &rsquo;in or &rsquo;excpt.  The same port or file descriptor
-can also be passed to event-loop-add-write-watch, and if so and the
+<dt><a name="index-event_002dloop_002dadd_002dread_002dwatch_0021"></a>Scheme Procedure: <strong>event-loop-add-read-watch!</strong> <em>file proc [loop]</em></dt>
+<dd><p>The &rsquo;loop&rsquo; (event loop) argument is optional.  This procedure will
+start a read watch in the event loop passed in as an argument, or if
+none is passed (or #f is passed), in the default event loop.  The
+&rsquo;proc&rsquo; callback should take a single argument, and when called this
+will be set to &rsquo;in or &rsquo;excpt.  The same port or file descriptor can
+also be passed to event-loop-add-write-watch, and if so and the
 descriptor is also available for writing, the write callback will also
 be called with its argument set to &rsquo;out.  If there is already a read
 watch for the file passed, the old one will be replaced by the new
@@ -99,10 +133,13 @@ char-ready?).
 </p></dd></dl>
 
 <dl>
-<dt><a name="index-event_002dloop_002dadd_002dwrite_002dwatch_0021"></a>Scheme Procedure: <strong>event-loop-add-write-watch!</strong> <em>loop file proc</em></dt>
-<dd><p>The &rsquo;proc&rsquo; callback should take a single argument, and when called
-this will be set to &rsquo;out or &rsquo;excpt.  The same port or file descriptor
-can also be passed to event-loop-add-read-watch, and if so and the
+<dt><a name="index-event_002dloop_002dadd_002dwrite_002dwatch_0021"></a>Scheme Procedure: <strong>event-loop-add-write-watch!</strong> <em>file proc [loop]</em></dt>
+<dd><p>The &rsquo;loop&rsquo; (event loop) argument is optional.  This procedure will
+start a write watch in the event loop passed in as an argument, or if
+none is passed (or #f is passed), in the default event loop.  The
+&rsquo;proc&rsquo; callback should take a single argument, and when called this
+will be set to &rsquo;out or &rsquo;excpt.  The same port or file descriptor can
+also be passed to event-loop-add-read-watch, and if so and the
 descriptor is also available for reading or in exceptional condition,
 the read callback will also be called with its argument set to &rsquo;in or
 &rsquo;excpt (if both a read and a write watch have been set for the same
@@ -123,108 +160,130 @@ be made without blocking.
 </p></dd></dl>
 
 <dl>
-<dt><a name="index-event_002dloop_002dremove_002dread_002dwatch_0021"></a>Scheme Procedure: <strong>event-loop-remove-read-watch!</strong> <em>loop file</em></dt>
-<dd><p>The file argument may be a port or a file descriptor, and this removes
-any read watch previously entered for that port or file descriptor.
-This is thread safe - any thread may remove a watch.  A file
-descriptor and a port with the same underlying file descriptor compare
-equal for the purposes of removal.
+<dt><a name="index-event_002dloop_002dremove_002dread_002dwatch_0021"></a>Scheme Procedure: <strong>event-loop-remove-read-watch!</strong> <em>file [loop]</em></dt>
+<dd><p>The &rsquo;loop&rsquo; (event loop) argument is optional.  This procedure will
+remove a read watch from the event loop passed in as an argument, or
+if none is passed (or #f is passed), from the default event loop.  The
+file argument may be a port or a file descriptor.  This is thread safe
+- any thread may remove a watch.  A file descriptor and a port with
+the same underlying file descriptor compare equal for the purposes of
+removal.
 </p></dd></dl>
 
 <dl>
-<dt><a name="index-event_002dloop_002dremove_002dwrite_002dwatch_0021"></a>Scheme Procedure: <strong>event-loop-remove-write-watch!</strong> <em>loop file</em></dt>
-<dd><p>The file argument may be a port or a file descriptor, and this removes
-any write watch previously entered for that port or file descriptor.
-This is thread safe - any thread may remove a watch.  A file
-descriptor and a port with the same underlying file descriptor compare
-equal for the purposes of removal.
+<dt><a name="index-event_002dloop_002dremove_002dwrite_002dwatch_0021"></a>Scheme Procedure: <strong>event-loop-remove-write-watch!</strong> <em>file [loop]</em></dt>
+<dd><p>The &rsquo;loop&rsquo; (event loop) argument is optional.  This procedure will
+remove a write watch from the event loop passed in as an argument, or
+if none is passed (or #f is passed), from the default event loop.  The
+file argument may be a port or a file descriptor.  This is thread safe
+- any thread may remove a watch.  A file descriptor and a port with
+the same underlying file descriptor compare equal for the purposes of
+removal.
 </p></dd></dl>
 
 <dl>
-<dt><a name="index-event_002dpost_0021"></a>Scheme Procedure: <strong>event-post!</strong> <em>loop action</em></dt>
-<dd><p>The &rsquo;action&rsquo; callback is a thunk.  This is thread safe - any thread
-may post an event (that is its main purpose), and the action callback
-will execute in the event loop thread.  Actions execute in the order
-in which they were posted.  If an event is posted from a worker
-thread, it will normally be necessary to call event-loop-block!
+<dt><a name="index-event_002dpost_0021"></a>Scheme Procedure: <strong>event-post!</strong> <em>action [loop]</em></dt>
+<dd><p>The &rsquo;loop&rsquo; (event loop) argument is optional.  This procedure will
+post a callback for execution in the event loop passed in as an
+argument, or if none is passed (or #f is passed), in the default event
+loop.  The &rsquo;action&rsquo; callback is a thunk.  This is thread safe - any
+thread may post an event (that is its main purpose), and the action
+callback will execute in the event loop thread.  Actions execute in
+the order in which they were posted.  If an event is posted from a
+worker thread, it will normally be necessary to call event-loop-block!
 beforehand.
 </p></dd></dl>
 
 <dl>
-<dt><a name="index-timeout_002dpost_0021"></a>Scheme Procedure: <strong>timeout-post!</strong> <em>loop msecs action</em></dt>
-<dd><p>This adds a timeout to the event loop.  The timeout will repeat unless
-and until the passed-in callback returns #f or timeout-remove! is
-called.  The passed-in callback must be a thunk.  This procedure
-returns a tag symbol to which timeout-remove! can be applied.  It may
-be called by any thread.
+<dt><a name="index-timeout_002dpost_0021"></a>Scheme Procedure: <strong>timeout-post!</strong> <em>msecs action [loop]</em></dt>
+<dd><p>The &rsquo;loop&rsquo; (event loop) argument is optional.  This procedure adds a
+timeout to the event loop passed in as an argument, or if none is
+passed (or #f is passed), to the default event loop.  The timeout will
+repeat unless and until the passed-in callback returns #f or
+timeout-remove! is called.  The passed-in callback must be a thunk.
+This procedure returns a tag symbol to which timeout-remove! can be
+applied.  It may be called by any thread, and the timeout callback
+will execute in the event loop thread.
 </p></dd></dl>
 
 
 <dl>
-<dt><a name="index-timeout_002dremove_0021"></a>Scheme Procedure: <strong>timeout-remove!</strong> <em>loop tag</em></dt>
-<dd><p>This stops the timeout with the given tag from executing in the event
-loop concerned.  It may be called by any thread.
+<dt><a name="index-timeout_002dremove_0021"></a>Scheme Procedure: <strong>timeout-remove!</strong> <em>tag [loop]</em></dt>
+<dd><p>The &rsquo;loop&rsquo; (event loop) argument is optional.  This procedure stops
+the timeout with the given tag from executing in the event loop passed
+in as an argument, or if none is passed (or #f is passed), in the
+default event loop.  It may be called by any thread.
 </p></dd></dl>
 
 <dl>
-<dt><a name="index-event_002dloop_002dblock_0021"></a>Scheme Procedure: <strong>event-loop-block!</strong> <em>loop val</em></dt>
+<dt><a name="index-event_002dloop_002dblock_0021"></a>Scheme Procedure: <strong>event-loop-block!</strong> <em>val [loop]</em></dt>
 <dd><p>By default, upon there being no more watches, timeouts and posted
 events for an event loop, event-loop-run! will return, which is
 normally what you want with a single threaded program.  However, this
 is undesirable where a worker thread is intended to post an event to
 the main loop after it has reached a result, say via
-await-task-in-thread, because the main loop may have ended before it
+await-task-in-thread!, because the main loop may have ended before it
 posts.  Passing #t to the val argument of this procedure will prevent
 that from happening, so that the event loop can only be ended by
 calling event-loop-quit!.  To switch it back to non-blocking mode,
-pass #f.  This is thread safe - any thread may call this procedure.
+pass #f.  This is thread safe - any thread may call this
+procedure.  The &rsquo;loop&rsquo; (event loop) argument is optional: this
+procedure operates on the event loop passed in as an argument, or if
+none is passed (or #f is passed), on the default event loop.
 </p></dd></dl>
 
 <dl>
-<dt><a name="index-event_002dloop_002dquit_0021"></a>Scheme Procedure: <strong>event-loop-quit!</strong> <em>loop</em></dt>
-<dd><p>Causes the event loop to unblock.  Any events remaining in the event
-loop will be discarded.  New events may subsequently be added after
-event-loop-run! has unblocked and event-loop-run! then called for
-them.  This is thread safe - any thread may call this procedure.
+<dt><a name="index-event_002dloop_002dquit_0021"></a>Scheme Procedure: <strong>event-loop-quit!</strong> <em>[loop]</em></dt>
+<dd><p>This procedure causes an event loop to unblock.  Any events remaining
+in the event loop will be discarded.  New events may subsequently be
+added after event-loop-run! has unblocked and event-loop-run! then
+called for them.  This is thread safe - any thread may call this
+procedure.  The &rsquo;loop&rsquo; (event loop) argument is optional: this
+procedure operates on the event loop passed in as an argument, or if
+none is passed (or #f is passed), on the default event loop.
 </p></dd></dl>
 
 <dl>
-<dt><a name="index-await_002dtask_002din_002dthread_0021"></a>Scheme Procedure: <strong>await-task-in-thread!</strong> <em>await resume loop thunk [handler]</em></dt>
-<dd><p>This is a convenience procedure which will run &rsquo;thunk&rsquo; in its own
-thread, and then post an event to the event loop specified by the
-&rsquo;loop&rsquo; argument when &rsquo;thunk&rsquo; has finished.  This procedure calls
-&rsquo;await&rsquo; and will return the thunk&rsquo;s return value.  It is intended to
-be called in a waitable procedure invoked by a-sync.  It will normally
-be necessary to call event-loop-block! before invoking this procedure.
-If the optional &rsquo;handler&rsquo; argument is provided, then it will be run in
-the event loop thread if &rsquo;thunk&rsquo; throws and its return value will be
-the return value of this procedure; otherwise the program will
-terminate if an unhandled exception propagates out of &rsquo;thunk&rsquo;.
-&rsquo;handler&rsquo; should take the same arguments as a guile catch handler
-(this is implemented using catch).  If &rsquo;handler&rsquo; throws, the exception
-will propagate out of event-loop-run!.
+<dt><a name="index-await_002dtask_002din_002dthread_0021"></a>Scheme Procedure: <strong>await-task-in-thread!</strong> <em>await resume [loop] thunk [handler]</em></dt>
+<dd><p>The loop and handler arguments are optional.  The procedure will run
+&rsquo;thunk&rsquo; in its own thread, and then post an event to the event loop
+specified by the &rsquo;loop&rsquo; argument when &rsquo;thunk&rsquo; has finished, or to the
+default event loop if no &rsquo;loop&rsquo; argument is provided or if #f is
+provided as the &rsquo;loop&rsquo; argument (pattern matching is used to detect
+the type of the third argument).  This procedure calls &rsquo;await&rsquo; and
+will return the thunk&rsquo;s return value.  It is intended to be called in
+a waitable procedure invoked by a-sync.  It will normally be necessary
+to call event-loop-block!  before invoking this procedure.  If the
+optional &rsquo;handler&rsquo; argument is provided, then it will be run in the
+event loop thread if &rsquo;thunk&rsquo; throws and its return value will be the
+return value of this procedure; otherwise the program will terminate
+if an unhandled exception propagates out of &rsquo;thunk&rsquo;.  &rsquo;handler&rsquo; should
+take the same arguments as a guile catch handler (this is implemented
+using catch).  If &rsquo;handler&rsquo; throws, the exception will propagate out
+of event-loop-run!.
 </p>
 <p>Here is an example:
 </p><div class="example">
-<pre class="example">(define main-loop (make-event-loop))
+<pre class="example">(set-default-event-loop!) ;; if none has yet been set
 (a-sync (lambda (await resume)
 	  (simple-format #t &quot;1 + 1 is ~A\n&quot;
 			 (await-task-in-thread! await resume
-						main-loop
 						(lambda ()
 						  (+ 1 1))))
-	  (event-loop-quit! main-loop)))
-(event-loop-block! main-loop #t) ;; because the task runs in another thread
-(event-loop-run! main-loop)
+	  (event-loop-quit!)))
+(event-loop-block! #t) ;; because the task runs in another thread
+(event-loop-run!)
 </pre></div>
 </dd></dl>
 
 <dl>
-<dt><a name="index-await_002dtask_0021"></a>Scheme Procedure: <strong>await-task!</strong> <em>await resume loop thunk</em></dt>
-<dd><p>This is a convenience procedure for use with an event loop, which will
-run &rsquo;thunk&rsquo; in the event loop specified by the &rsquo;loop&rsquo; argument.  This
-procedure calls &rsquo;await&rsquo; and will return the thunk&rsquo;s return value.  It
-is intended to be called in a waitable procedure invoked by a-sync.
+<dt><a name="index-await_002dtask_0021"></a>Scheme Procedure: <strong>await-task!</strong> <em>await resume [loop] thunk</em></dt>
+<dd><p>The &rsquo;loop&rsquo; argument is optional.  This is a convenience procedure for
+use with an event loop, which will run &rsquo;thunk&rsquo; in the event loop
+specified by the &rsquo;loop&rsquo; argument, or in the default event loop if no
+&rsquo;loop&rsquo; argument is provided or #f is provided as the &rsquo;loop&rsquo; argument.
+This procedure calls &rsquo;await&rsquo; and will return the thunk&rsquo;s return value.
+It is intended to be called in a waitable procedure invoked by a-sync.
 It is the single-threaded corollary of await-task-in-thread!.  This
 means that (unlike with await-task-in-thread!) while &rsquo;thunk&rsquo; is
 running other events in the event loop will not make progress.  This
@@ -237,42 +296,44 @@ generally a more convenient wrapper.)
 </p>
 <p>Here is an example:
 </p><div class="example">
-<pre class="example">(define main-loop (make-event-loop))
+<pre class="example">(set-default-event-loop!) ;; if none has yet been set
 (a-sync (lambda (await resume)
 	  (simple-format #t &quot;1 + 1 is ~A\n&quot;
 			 (await-task! await resume
-				      main-loop
 				      (lambda ()
 					(+ 1 1))))))
-(event-loop-run! main-loop)
+(event-loop-run!)
 </pre></div>
 </dd></dl>
 
 <dl>
-<dt><a name="index-await_002dtimeout_0021"></a>Scheme Procedure: <strong>await-timeout!</strong> <em>await resume loop msecs thunk</em></dt>
+<dt><a name="index-await_002dtimeout_0021"></a>Scheme Procedure: <strong>await-timeout!</strong> <em>await resume [loop] msecs thunk</em></dt>
 <dd><p>This is a convenience procedure for use with an event loop, which will
 run &rsquo;thunk&rsquo; in the event loop thread when the timeout expires.  This
 procedure calls &rsquo;await&rsquo; and will return the thunk&rsquo;s return value.  It
 is intended to be called in a waitable procedure invoked by a-sync.
 The timeout is single shot only - as soon as &rsquo;thunk&rsquo; has run once and
-completed, the timeout will be removed from the event loop.
+completed, the timeout will be removed from the event loop.  The
+&rsquo;loop&rsquo; argument is optional: this procedure operates on the event loop
+passed in as an argument, or if none is passed (or #f is passed), on
+the default event loop.
 </p>
 <p>Here is an example:
 </p><div class="example">
-<pre class="example">(define main-loop (make-event-loop))
+<pre class="example">(set-default-event-loop!) ;; if none has yet been set
 (a-sync (lambda (await resume)
 	  (simple-format #t
 			 &quot;Timeout ~A\n&quot;
 			 (await-timeout! await resume
-					 main-loop 100
+					 100
 					 (lambda ()
 					   &quot;expired&quot;)))))
-(event-loop-run! main-loop)
+(event-loop-run!)
 </pre></div>
 </dd></dl>
 
 <dl>
-<dt><a name="index-a_002dsync_002dread_002dwatch_0021"></a>Scheme Procedure: <strong>a-sync-read-watch!</strong> <em>resume loop file proc</em></dt>
+<dt><a name="index-a_002dsync_002dread_002dwatch_0021"></a>Scheme Procedure: <strong>a-sync-read-watch!</strong> <em>resume file proc [loop]</em></dt>
 <dd><p>This is a convenience procedure for use with an event loop, which will
 run &rsquo;proc&rsquo; in the event loop thread whenever &rsquo;file&rsquo; is ready for
 reading, and apply resume (obtained from a call to a-sync) to the
@@ -286,41 +347,47 @@ multi-shot - it is for the user to bring it to an end at the right
 time by calling event-loop-remove-read-watch! in the waitable
 procedure.  This procedure is mainly intended as something from which
 higher-level asynchronous file operations can be constructed, such as
-the await-readline! procedure.
+the await-readline! procedure.  The &rsquo;loop&rsquo; argument is optional: this
+procedure operates on the event loop passed in as an argument, or if
+none is passed (or #f is passed), on the default event loop
 </p>
 <p>As an example of how to use a-sync-read-watch!, here is the
 implementation of await-getline!:
 </p><div class="example">
-<pre class="example">(define (await-getline! await resume loop port)
-  (let ()
-    (define text '())
-    (a-sync-read-watch! resume
-			loop
-			port
-			(lambda (status)
-			  (if (eq? status 'excpt)
-			      #f
-			      (let next ()
-				(let ((ch (read-char port)))
-				  (if (not (or (eof-object? ch)
-					       (char=? ch #\newline)))
-				      (begin
-					(set! text (cons ch text))
-					(if (char-ready? port)
-					    (next)
-					    'more))
-				      (reverse-list-&gt;string text))))))))
-  (let next ((res (await)))
-    (if (eq? res 'more)
-	(next (await))
-	(begin
-	  (event-loop-remove-read-watch! loop port)
-	  res))))
+<pre class="example">(define await-getline!
+   (case-lambda
+    ((await resume port)
+     (await-getline! await resume #f port))
+    ((await resume loop port)
+     (let ()
+       (define text '())
+       (a-sync-read-watch! resume
+			   port
+			   (lambda (status)
+			     (if (eq? status 'excpt)
+				 #f
+				 (let next ()
+				   (let ((ch (read-char port)))
+				     (if (not (or (eof-object? ch)
+						  (char=? ch #\newline)))
+					 (begin
+					   (set! text (cons ch text))
+					   (if (char-ready? port)
+					       (next)
+					       'more))
+					 (reverse-list-&gt;string text))))))
+			   loop))
+     (let next ((res (await)))
+       (if (eq? res 'more)
+	   (next (await))
+	   (begin
+	     (event-loop-remove-read-watch! port loop)
+	     res))))))
 </pre></div>
 </dd></dl>
 
 <dl>
-<dt><a name="index-await_002dgetline_0021"></a>Scheme Procedure: <strong>await-getline!</strong> <em>await resume loop port</em></dt>
+<dt><a name="index-await_002dgetline_0021"></a>Scheme Procedure: <strong>await-getline!</strong> <em>await resume [loop] port</em></dt>
 <dd><p>This is a convenience procedure for use with an event loop, which will
 start a read watch on &rsquo;port&rsquo; for a line of input.  It calls &rsquo;await&rsquo;
 while waiting for input and will return the line of text received
@@ -329,24 +396,25 @@ blocked by this procedure even if only individual characters are
 available at any one time.  It is intended to be called in a waitable
 procedure invoked by a-sync.  This procedure is implemented using
 a-sync-read-watch!.  If an exceptional condition (&rsquo;excpt) is
-encountered, #f will be returned.
+encountered, #f will be returned.  The &rsquo;loop&rsquo; argument is optional:
+this procedure operates on the event loop passed in as an argument, or
+if none is passed (or #f is passed), on the default event loop.
 </p>
 <p>Here is an example:
 </p><div class="example">
-<pre class="example">(define main-loop (make-event-loop))
+<pre class="example">(set-default-event-loop!) ;; if none has yet been set
 (a-sync (lambda (await resume)
 	  (display &quot;Enter a line of text at the keyboard\n&quot;)
 	  (simple-format #t
 			 &quot;The line was: ~A\n&quot;
 			 (await-getline! await resume
-					 main-loop
 					 (open &quot;/dev/tty&quot; O_RDONLY)))))
-(event-loop-run! main-loop)
+(event-loop-run!)
 </pre></div>
 </dd></dl>
 
 <dl>
-<dt><a name="index-a_002dsync_002dwrite_002dwatch_0021"></a>Scheme Procedure: <strong>a-sync-write-watch!</strong> <em>resume loop file proc</em></dt>
+<dt><a name="index-a_002dsync_002dwrite_002dwatch_0021"></a>Scheme Procedure: <strong>a-sync-write-watch!</strong> <em>resume file proc [loop]</em></dt>
 <dd><p>This is a convenience procedure for use with an event loop, which will
 run &rsquo;proc&rsquo; in the event loop thread whenever &rsquo;file&rsquo; is ready for
 writing, and apply resume (obtained from a call to a-sync) to the
@@ -359,7 +427,10 @@ be called in a waitable procedure invoked by a-sync.  The watch is
 multi-shot - it is for the user to bring it to an end at the right
 time by calling event-loop-remove-write-watch! in the waitable
 procedure.  This procedure is mainly intended as something from which
-higher-level asynchronous file operations can be constructed.
+higher-level asynchronous file operations can be constructed.  The
+&rsquo;loop&rsquo; argument is optional: this procedure operates on the event loop
+passed in as an argument, or if none is passed (or #f is passed), on
+the default event loop
 </p></dd></dl>
 
 <p>The (async event-loop) module also loads the <a href="monotonic-time.html#monotonic-time">(a-sync monotonic-time)</a> module.

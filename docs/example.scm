@@ -26,14 +26,14 @@
 
 (use-modules (a-sync event-loop) (a-sync coroutines) (a-sync let-a-sync))
 
-(define main-loop (make-event-loop))
+(set-default-event-loop!)
 
 (a-sync (lambda (await resume)
 
 	  ;; invoke a one second timeout which does not block the
 	  ;; event loop
 	  (display "Beginning timeout\n")
-	  (display (await-timeout! await resume main-loop 1000
+	  (display (await-timeout! await resume 1000
 				   (lambda ()
 				     "Timeout ended\n")))
 
@@ -41,7 +41,7 @@
 	  ;; consuming so we need to run it in a worker thread
 	  ;; to avoid blocking any other events in the main loop
 	  ;; (there aren't any in this example)
-	  (display (await-task-in-thread! await resume main-loop
+	  (display (await-task-in-thread! await resume
 					  (lambda ()
 					    (usleep 500000)
 					    (display "In worker thread, work done\n")
@@ -55,45 +55,44 @@
 	  (simple-format #t
 			 "The line was: ~A\n"
 			 (await-getline! await resume
-					 main-loop
 					 (open "/dev/tty" O_RDONLY)))
 	  (system* "stty" "--file=/dev/tty" "-cbreak")
 
 	  ;; launch another asynchronous task, this time in the event loop thread
-	  (display (await-task! await resume main-loop
+	  (display (await-task! await resume
 				(lambda ()
-				  (event-loop-quit! main-loop)
+				  (event-loop-quit!)
 				  "Quitting\n")))))
 
 ;; because one task runs in another thread
-(event-loop-block! main-loop #t)
-(event-loop-run! main-loop)
+(event-loop-block! #t)
+(event-loop-run!)
 
 ;; this is the identical code using let-a-sync* for composition:
 
 (display "\nBeginning timeout\n")
-(let-a-sync* main-loop ((ret-timeout (await-timeout! 1000 (lambda ()
-							    "Timeout ended\n")))
-			;; the return value here can be ignored - this
-			;; is easier than starting another let-a-sync*
-			;; block for await-task-in-thread!
-			(ignore1 ((no-await (display ret-timeout))))
-			(ret-task (await-task-in-thread! (lambda ()
-							   (usleep 500000)
-							   (display "In worker thread, work done\n")
-							   "Hello via async\n")))
-			;; ditto
-			(ignore2 ((no-await (display ret-task)
-					    (display "Enter a line of text at the keyboard\n")
-					    (system* "stty" "--file=/dev/tty" "cbreak"))))
-			(ret-getline (await-getline! (open "/dev/tty" O_RDONLY))))
+(let-a-sync* ((ret-timeout (await-timeout! 1000 (lambda ()
+						  "Timeout ended\n")))
+	      ;; the return value here can be ignored - this is easier
+	      ;; than starting another let-a-sync* block for
+	      ;; await-task-in-thread!
+	      (ignore1 ((no-await (display ret-timeout))))
+	      (ret-task (await-task-in-thread! (lambda ()
+						 (usleep 500000)
+						 (display "In worker thread, work done\n")
+						 "Hello via async\n")))
+	      ;; ditto
+	      (ignore2 ((no-await (display ret-task)
+				  (display "Enter a line of text at the keyboard\n")
+				  (system* "stty" "--file=/dev/tty" "cbreak"))))
+	      (ret-getline (await-getline! (open "/dev/tty" O_RDONLY))))
 	     ;; body clauses begin here
-	     ((no-await (simple-format #t
-				       "The line was: ~A\n"
-				       ret-getline)
-			(system* "stty" "--file=/dev/tty" "-cbreak")))
-	     (await-task! (lambda ()
-			    (event-loop-quit! main-loop)
-			    (display "Quitting\n"))))
+	   ((no-await (simple-format #t
+				     "The line was: ~A\n"
+				     ret-getline)
+		      (system* "stty" "--file=/dev/tty" "-cbreak")))
+	   (await-task! (lambda ()
+			  (event-loop-quit!)
+			  (display "Quitting\n"))))
 
-(event-loop-run! main-loop)
+(event-loop-run!)

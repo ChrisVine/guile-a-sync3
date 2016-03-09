@@ -205,102 +205,96 @@ events.
 <p>So, don&rsquo;t do this:
 </p>
 <div class="example">
-<pre class="example">(define main-loop (make-event-loop))
+<pre class="example">(set-default-event-loop!) ;; if none has yet been set
 (a-sync (lambda (await resume)
 
-	  (timeout-post! main-loop
-			 100
+	  (timeout-post! 100
 			 (lambda ()
 			   (resume &quot;expired&quot;)
 			   #f))
-	  (event-post! main-loop
-		       (lambda ()
+	  (event-post! (lambda ()
 			 (resume (+ 1 1))))
 
 	  (simple-format #t &quot;Timeout ~A\n&quot; (await))
 	  (simple-format #t &quot;1 + 1 is ~A\n&quot; (await))))
-(event-loop-run! main-loop)
+(event-loop-run!)
 </pre></div>
 
 <p>Instead do this, where the two asynchronous operations are to run
 consecutively:
 </p>
 <div class="example">
-<pre class="example">(define main-loop (make-event-loop))
+<pre class="example">(set-default-event-loop!) ;; if none has yet been set
 (a-sync (lambda (await resume)
 
-	  (timeout-post! main-loop 100
+	  (timeout-post! 100
 			 (lambda ()
 			   (resume &quot;expired&quot;)
 			   #f))
 	  (simple-format #t &quot;Timeout ~A\n&quot; (await))
-	  (event-post! main-loop
-		       (lambda ()
+	  (event-post! (lambda ()
 			 (resume (+ 1 1))))
 
 	  (simple-format #t &quot;1 + 1 is ~A\n&quot; (await))))
-(event-loop-run! main-loop)
+(event-loop-run!)
 </pre></div>
 
 <p>or this, where the two asynchronous operations are to run concurrently
 (the summing of 1 and 1 will finish before the timeout):
 </p>
 <div class="example">
-<pre class="example">(define main-loop (make-event-loop))
+<pre class="example">(set-default-event-loop!) ;; if none has yet been set
 (a-sync (lambda (await resume)
-	  (timeout-post! main-loop 100
+	  (timeout-post! 100
 			 (lambda ()
 			   (resume &quot;expired&quot;)
 			   #f))
 	  (simple-format #t &quot;Timeout ~A\n&quot; (await))))
 (a-sync (lambda (await resume)
-	  (event-post! main-loop
-		       (lambda ()
+	  (event-post! (lambda ()
 			 (resume (+ 1 1))))
 	  (simple-format #t &quot;1 + 1 is ~A\n&quot; (await))))
 	  
-(event-loop-run! main-loop)
+(event-loop-run!)
 </pre></div>
 
 <p>Or better still, when composing on the event loop from the <a href="event-loop.html#event-loop">event-loop</a> module, use the await helper procedures, as follows
 (in this example the two asynchronous operations run consecutively):
 </p>
 <div class="example">
-<pre class="example">(define main-loop (make-event-loop))
+<pre class="example">(set-default-event-loop!) ;; if none has yet been set
 (a-sync (lambda (await resume)
 	  (simple-format #t
 			 &quot;Timeout ~A\n&quot;
 			 (await-timeout! await resume
-					 main-loop 100
+					 100
 					 (lambda ()
 					   &quot;expired&quot;)))
 	  (simple-format #t &quot;1 + 1 is ~A\n&quot;
 			 (await-task! await resume
-				      main-loop
 				      (lambda ()
 					(+ 1 1))))))
-(event-loop-run! main-loop)
+(event-loop-run!)
 </pre></div>
 
 <p>or this, where the two asynchronous operations run concurrently (the
 summing of 1 and 1 will finish before the timeout)
 </p>
 <div class="example">
-<pre class="example">(define main-loop (make-event-loop))
+<pre class="example">(set-default-event-loop!) ;; if none has yet been set
 (a-sync (lambda (await resume)
 	  (simple-format #t
 			 &quot;Timeout ~A\n&quot;
 			 (await-timeout! await resume
-					 main-loop 100
+					 100
 					 (lambda ()
 					   &quot;expired&quot;)))))
 (a-sync (lambda (await resume)
 	  (simple-format #t &quot;1 + 1 is ~A\n&quot;
 			 (await-task! await resume
-				      main-loop
 				      (lambda ()
 					(+ 1 1))))))
-(event-loop-run! main-loop)
+(event-loop-run!)
 </pre></div>
 
 <p>Or the let-a-sync* macro in the <a href="let_002da_002dsync.html#let_002da_002dsync">let-a-sync</a> module
@@ -308,33 +302,30 @@ can be used so that the last two examples are constructed as follows
 (in this first case the two asynchronous operations run consecutively)
 </p>
 <div class="example">
-<pre class="example">(define main-loop (make-event-loop))
-(let-a-sync* main-loop
-	     ((ret1 (await-timeout! 100
+<pre class="example">(set-default-event-loop!) ;; if none has yet been set
+(let-a-sync* ((ret1 (await-timeout! 100
 				   (lambda ()
 				     &quot;expired&quot;)))
 	      (ignore ((no-await (simple-format #t &quot;Timeout ~A\n&quot; ret1))))
 	      (ret2 (await-task! (lambda ()
 				   (+ 1 1)))))
 	   ((no-await (simple-format #t &quot;1 + 1 is ~A\n&quot; ret2))))
-(event-loop-run! main-loop)
+(event-loop-run!)
 </pre></div>
 
 <p>and this, where the two asynchronous operations run concurrently (the
 summing of 1 and 1 will finish before the timeout)
 </p>
 <div class="example">
-<pre class="example">(define main-loop (make-event-loop))
-(let-a-sync* main-loop
-	     ((ret (await-timeout! 100
+<pre class="example">(set-default-event-loop!) ;; if none has yet been set
+(let-a-sync* ((ret (await-timeout! 100
 				   (lambda ()
 				     &quot;expired&quot;))))
 	   ((no-await (simple-format #t &quot;Timeout ~A\n&quot; ret))))
-(let-a-sync* main-loop
-	     ((ret (await-task! (lambda ()
+(let-a-sync* ((ret (await-task! (lambda ()
 				  (+ 1 1)))))
 	   ((no-await (simple-format #t &quot;1 + 1 is ~A\n&quot; ret))))
-(event-loop-run! main-loop)
+(event-loop-run!)
 </pre></div>
 
 <p>The a-sync procedure can be used with any event loop, including the

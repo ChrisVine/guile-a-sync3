@@ -21,18 +21,23 @@
 
 ;; This file provides the let-a-sync* macro, which enables
 ;; asynchronous tasks to be composed on an event loop using let* type
-;; syntax.
+;; syntax.  The signature of this macro is:
 ;;
-;; The first argument to let-a-sync* is the main loop on which the
-;; tasks are to be composed.  This is followed by bindings which are
-;; optional (there need not be any), each of which must be initialised
-;; by a 'let-a-sync*'-capable procedure, and following the bindings
-;; there must be a body of 'let-a-sync*'-capable procedures executed
-;; solely for the purpose of asynchronous side effects (this macro
-;; does not, and cannot, return a value because as soon as the first
-;; await is made control is passed to the event loop).  As in the case
-;; of let*, unlike the bindings the body cannot be empty - there must
-;; be at least one 'let-a-sync*'-capable procedure in the body.
+;;   (let-a-sync* [loop] ((var (await-proc)) ...) await-proc ...)
+;;
+;; The 'loop' argument of let-a-sync* is optional.  If an event loop
+;; constructed by make-event-loop is passed to 'loop', then that is
+;; the main loop on which the tasks will be composed, otherwise if
+;; there is no 'loop' argument (or #f is passedto it) the default main
+;; loop will be used.  This is followed by bindings which are optional
+;; (there need not be any), each of which must be initialised by a
+;; 'let-a-sync*'-capable procedure, and following the bindings there
+;; must be a body of 'let-a-sync*'-capable procedures executed solely
+;; for the purpose of asynchronous side effects (this macro does not,
+;; and cannot, return a value because as soon as the first await is
+;; made control is passed to the event loop).  As in the case of let*,
+;; unlike the bindings the body cannot be empty - there must be at
+;; least one 'let-a-sync*'-capable procedure in the body.
 ;;
 ;; As in the case of let*, each 'let-a-sync*'-capable procedure
 ;; initializing a binding can see the values of the initializations
@@ -40,8 +45,8 @@
 ;;
 ;; A 'let-a-sync*'-capable procedure is one which takes an 'await' and
 ;; 'yield' procedure from a-sync as its first and second arguments,
-;; and an event loop as it third argument, followed by such further
-;; arguments as it requires.  All the the await-task!,
+;; and an event loop (or #f) as it third argument, followed by such
+;; further arguments as it requires.  All the the await-task!,
 ;; await-task-in-thread!, await-timeout! and await-getline! procedures
 ;; provided by the (a-sync event-loop) module are
 ;; 'let-a-sync*'-capable.  In addition, to make an ordinary body of
@@ -63,6 +68,13 @@
 ;; example.scm file with the distribution for further particulars.
 (define-syntax let-a-sync*
   (syntax-rules ()
+    ((_ ((val (await-proc0 arg0 ...)) ...)
+	(await-proc1 arg1 ...)
+	(await-proc2 arg2 ...) ...)
+     (a-sync (lambda (await resume)
+	       (let* ((val (await-proc0 await resume #f arg0 ...)) ...)
+		 (await-proc1 await resume #f arg1 ...)
+		 (await-proc2 await resume #f arg2 ...) ...))))
     ((_ loop ((val (await-proc0 arg0 ...)) ...)
 	(await-proc1 arg1 ...)
 	(await-proc2 arg2 ...) ...)
