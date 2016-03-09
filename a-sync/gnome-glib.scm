@@ -62,6 +62,11 @@
 ;; take the same arguments as a guile catch handler (this is
 ;; implemented using catch).  If 'handler' throws, the exception will
 ;; propagate out of g-mail-loop-run.
+;;
+;; This procedure must (like the a-sync procedure) be called in the
+;; same thread as that in which the default glib main loop runs, where
+;; the result of calling 'thunk' will be received.  As mentioned
+;; above, the thunk itself will run in its own thread.
 (define* (await-glib-task-in-thread await resume thunk #:optional handler)
   (if handler
       (call-with-new-thread
@@ -98,6 +103,9 @@
 ;; report a result expected by a waitable procedure running in the
 ;; main loop thread.  (For the latter case though,
 ;; await-glib-task-in-thread is generally a more convenient wrapper.)
+;;
+;; This procedure must (like the a-sync procedure) be called in the
+;; same thread as that in which the default glib main loop runs.
 (define (await-glib-task await resume thunk)
   (g-idle-add (lambda ()
 		(resume (thunk))
@@ -111,6 +119,9 @@
 ;; procedure invoked by a-sync.  The timeout is single shot only - as
 ;; soon as 'thunk' has run once and completed, the timeout will be
 ;; removed from the event loop.
+;;
+;; This procedure must (like the a-sync procedure) be called in the
+;; same thread as that in which the default glib main loop runs.
 (define (await-glib-timeout await resume msecs thunk)
   (g-timeout-add msecs
 		 (lambda ()
@@ -123,7 +134,8 @@
 ;; to the main context provided, or if none is provided, to the
 ;; default glib main context (the main program loop).  It returns a
 ;; glib ID which can be passed subsequently to the g-source-remove
-;; procedure.
+;; procedure.  It should be possible to call this procedure in any
+;; thread.
 (define* (glib-add-watch ioc cond func #:optional context)
   (let ((s (g-io-create-watch ioc cond))
         (closure (make <gclosure>
@@ -149,6 +161,11 @@
 ;; release-port-handle on the port.  This procedure is mainly intended
 ;; as something from which higher-level asynchronous file operations
 ;; can be constructed, such as the await-glib-getline procedure.
+;;
+;; Because this procedure takes a 'resume' argument derived from the
+;; a-sync procedure, it must (like the a-sync procedure) in practice
+;; be called in the same thread as that in which the default glib main
+;; loop runs.
 (define (a-sync-glib-read-watch resume port proc)
   (glib-add-watch (g-io-channel-unix-new (port->fdes port))
 		  '(in pri hup err)
@@ -167,6 +184,9 @@
 ;; This procedure is implemented using a-sync-glib-read-watch.  If an
 ;; exceptional condition ('pri) or an error ('err) is encountered, #f
 ;; will be returned.
+;;
+;; This procedure must (like the a-sync procedure) be called in the
+;; same thread as that in which the default glib main loop runs.
 (define (await-glib-getline await resume port)
   (define text '())
   (define id (a-sync-glib-read-watch resume
@@ -210,6 +230,11 @@
 ;; release-port-handle on the port.  This procedure is mainly intended
 ;; as something from which higher-level asynchronous file operations
 ;; can be constructed.
+;;
+;; Because this procedure takes a 'resume' argument derived from the
+;; a-sync procedure, it must (like the a-sync procedure) in practice
+;; be called in the same thread as that in which the default glib main
+;; loop runs.
 (define (a-sync-glib-write-watch resume port proc)
   (glib-add-watch (g-io-channel-unix-new (port->fdes port))
 		  '(out err)

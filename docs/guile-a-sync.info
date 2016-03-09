@@ -473,13 +473,18 @@ The (a-sync event-loop) module provides the follow procedures:
      to be called in a waitable procedure invoked by a-sync.  It will
      normally be necessary to call event-loop-block!  before invoking
      this procedure.  If the optional 'handler' argument is provided,
-     then it will be run in the event loop thread if 'thunk' throws and
-     its return value will be the return value of this procedure;
-     otherwise the program will terminate if an unhandled exception
-     propagates out of 'thunk'.  'handler' should take the same
-     arguments as a guile catch handler (this is implemented using
-     catch).  If 'handler' throws, the exception will propagate out of
-     event-loop-run!.
+     then that handler will be run in the event loop thread if 'thunk'
+     throws and the return value of the handler would become the return
+     value of this procedure; otherwise the program will terminate if an
+     unhandled exception propagates out of 'thunk'.  'handler' should
+     take the same arguments as a guile catch handler (this is
+     implemented using catch).  If 'handler' throws, the exception will
+     propagate out of event-loop-run!.
+
+     This procedure must (like the a-sync procedure) be called in the
+     same thread as that in which the event loop runs, where the result
+     of calling 'thunk' will be received.  As mentioned above, the thunk
+     itself will run in its own thread.
 
      Here is an example:
           (set-default-event-loop!) ;; if none has yet been set
@@ -510,6 +515,9 @@ The (a-sync event-loop) module provides the follow procedures:
      (For the latter case though, await-task-in-thread!  is generally a
      more convenient wrapper.)
 
+     This procedure must (like the a-sync procedure) be called in the
+     same thread as that in which the event loop runs.
+
      Here is an example:
           (set-default-event-loop!) ;; if none has yet been set
           (a-sync (lambda (await resume)
@@ -530,6 +538,9 @@ The (a-sync event-loop) module provides the follow procedures:
      operates on the event loop passed in as an argument, or if none is
      passed (or #f is passed), on the default event loop.
 
+     This procedure must (like the a-sync procedure) be called in the
+     same thread as that in which the event loop runs.
+
      Here is an example:
           (set-default-event-loop!) ;; if none has yet been set
           (a-sync (lambda (await resume)
@@ -544,7 +555,7 @@ The (a-sync event-loop) module provides the follow procedures:
  -- Scheme Procedure: a-sync-read-watch! resume file proc [loop]
      This is a convenience procedure for use with an event loop, which
      will run 'proc' in the event loop thread whenever 'file' is ready
-     for reading, and apply resume (obtained from a call to a-sync) to
+     for reading, and apply 'resume' (obtained from a call to a-sync) to
      the return value of 'proc'.  'file' can be a port or a file
      descriptor (and if it is a file descriptor, the revealed count is
      not incremented).  'proc' should take a single argument which will
@@ -559,6 +570,10 @@ The (a-sync event-loop) module provides the follow procedures:
      argument is optional: this procedure operates on the event loop
      passed in as an argument, or if none is passed (or #f is passed),
      on the default event loop
+
+     Because this procedure takes a 'resume' argument derived from the
+     a-sync procedure, it must (like the a-sync procedure) in practice
+     be called in the same thread as that in which the event loop runs.
 
      As an example of how to use a-sync-read-watch!, here is the
      implementation of await-getline!:
@@ -606,6 +621,9 @@ The (a-sync event-loop) module provides the follow procedures:
      passed in as an argument, or if none is passed (or #f is passed),
      on the default event loop.
 
+     This procedure must (like the a-sync procedure) be called in the
+     same thread as that in which the event loop runs.
+
      Here is an example:
           (set-default-event-loop!) ;; if none has yet been set
           (a-sync (lambda (await resume)
@@ -619,7 +637,7 @@ The (a-sync event-loop) module provides the follow procedures:
  -- Scheme Procedure: a-sync-write-watch! resume file proc [loop]
      This is a convenience procedure for use with an event loop, which
      will run 'proc' in the event loop thread whenever 'file' is ready
-     for writing, and apply resume (obtained from a call to a-sync) to
+     for writing, and apply 'resume' (obtained from a call to a-sync) to
      the return value of 'proc'.  'file' can be a port or a file
      descriptor (and if it is a file descriptor, the revealed count is
      not incremented).  'proc' should take a single argument which will
@@ -633,6 +651,10 @@ The (a-sync event-loop) module provides the follow procedures:
      constructed.  The 'loop' argument is optional: this procedure
      operates on the event loop passed in as an argument, or if none is
      passed (or #f is passed), on the default event loop
+
+     Because this procedure takes a 'resume' argument derived from the
+     a-sync procedure, it must (like the a-sync procedure) in practice
+     be called in the same thread as that in which the event loop runs.
 
    The (async event-loop) module also loads the *note (a-sync
 monotonic-time): monotonic time. module.
@@ -705,6 +727,11 @@ module, so as not to create a hard dependency on guile-gnome.
      implemented using catch).  If 'handler' throws, the exception will
      propagate out of g-mail-loop-run.
 
+     This procedure must (like the a-sync procedure) be called in the
+     same thread as that in which the default glib main loop runs, where
+     the result of calling 'thunk' will be received.  As mentioned
+     above, the thunk itself will run in its own thread.
+
      This procedure uses g-idle-add: see the introductory remarks about
      that.
 
@@ -733,6 +760,9 @@ module, so as not to create a hard dependency on guile-gnome.
      main loop thread.  (For the latter case though,
      await-glib-task-in-thread is generally a more convenient wrapper.)
 
+     This procedure must (like the a-sync procedure) be called in the
+     same thread as that in which the default glib main loop runs.
+
      This procedure uses g-idle-add: see the introductory remarks about
      that.
 
@@ -755,6 +785,9 @@ module, so as not to create a hard dependency on guile-gnome.
      soon as 'thunk' has run once and completed, the timeout will be
      removed from the event loop.
 
+     This procedure must (like the a-sync procedure) be called in the
+     same thread as that in which the default glib main loop runs.
+
      Here is an example:
           (define main-loop (g-main-loop-new #f #f))
           (a-sync (lambda (await resume)
@@ -773,7 +806,8 @@ module, so as not to create a hard dependency on guile-gnome.
      to the main context provided, or if none is provided, to the
      default glib main context (the main program loop).  It returns a
      glib ID which can be passed subsequently to the g-source-remove
-     procedure.
+     procedure.  It should be possible to call this procedure in any
+     thread.
 
  -- Scheme Procedure: a-sync-glib-read-watch resume port proc
      This is a convenience procedure for use with a glib main loop,
@@ -793,6 +827,11 @@ module, so as not to create a hard dependency on guile-gnome.
      release-port-handle on the port.  This procedure is mainly intended
      as something from which higher-level asynchronous file operations
      can be constructed, such as the await-glib-getline procedure.
+
+     Because this procedure takes a 'resume' argument derived from the
+     a-sync procedure, it must (like the a-sync procedure) in practice
+     be called in the same thread as that in which the default glib main
+     loop runs.
 
      As an example of how to use a-sync-glib-read-watch, here is the
      implementation of await-glib-getline:
@@ -835,6 +874,9 @@ module, so as not to create a hard dependency on guile-gnome.
      exceptional condition ('pri) or an error ('err) is encountered, #f
      will be returned.
 
+     This procedure must (like the a-sync procedure) be called in the
+     same thread as that in which the default glib main loop runs.
+
      Here is an example:
           (define main-loop (g-main-loop-new #f #f))
           (a-sync (lambda (await resume)
@@ -864,6 +906,11 @@ module, so as not to create a hard dependency on guile-gnome.
      release-port-handle on the port.  This procedure is mainly intended
      as something from which higher-level asynchronous file operations
      can be constructed.
+
+     Because this procedure takes a 'resume' argument derived from the
+     a-sync procedure, it must (like the a-sync procedure) in practice
+     be called in the same thread as that in which the default glib main
+     loop runs.
 
 
 File: guile-a-sync.info,  Node: let-a-sync,  Prev: gnome glib,  Up: Top
@@ -949,6 +996,9 @@ coroutines. module.
      Other examples of the use of this macro are given in the
      documentation of the *note (a-sync coroutines): coroutines. module.
 
+     This macro must (like the a-sync procedure) be called in the same
+     thread as that in which the event loop runs.
+
  -- Syntax: (no-await body0 body1 ...)
      This macro will generate a 'let-a-sync*'-capable procedure from a
      body of code which does not block.  It can be passed to
@@ -962,8 +1012,8 @@ Tag Table:
 Node: Top85
 Node: coroutines1099
 Node: event loop14876
-Node: monotonic time33836
-Node: gnome glib35270
-Node: let-a-sync45463
+Node: monotonic time34934
+Node: gnome glib36368
+Node: let-a-sync47773
 
 End Tag Table

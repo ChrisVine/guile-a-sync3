@@ -72,6 +72,9 @@
 ;; passed to it.  The let-a-sync* macro will do it for you.  See the
 ;; example.scm and example-glib.scm files with the distribution for
 ;; further particulars.
+;;
+;; This macro must (like the a-sync procedure) be called in the same
+;; thread as that in which the event loop runs.
 (define-syntax let-a-sync*
   (syntax-rules ()
     ((_ ((val (await-proc0 arg0 ...)) ...)

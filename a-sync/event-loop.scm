@@ -622,15 +622,20 @@
 ;; detect the type of the third argument).  This procedure calls
 ;; 'await' and will return the thunk's return value.  It is intended
 ;; to be called in a waitable procedure invoked by a-sync.  It will
-;; normally be necessary to call event-loop-block!  before invoking
+;; normally be necessary to call event-loop-block! before invoking
 ;; this procedure.  If the optional 'handler' argument is provided,
-;; then it will be run in the event loop thread if 'thunk' throws and
-;; its return value will be the return value of this procedure;
-;; otherwise the program will terminate if an unhandled exception
-;; propagates out of 'thunk'.  'handler' should take the same
-;; arguments as a guile catch handler (this is implemented using
-;; catch).  If 'handler' throws, the exception will propagate out of
-;; event-loop-run!.
+;; then that handler will be run in the event loop thread if 'thunk'
+;; throws and the return value of the handler would become the return
+;; value of this procedure; otherwise the program will terminate if an
+;; unhandled exception propagates out of 'thunk'.  'handler' should
+;; take the same arguments as a guile catch handler (this is
+;; implemented using catch).  If 'handler' throws, the exception will
+;; propagate out of event-loop-run!.
+;;
+;; This procedure must (like the a-sync procedure) be called in the
+;; same thread as that in which the event loop runs, where the result
+;; of calling 'thunk' will be received.  As mentioned above, the thunk
+;; itself will run in its own thread.
 (define (await-task-in-thread! await resume . rest)
   (match rest
     [(_ _ _)
@@ -695,6 +700,9 @@
 ;; expected by a waitable procedure running in the event loop thread.
 ;; (For the latter case though, await-task-in-thread! is generally a
 ;; more convenient wrapper.)
+;;
+;; This procedure must (like the a-sync procedure) be called in the
+;; same thread as that in which the event loop runs.
 (define await-task!
   (case-lambda
     ((await resume thunk)
@@ -717,6 +725,9 @@
 ;; from the event loop.  The 'loop' argument is optional: this
 ;; procedure operates on the event loop passed in as an argument, or
 ;; if none is passed (or #f is passed), on the default event loop.
+;;
+;; This procedure must (like the a-sync procedure) be called in the
+;; same thread as that in which the event loop runs.
 (define await-timeout!
   (case-lambda
     ((await resume msecs thunk)
@@ -731,7 +742,7 @@
 
 ;; This is a convenience procedure for use with an event loop, which
 ;; will run 'proc' in the event loop thread whenever 'file' is ready
-;; for reading, and apply resume (obtained from a call to a-sync) to
+;; for reading, and apply 'resume' (obtained from a call to a-sync) to
 ;; the return value of 'proc'.  'file' can be a port or a file
 ;; descriptor (and if it is a file descriptor, the revealed count is
 ;; not incremented).  'proc' should take a single argument which will
@@ -746,6 +757,10 @@
 ;; optional: this procedure operates on the event loop passed in as an
 ;; argument, or if none is passed (or #f is passed), on the default
 ;; event loop.
+;;
+;; Because this procedure takes a 'resume' argument derived from the
+;; a-sync procedure, it must (like the a-sync procedure) in practice
+;; be called in the same thread as that in which the event loop runs.
 (define* (a-sync-read-watch! resume file proc #:optional loop)
   (event-loop-add-read-watch! file
 			      (lambda (status)
@@ -768,6 +783,9 @@
 ;; The 'loop' argument is optional: this procedure operates on the
 ;; event loop passed in as an argument, or if none is passed (or #f is
 ;; passed), on the default event loop.
+;;
+;; This procedure must (like the a-sync procedure) be called in the
+;; same thread as that in which the event loop runs.
 (define await-getline!
    (case-lambda
     ((await resume port)
@@ -800,7 +818,7 @@
 
 ;; This is a convenience procedure for use with an event loop, which
 ;; will run 'proc' in the event loop thread whenever 'file' is ready
-;; for writing, and apply resume (obtained from a call to a-sync) to
+;; for writing, and apply 'resume' (obtained from a call to a-sync) to
 ;; the return value of 'proc'.  'file' can be a port or a file
 ;; descriptor (and if it is a file descriptor, the revealed count is
 ;; not incremented).  'proc' should take a single argument which will
@@ -814,6 +832,10 @@
 ;; constructed.  The 'loop' argument is optional: this procedure
 ;; operates on the event loop passed in as an argument, or if none is
 ;; passed (or #f is passed), on the default event loop.
+;;
+;; Because this procedure takes a 'resume' argument derived from the
+;; a-sync procedure, it must (like the a-sync procedure) in practice
+;; be called in the same thread as that in which the event loop runs.
 (define* (a-sync-write-watch! resume file proc #:optional loop)
   (event-loop-add-write-watch! file
 			       (lambda (status)

@@ -184,14 +184,19 @@ provided as the 'loop' argument (pattern matching is used to detect
 the type of the third argument).  This procedure calls 'await' and
 will return the thunk's return value.  It is intended to be called in
 a waitable procedure invoked by a-sync.  It will normally be necessary
-to call event-loop-block!  before invoking this procedure.  If the
-optional 'handler' argument is provided, then it will be run in the
-event loop thread if 'thunk' throws and its return value will be the
-return value of this procedure; otherwise the program will terminate
-if an unhandled exception propagates out of 'thunk'.  'handler' should
-take the same arguments as a guile catch handler (this is implemented
-using catch).  If 'handler' throws, the exception will propagate out
-of event-loop-run!.
+to call event-loop-block! before invoking this procedure.  If the
+optional 'handler' argument is provided, then that handler will be run
+in the event loop thread if 'thunk' throws and the return value of the
+handler would become the return value of this procedure; otherwise the
+program will terminate if an unhandled exception propagates out of
+'thunk'.  'handler' should take the same arguments as a guile catch
+handler (this is implemented using catch).  If 'handler' throws, the
+exception will propagate out of event-loop-run!.
+
+This procedure must (like the a-sync procedure) be called in the same
+thread as that in which the event loop runs, where the result of
+calling 'thunk' will be received.  As mentioned above, the thunk
+itself will run in its own thread.
 
 Here is an example:
 @example
@@ -224,6 +229,9 @@ result expected by a waitable procedure running in the event loop
 thread.  (For the latter case though, await-task-in-thread! is
 generally a more convenient wrapper.)
 
+This procedure must (like the a-sync procedure) be called in the same
+thread as that in which the event loop runs.
+
 Here is an example:
 @example
 (set-default-event-loop!) ;; if none has yet been set
@@ -247,6 +255,9 @@ completed, the timeout will be removed from the event loop.  The
 passed in as an argument, or if none is passed (or #f is passed), on
 the default event loop.
 
+This procedure must (like the a-sync procedure) be called in the same
+thread as that in which the event loop runs.
+
 Here is an example:
 @example
 (set-default-event-loop!) ;; if none has yet been set
@@ -264,7 +275,7 @@ Here is an example:
 @deffn {Scheme Procedure} a-sync-read-watch! resume file proc [loop]
 This is a convenience procedure for use with an event loop, which will
 run 'proc' in the event loop thread whenever 'file' is ready for
-reading, and apply resume (obtained from a call to a-sync) to the
+reading, and apply 'resume' (obtained from a call to a-sync) to the
 return value of 'proc'.  'file' can be a port or a file descriptor
 (and if it is a file descriptor, the revealed count is not
 incremented).  'proc' should take a single argument which will be set
@@ -278,6 +289,10 @@ higher-level asynchronous file operations can be constructed, such as
 the await-readline! procedure.  The 'loop' argument is optional: this
 procedure operates on the event loop passed in as an argument, or if
 none is passed (or #f is passed), on the default event loop
+
+Because this procedure takes a 'resume' argument derived from the
+a-sync procedure, it must (like the a-sync procedure) in practice be
+called in the same thread as that in which the event loop runs.
 
 As an example of how to use a-sync-read-watch!, here is the
 implementation of await-getline!:
@@ -327,6 +342,9 @@ encountered, #f will be returned.  The 'loop' argument is optional:
 this procedure operates on the event loop passed in as an argument, or
 if none is passed (or #f is passed), on the default event loop.
 
+This procedure must (like the a-sync procedure) be called in the same
+thread as that in which the event loop runs.
+
 Here is an example:
 @example
 (set-default-event-loop!) ;; if none has yet been set
@@ -343,7 +361,7 @@ Here is an example:
 @deffn {Scheme Procedure} a-sync-write-watch! resume file proc [loop]
 This is a convenience procedure for use with an event loop, which will
 run 'proc' in the event loop thread whenever 'file' is ready for
-writing, and apply resume (obtained from a call to a-sync) to the
+writing, and apply 'resume' (obtained from a call to a-sync) to the
 return value of 'proc'.  'file' can be a port or a file descriptor
 (and if it is a file descriptor, the revealed count is not
 incremented).  'proc' should take a single argument which will be set
@@ -357,6 +375,10 @@ higher-level asynchronous file operations can be constructed.  The
 'loop' argument is optional: this procedure operates on the event loop
 passed in as an argument, or if none is passed (or #f is passed), on
 the default event loop
+
+Because this procedure takes a 'resume' argument derived from the
+a-sync procedure, it must (like the a-sync procedure) in practice be
+called in the same thread as that in which the event loop runs.
 @end deffn
 
 The (async event-loop) module also loads the @ref{monotonic

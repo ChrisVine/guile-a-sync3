@@ -82,6 +82,9 @@ whatever follows it.
 
 Other examples of the use of this macro are given in the documentation
 of the @ref{coroutines,,(a-sync coroutines)} module.
+
+This macro must (like the a-sync procedure) be called in the same
+thread as that in which the event loop runs.
 @end deffn
 
 @deffn {Syntax} (no-await body0 body1 ...)
