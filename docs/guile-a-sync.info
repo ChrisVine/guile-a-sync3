@@ -354,16 +354,18 @@ The (a-sync event-loop) module provides the follow procedures:
      there is already a read watch for the file passed, the old one will
      be replaced by the new one.  If proc returns #f, the read watch
      will be removed from the event loop, otherwise the watch will
-     continue.  This is thread safe - any thread may add a watch, and
-     the callback will execute in the event loop thread.  The file
-     argument can be either a port or a file descriptor.  If 'file' is a
-     file descriptor, any port for the descriptor is not referenced for
-     garbage collection purposes - it must remain valid while operations
-     are carried out on the descriptor.  If 'file' is a buffered port,
-     buffering will be taken into account in indicating whether a read
-     can be made without blocking (but on a buffered port, for
-     efficiency purposes each read operation in response to this watch
-     should usually exhaust the buffer by looping on char-ready?).
+     continue.  The file argument can be either a port or a file
+     descriptor.  If 'file' is a file descriptor, any port for the
+     descriptor is not referenced for garbage collection purposes - it
+     must remain valid while operations are carried out on the
+     descriptor.  If 'file' is a buffered port, buffering will be taken
+     into account in indicating whether a read can be made without
+     blocking (but on a buffered port, for efficiency purposes each read
+     operation in response to this watch should usually exhaust the
+     buffer by looping on char-ready?).  In a multi-threaded program
+     only the thread in which the event loop runs can call this
+     procedure - any other thread should call this procedure in an event
+     posted with event-post!.
 
  -- Scheme Procedure: event-loop-add-write-watch! file proc [loop]
      The 'loop' (event loop) argument is optional.  This procedure will
@@ -382,32 +384,37 @@ The (a-sync event-loop) module provides the follow procedures:
      there is already a write watch for the file passed, the old one
      will be replaced by the new one.  If proc returns #f, the write
      watch will be removed from the event loop, otherwise the watch will
-     continue.  This is thread safe - any thread may add a watch, and
-     the callback will execute in the event loop thread.  The file
-     argument can be either a port or a file descriptor.  If 'file' is a
-     file descriptor, any port for the descriptor is not referenced for
-     garbage collection purposes - it must remain valid while operations
-     are carried out on the descriptor.  If 'file' is a buffered port,
-     buffering will be taken into account in indicating whether a write
-     can be made without blocking.
+     continue.  The file argument can be either a port or a file
+     descriptor.  If 'file' is a file descriptor, any port for the
+     descriptor is not referenced for garbage collection purposes - it
+     must remain valid while operations are carried out on the
+     descriptor.  If 'file' is a buffered port, buffering will be taken
+     into account in indicating whether a write can be made without
+     blocking.  In a multi-threaded program only the thread in which the
+     event loop runs can call this procedure - any other thread should
+     call this procedure in an event posted with event-post!.
 
  -- Scheme Procedure: event-loop-remove-read-watch! file [loop]
      The 'loop' (event loop) argument is optional.  This procedure will
      remove a read watch from the event loop passed in as an argument,
      or if none is passed (or #f is passed), from the default event
-     loop.  The file argument may be a port or a file descriptor.  This
-     is thread safe - any thread may remove a watch.  A file descriptor
-     and a port with the same underlying file descriptor compare equal
-     for the purposes of removal.
+     loop.  The file argument may be a port or a file descriptor.  A
+     file descriptor and a port with the same underlying file descriptor
+     compare equal for the purposes of removal.  In a multi-threaded
+     program only the thread in which the event loop runs can call this
+     procedure - any other thread should call this procedure in an event
+     posted with event-post!.
 
  -- Scheme Procedure: event-loop-remove-write-watch! file [loop]
      The 'loop' (event loop) argument is optional.  This procedure will
      remove a write watch from the event loop passed in as an argument,
      or if none is passed (or #f is passed), from the default event
-     loop.  The file argument may be a port or a file descriptor.  This
-     is thread safe - any thread may remove a watch.  A file descriptor
-     and a port with the same underlying file descriptor compare equal
-     for the purposes of removal.
+     loop.  The file argument may be a port or a file descriptor.  A
+     file descriptor and a port with the same underlying file descriptor
+     compare equal for the purposes of removal.  In a multi-threaded
+     program only the thread in which the event loop runs can call this
+     procedure - any other thread should call this procedure in an event
+     posted with event-post!.
 
  -- Scheme Procedure: event-post! action [loop]
      The 'loop' (event loop) argument is optional.  This procedure will
@@ -427,14 +434,19 @@ The (a-sync event-loop) module provides the follow procedures:
      will repeat unless and until the passed-in callback returns #f or
      timeout-remove!  is called.  The passed-in callback must be a
      thunk.  This procedure returns a tag symbol to which
-     timeout-remove!  can be applied.  It may be called by any thread,
-     and the timeout callback will execute in the event loop thread.
+     timeout-remove!  can be applied.  In a multi-threaded program only
+     the thread in which the event loop runs can call this procedure -
+     any other thread should call this procedure in an event posted with
+     event-post!.
 
  -- Scheme Procedure: timeout-remove! tag [loop]
      The 'loop' (event loop) argument is optional.  This procedure stops
      the timeout with the given tag from executing in the event loop
      passed in as an argument, or if none is passed (or #f is passed),
-     in the default event loop.  It may be called by any thread.
+     in the default event loop.  In a multi-threaded program only the
+     thread in which the event loop runs can call this procedure - any
+     other thread should call this procedure in an event posted with
+     event-post!.
 
  -- Scheme Procedure: event-loop-block! val [loop]
      By default, upon there being no more watches, timeouts and posted
@@ -571,9 +583,8 @@ The (a-sync event-loop) module provides the follow procedures:
      passed in as an argument, or if none is passed (or #f is passed),
      on the default event loop
 
-     Because this procedure takes a 'resume' argument derived from the
-     a-sync procedure, it must (like the a-sync procedure) in practice
-     be called in the same thread as that in which the event loop runs.
+     This procedure must (like the a-sync procedure) be called in the
+     same thread as that in which the event loop runs.
 
      As an example of how to use a-sync-read-watch!, here is the
      implementation of await-getline!:
@@ -652,9 +663,8 @@ The (a-sync event-loop) module provides the follow procedures:
      operates on the event loop passed in as an argument, or if none is
      passed (or #f is passed), on the default event loop
 
-     Because this procedure takes a 'resume' argument derived from the
-     a-sync procedure, it must (like the a-sync procedure) in practice
-     be called in the same thread as that in which the event loop runs.
+     This procedure must (like the a-sync procedure) be called in the
+     same thread as that in which the event loop runs.
 
    The (async event-loop) module also loads the *note (a-sync
 monotonic-time): monotonic time. module.
@@ -1029,8 +1039,8 @@ Tag Table:
 Node: Top85
 Node: coroutines1099
 Node: event loop14889
-Node: monotonic time34947
-Node: gnome glib36381
-Node: compose47783
+Node: monotonic time35463
+Node: gnome glib36897
+Node: compose48299
 
 End Tag Table
