@@ -114,7 +114,7 @@ made.  The @ref{event loop,,event-loop} module has await-task!,
 await-task-in-thread!, await-timeout!, a-sync-read-watch!,
 await-getline! and a-sync-write-watch! convenience procedures which
 will correctly set this up for you automatically, and the
-@ref{let-a-sync,,let-a-sync} module provides a let-a-sync* macro for
+@ref{compose,,compose} module provides a compose-a-sync macro for
 composition.  If those convenience procedures are used, exceptions
 should always be handled locally in the waitable procedure (and if the
 callback might throw, in the callback also) if it is undesirable that
@@ -241,15 +241,15 @@ summing of 1 and 1 will finish before the timeout)
 (event-loop-run!)
 @end example
 
-Or the let-a-sync* macro in the @ref{let-a-sync,,let-a-sync} module
-can be used so that the last two examples are constructed as follows
-(in this first case the two asynchronous operations run consecutively)
+Or the compose-a-sync macro in the @ref{compose,,compose} module can
+be used so that the last two examples are constructed as follows (in
+this first case the two asynchronous operations run consecutively)
 
 @example
 (set-default-event-loop!) ;; if none has yet been set
-(let-a-sync* ((ret1 (await-timeout! 100
-				   (lambda ()
-				     "expired")))
+(compose-a-sync ((ret1 (await-timeout! 100
+				       (lambda ()
+					 "expired")))
 	      (ignore ((no-await (simple-format #t "Timeout ~A\n" ret1))))
 	      (ret2 (await-task! (lambda ()
 				   (+ 1 1)))))
@@ -262,12 +262,12 @@ summing of 1 and 1 will finish before the timeout)
 
 @example
 (set-default-event-loop!) ;; if none has yet been set
-(let-a-sync* ((ret (await-timeout! 100
-				   (lambda ()
-				     "expired"))))
+(compose-a-sync ((ret (await-timeout! 100
+				      (lambda ()
+				        "expired"))))
 	   ((no-await (simple-format #t "Timeout ~A\n" ret))))
-(let-a-sync* ((ret (await-task! (lambda ()
-				  (+ 1 1)))))
+(compose-a-sync ((ret (await-task! (lambda ()
+				     (+ 1 1)))))
 	   ((no-await (simple-format #t "1 + 1 is ~A\n" ret))))
 (event-loop-run!)
 @end example

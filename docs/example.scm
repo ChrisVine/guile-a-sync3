@@ -24,7 +24,7 @@
 ;; SOFTWARE.
 
 
-(use-modules (a-sync event-loop) (a-sync coroutines) (a-sync let-a-sync))
+(use-modules (a-sync event-loop) (a-sync coroutines) (a-sync compose))
 
 (set-default-event-loop!)
 
@@ -68,13 +68,13 @@
 (event-loop-block! #t)
 (event-loop-run!)
 
-;; this is the identical code using let-a-sync* for composition:
+;; this is the identical code using compose-a-sync for composition:
 
 (display "\nBeginning timeout\n")
-(let-a-sync* ((ret-timeout (await-timeout! 1000 (lambda ()
-						  "Timeout ended\n")))
+(compose-a-sync ((ret-timeout (await-timeout! 1000 (lambda ()
+						     "Timeout ended\n")))
 	      ;; the return value here can be ignored - this is easier
-	      ;; than starting another let-a-sync* block for
+	      ;; than starting another compose-a-sync block for
 	      ;; await-task-in-thread!
 	      (ignore1 ((no-await (display ret-timeout))))
 	      (ret-task (await-task-in-thread! (lambda ()

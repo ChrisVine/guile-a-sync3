@@ -20,7 +20,7 @@ semantics to deal with inversion of control - otherwise known as
 * event loop::     In module (a-sync event-loop) - provides an event loop for asynchronous events
 * monotonic time:: In module (a-sync monotonic-time) - enables monotonic time to be used for timeouts
 * gnome glib::     In module (a-sync gnome-glib) - provides some convenience await procedures for the glib main loop
-* let-a-sync::     In module (a-sync let-a-sync) - provides the let-a-sync* macro interface for the a-sync coroutine
+* compose::        In module (a-sync compose) - provides the compose-a-sync macro interface for the a-sync coroutine
 
 
 File: guile-a-sync.info,  Node: coroutines,  Next: event loop,  Prev: Top,  Up: Top
@@ -142,8 +142,8 @@ The (a-sync coroutines) module provides the following procedures:
      module has await-task!, await-task-in-thread!, await-timeout!,
      a-sync-read-watch!, await-getline!  and a-sync-write-watch!
      convenience procedures which will correctly set this up for you
-     automatically, and the *note let-a-sync: let-a-sync. module
-     provides a let-a-sync* macro for composition.  If those convenience
+     automatically, and the *note compose: compose. module provides a
+     compose-a-sync macro for composition.  If those convenience
      procedures are used, exceptions should always be handled locally in
      the waitable procedure (and if the callback might throw, in the
      callback also) if it is undesirable that uncaught exceptions
@@ -262,15 +262,15 @@ The (a-sync coroutines) module provides the following procedures:
           					(+ 1 1))))))
           (event-loop-run!)
 
-     Or the let-a-sync* macro in the *note let-a-sync: let-a-sync.
-     module can be used so that the last two examples are constructed as
+     Or the compose-a-sync macro in the *note compose: compose. module
+     can be used so that the last two examples are constructed as
      follows (in this first case the two asynchronous operations run
      consecutively)
 
           (set-default-event-loop!) ;; if none has yet been set
-          (let-a-sync* ((ret1 (await-timeout! 100
-          				   (lambda ()
-          				     "expired")))
+          (compose-a-sync ((ret1 (await-timeout! 100
+          				       (lambda ()
+          					 "expired")))
           	      (ignore ((no-await (simple-format #t "Timeout ~A\n" ret1))))
           	      (ret2 (await-task! (lambda ()
           				   (+ 1 1)))))
@@ -281,12 +281,12 @@ The (a-sync coroutines) module provides the following procedures:
      (the summing of 1 and 1 will finish before the timeout)
 
           (set-default-event-loop!) ;; if none has yet been set
-          (let-a-sync* ((ret (await-timeout! 100
-          				   (lambda ()
-          				     "expired"))))
+          (compose-a-sync ((ret (await-timeout! 100
+          				      (lambda ()
+          				        "expired"))))
           	   ((no-await (simple-format #t "Timeout ~A\n" ret))))
-          (let-a-sync* ((ret (await-task! (lambda ()
-          				  (+ 1 1)))))
+          (compose-a-sync ((ret (await-task! (lambda ()
+          				     (+ 1 1)))))
           	   ((no-await (simple-format #t "1 + 1 is ~A\n" ret))))
           (event-loop-run!)
 
@@ -687,7 +687,7 @@ loaded by the *note (a-sync event-loop): event loop. module.
      should always give the correct answer
 
 
-File: guile-a-sync.info,  Node: gnome glib,  Next: let-a-sync,  Prev: monotonic time,  Up: Top
+File: guile-a-sync.info,  Node: gnome glib,  Next: compose,  Prev: monotonic time,  Up: Top
 
 When using the scheme (gnome gtk) bindings of guile-gnome with guile, in
 order to provide await semantics on gtk+ callbacks it will normally be
@@ -913,47 +913,60 @@ module, so as not to create a hard dependency on guile-gnome.
      loop runs.
 
 
-File: guile-a-sync.info,  Node: let-a-sync,  Prev: gnome glib,  Up: Top
+File: guile-a-sync.info,  Node: compose,  Prev: gnome glib,  Up: Top
 
-This (a-sync let-a-sync) module provides a let-a-sync* macro interface
+This (a-sync compose) module provides a compose-a-sync macro interface
 for the a-sync procedure provided by the *note (a-sync coroutines):
 coroutines. module.
 
- -- Syntax: (let-a-sync* [loop] ((var (await-proc)) ...) await-proc ...)
-     This module provides the let-a-sync* macro, which enables
-     asynchronous tasks to be composed on an event loop using let* type
-     syntax.
+ -- Syntax: (compose-a-sync [loop] ((var await-exp0) ...) await-exp1
+          await-exp2 ...)
+     This module provides the compose-a-sync macro.  This does two
+     things: first, it calls a-sync for you and deals with the resulting
+     'await' and 'resume' procedures without exposing them, which for
+     many simple uses makes a-sync easier to use; and secondly it
+     enables asynchronous tasks to be more easily composed on an event
+     loop with intermediate results, by using a let* type syntax (in
+     fact, let* is used internally).
 
-     The 'loop' argument of let-a-sync* is optional.  If an event loop
-     constructed by make-event-loop is passed to 'loop', then that is
-     the main loop on which the tasks will be composed, otherwise if
-     there is no 'loop' argument passed, the default main loop will be
+     The 'loop' argument of compose-a-sync is optional.  If an event
+     loop constructed by make-event-loop is passed to 'loop', then that
+     is the main loop on which the tasks will be composed, otherwise if
+     there is no 'loop' argument given, the default main loop will be
      used.  This is followed by bindings which are optional (there need
-     not be any), each of which must be initialised by a
-     'let-a-sync*'-capable procedure, and following the bindings there
-     must be a body of 'let-a-sync*'-capable procedures executed solely
-     for the purpose of asynchronous side effects (this macro does not,
-     and cannot, return a value because as soon as the first await is
-     made control is passed to the event loop).  As in the case of let*,
-     unlike the bindings the body cannot be empty - there must be at
-     least one 'let-a-sync*'-capable procedure in the body.
+     not be any), each of which must be initialised by an expression
+     comprising the application of a 'compose-a-sync'-capable procedure,
+     and following the bindings there must be a body of
+     'compose-a-sync'-capable procedures executed solely for the purpose
+     of asynchronous side effects (this macro does not, and cannot,
+     return a value because as soon as the first await is made control
+     is passed to the event loop).  As in the case of let*, unlike the
+     bindings the body cannot be empty - there must be at least one
+     expression comprising the application of a 'compose-a-sync'-capable
+     procedure in the body.
 
-     As in the case of let*, each 'let-a-sync*'-capable procedure
+     As in the case of let*, each 'compose-a-sync'-capable procedure
      initializing a binding can see the values of the initializations
-     made prior to it.
+     made prior to it.  Unlike let*, compose-a-sync blocks cannot be
+     nested within other compose-a-sync blocks.  Furthermore, within a
+     compose-a-sync block, the result obtained from a
+     'compose-a-sync'-capable procedure cannot be passed directly as an
+     argument to another 'compose-a-sync'-capable procedure: the
+     intermediate result must be stored as the value of a binding in the
+     compose-a-sync block.
 
-     A 'let-a-sync*'-capable procedure is one which takes an 'await' and
-     'yield' procedure from a-sync as its first and second arguments,
-     and (if the optional 'loop' argument of this macro is used) takes
-     the event loop as its third argument, followed by such further
-     arguments as it requires.  All of the await-task!,
+     A 'compose-a-sync'-capable procedure is one which takes an 'await'
+     and 'yield' procedure from a-sync as its first and second
+     arguments, and (if the optional 'loop' argument of this macro is
+     used) takes the event loop as its third argument, followed by such
+     further arguments as it requires.  All of the await-task!,
      await-task-in-thread!, await-timeout!  and await-getline!
      procedures provided by the (a-sync event-loop) module are
-     'let-a-sync*'-capable.  In addition, to make an ordinary body of
+     'compose-a-sync'-capable.  In addition, to make an ordinary body of
      code which does not block (and which does not need to invoke
-     a-sync's await procedure) usable by let-a-sync*, the no-await macro
-     can be used to generate a 'let-a-sync*'-capable procedure for it
-     (see below).
+     a-sync's await procedure) usable by compose-a-sync, the no-await
+     macro can be used to generate a 'compose-a-sync'-capable procedure
+     for it (see below).
 
      Each binding is initialized as if sequentially (although it is done
      asynchronously on the relevant event loop).  An initialization does
@@ -961,37 +974,39 @@ coroutines. module.
      clause in the body is executed sequentially in turn, but does so
      asynchronously on the event loop using 'await' semantics.
 
-     When calling a 'let-a-sync*'-capable procedure within a
-     'let-a-sync*' block (including when initializing its bindings), the
-     'await' and 'yield' and event-loop arguments are not explicitly
-     passed to it.  The let-a-sync* macro will do it for you.
+     When calling a 'compose-a-sync'-capable procedure within a
+     'compose-a-sync' block (including when initializing its bindings),
+     the 'await' and 'yield' and event-loop arguments are not explicitly
+     passed to it.  The compose-a-sync macro will do it for you.
 
           (set-default-event-loop!) ;; if none has yet been set
-          (let-a-sync* ((line (await-getline! (open "/dev/tty" O_RDONLY))))
-          	  ((no-await (simple-format #t
-          				    "The line was: ~A\n"
-          				     line))))
+          (compose-a-sync ((line (await-getline! (open "/dev/tty" O_RDONLY))))
+          	      ((no-await (simple-format #t
+          					"The line was: ~A\n"
+          					line))))
           (event-loop-run!)
 
      The await-glib-task, await-glib-task-in-thread, await-glib-timeout
      and await-glib-getline procedures in the *note (a-sync gnome-glib):
-     gnome glib. module also meet the 'let-a-sync*'-capable
+     gnome glib. module also meet the 'compose-a-sync'-capable
      requirements.  Here is the same example using those procedures:
 
           (define main-loop (g-main-loop-new #f #f))
-          (let-a-sync* ((line (await-glib-getline (open "/dev/tty" O_RDONLY))))
-          	  ((no-await (simple-format #t
-          				    "The line was: ~A\n"
-          				     line)
-          		     (g-main-loop-quit main-loop))))
+          (compose-a-sync ((line (await-glib-getline (open "/dev/tty" O_RDONLY))))
+          	      ((no-await (simple-format #t
+          					"The line was: ~A\n"
+          					line)
+          			 (g-main-loop-quit main-loop))))
           (g-main-loop-run main-loop)
 
-     Each block of code within a let-a-sync* block will run
-     independently of (and concurrently with) code in other let-a-sync*
-     blocks.  Asynchronous operations are only serialized within any one
-     let-a-sync* block.  As soon as any code calls a-sync's 'await'
-     procedure in any let-a-sync* block, let-a-sync* will return and
-     begin executing whatever follows it.
+     Each block of code within a compose-a-sync block will run
+     independently of (and concurrently with) code in other
+     compose-a-sync blocks.  Asynchronous operations are only serialized
+     within any one compose-a-sync block.  As soon as any code calls
+     a-sync's 'await' procedure in a compose-a-sync block,
+     compose-a-sync will return and begin executing whatever follows it,
+     and further execution of the compose-a-sync block will occur within
+     the event loop concerned.
 
      Other examples of the use of this macro are given in the
      documentation of the *note (a-sync coroutines): coroutines. module.
@@ -1000,20 +1015,22 @@ coroutines. module.
      thread as that in which the event loop runs.
 
  -- Syntax: (no-await body0 body1 ...)
-     This macro will generate a 'let-a-sync*'-capable procedure from a
-     body of code which does not block.  It can be passed to
-     let-a-sync*, either as an initializer or as a clause in its body.
+     This macro will generate a 'compose-a-sync'-capable procedure from
+     a body of code which does not block.  It can be passed to
+     compose-a-sync, either for use as an initializer or as a clause in
+     its body.  When used as an initializer, it evaluates to the value
+     of the last expression in the 'no-await' body.
 
-          ((no-await (display "This is non-blocking code\n")))
+          (var ((no-await (+ a b))))
 
 
 
 Tag Table:
 Node: Top85
 Node: coroutines1099
-Node: event loop14876
-Node: monotonic time34934
-Node: gnome glib36368
-Node: let-a-sync47773
+Node: event loop14889
+Node: monotonic time34947
+Node: gnome glib36381
+Node: compose47783
 
 End Tag Table

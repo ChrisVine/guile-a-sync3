@@ -8,6 +8,7 @@
 @ifnottex
 @node Top,coroutines,,
 @top guile-a-sync reference
+@end ifnottex
 
 This is the guile-a-sync library.  It provides both an asynchronous
 event loop for guile, and coroutines to enable an event loop
@@ -15,21 +16,19 @@ event loop for guile, and coroutines to enable an event loop
 with 'await' semantics to deal with inversion of control -- otherwise
 known as ``callback hell''.
 
-@end ifnottex
-
 The guile-a-sync library is provided in five modules:
 @menu
 * coroutines::     In module (a-sync coroutines) - provides coroutines for await semantics on asynchronous events
 * event loop::     In module (a-sync event-loop) - provides an event loop for asynchronous events
 * monotonic time:: In module (a-sync monotonic-time) - enables monotonic time to be used for timeouts
 * gnome glib::     In module (a-sync gnome-glib) - provides some convenience await procedures for the glib main loop
-* let-a-sync::     In module (a-sync let-a-sync) - provides the let-a-sync* macro interface for the a-sync coroutine
+* compose::        In module (a-sync compose) - provides the compose-a-sync macro interface for the a-sync coroutine
 @end menu
 
 @include coroutines.texi
 @include event-loop.texi
 @include monotonic-time.texi
 @include gnome-glib.texi
-@include let-a-sync.texi
+@include compose.texi
 
 @bye

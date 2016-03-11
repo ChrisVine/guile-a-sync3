@@ -171,7 +171,7 @@ made.  The <a href="event-loop.html#event-loop">event-loop</a> module has await-
 await-task-in-thread!, await-timeout!, a-sync-read-watch!,
 await-getline! and a-sync-write-watch! convenience procedures which
 will correctly set this up for you automatically, and the
-<a href="let_002da_002dsync.html#let_002da_002dsync">let-a-sync</a> module provides a let-a-sync* macro for
+<a href="compose.html#compose">compose</a> module provides a compose-a-sync macro for
 composition.  If those convenience procedures are used, exceptions
 should always be handled locally in the waitable procedure (and if the
 callback might throw, in the callback also) if it is undesirable that
@@ -297,15 +297,15 @@ summing of 1 and 1 will finish before the timeout)
 (event-loop-run!)
 </pre></div>
 
-<p>Or the let-a-sync* macro in the <a href="let_002da_002dsync.html#let_002da_002dsync">let-a-sync</a> module
-can be used so that the last two examples are constructed as follows
-(in this first case the two asynchronous operations run consecutively)
+<p>Or the compose-a-sync macro in the <a href="compose.html#compose">compose</a> module can
+be used so that the last two examples are constructed as follows (in
+this first case the two asynchronous operations run consecutively)
 </p>
 <div class="example">
 <pre class="example">(set-default-event-loop!) ;; if none has yet been set
-(let-a-sync* ((ret1 (await-timeout! 100
-				   (lambda ()
-				     &quot;expired&quot;)))
+(compose-a-sync ((ret1 (await-timeout! 100
+				       (lambda ()
+					 &quot;expired&quot;)))
 	      (ignore ((no-await (simple-format #t &quot;Timeout ~A\n&quot; ret1))))
 	      (ret2 (await-task! (lambda ()
 				   (+ 1 1)))))
@@ -318,12 +318,12 @@ summing of 1 and 1 will finish before the timeout)
 </p>
 <div class="example">
 <pre class="example">(set-default-event-loop!) ;; if none has yet been set
-(let-a-sync* ((ret (await-timeout! 100
-				   (lambda ()
-				     &quot;expired&quot;))))
+(compose-a-sync ((ret (await-timeout! 100
+				      (lambda ()
+				        &quot;expired&quot;))))
 	   ((no-await (simple-format #t &quot;Timeout ~A\n&quot; ret))))
-(let-a-sync* ((ret (await-task! (lambda ()
-				  (+ 1 1)))))
+(compose-a-sync ((ret (await-task! (lambda ()
+				     (+ 1 1)))))
 	   ((no-await (simple-format #t &quot;1 + 1 is ~A\n&quot; ret))))
 (event-loop-run!)
 </pre></div>

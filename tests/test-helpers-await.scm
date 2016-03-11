@@ -16,7 +16,7 @@
 
 (use-modules (a-sync coroutines)
 	     (a-sync event-loop)
-	     (a-sync let-a-sync)
+	     (a-sync compose)
 	     (ice-9 rdelim) ;; for write-line
 	     (rnrs base))   ;; for assert
 
@@ -138,13 +138,13 @@
 	    (print-result)))
   (event-loop-run! main-loop))
 
-;; Test 7: let-a-sync* and no-await
+;; Test 7: compose-a-sync and no-await
 
-(let-a-sync* main-loop ((res (await-task-in-thread! (lambda ()
-						      (+ 5 10)))))
-	     ((no-await (test-result 15 res)
-			(print-result)
-			(event-loop-quit! main-loop))))
+(compose-a-sync main-loop ((res (await-task-in-thread! (lambda ()
+							 (+ 5 10)))))
+	      ((no-await (test-result 15 res)
+			 (print-result)
+			 (event-loop-quit! main-loop))))
 (event-loop-block! #t main-loop)
 (event-loop-run! main-loop)
 
@@ -258,13 +258,13 @@
 	    (print-result)))
   (event-loop-run!))
 
-;; Test 14: let-a-sync* and no-await
+;; Test 14: compose-a-sync and no-await
 
-(let-a-sync* ((res (await-task-in-thread! (lambda ()
-					    (+ 5 10)))))
-	     ((no-await (test-result 15 res)
-			(print-result)
-			(event-loop-quit!))))
+(compose-a-sync ((res (await-task-in-thread! (lambda ()
+					       (+ 5 10)))))
+	      ((no-await (test-result 15 res)
+			 (print-result)
+			 (event-loop-quit!))))
 (event-loop-block! #t)
 (event-loop-run!)
 
