@@ -297,7 +297,29 @@ The (a-sync coroutines) module provides the following procedures:
 
 File: guile-a-sync.info,  Node: event loop,  Next: monotonic time,  Prev: coroutines,  Up: Top
 
-The (a-sync event-loop) module provides the follow procedures:
+The (a-sync event-loop) module provides an event loop for asynchronous
+operations.  The event loop does not of itself start any new threads.
+Instead it runs in the thread which calls event-loop-run!: that
+procedure will block while there are events to be processed.  In most
+programs the event loop will run in the main program thread, with which
+the program began.  Many programs using event loops are entirely single
+threaded.
+
+   However, the event loop provided by this module does support multiple
+threads.  Some of the procedures in this module are thread safe and may
+be called in any thread.  The thread safe procedures are event-loop-run!
+(as mentioned, this will cause the event loop to run in the thread which
+calls it), event-loop-block!, event-loop-quit!  and most important of
+all event-post!.  event-post!  allows worker threads to post an event to
+an event loop, say with the result of a computation, so that the event
+callback will execute in the event loop thread.  The event loop
+procedures which can only be called in the event loop thread, namely
+event-loop-add-read-watch!, event-loop-add-write-watch!,
+event-loop-remove-read-watch!, event-loop-remove-write-watch!,
+timeout-post!  and timeout-remove!, can safely be called by worker
+threads which post lambdas calling those procedures.
+
+   This modules provides the following procedures:
 
  -- Scheme Procedure: set-default-event-loop! [loop]
      The 'loop' (event loop) argument is optional.  This procedure sets
@@ -1039,8 +1061,8 @@ Tag Table:
 Node: Top85
 Node: coroutines1099
 Node: event loop14889
-Node: monotonic time35463
-Node: gnome glib36897
-Node: compose48299
+Node: monotonic time36760
+Node: gnome glib38194
+Node: compose49596
 
 End Tag Table
