@@ -306,30 +306,30 @@
 				     (_remove-write-watch-impl! elt el)))
 			       (error "No action in event loop for file: " elt))))
 		       (caddr res))
+	     ;; the strategy with posted events is first to empty the
+	     ;; event pipe (the only purpose of which is to cause the
+	     ;; event loop to unblock) and then run any events queued
+	     ;; in the queue.  This (i) eliminates any concerns that
+	     ;; events might go missing if the pipe fills up, and (ii)
+	     ;; ensures that if a timeout or watch callback has posted
+	     ;; an event (say ending the timeout or watch), that will
+	     ;; have been acted on by the time the event loop begins
+	     ;; its next iteration.
 	     (when (memv event-fd (car res))
 	       (let loop2 ()
 		 (let ((c (read-char event-in)))
-		   (if (eof-object? c)
-		       (with-mutex mutex (_done-set! el #t))
-		       (case c
-			 ((#\x)
-			  (let loop3 ()
-			    ;; the strategy is to exhaust the entire
-			    ;; event queue when #\x is in the pipe
-			    ;; buffer.  This eliminates any concerns
-			    ;; that events might go missing if the
-			    ;; pipe fills up.
-			    (let ((action (with-mutex mutex
-					    (if (q-empty? q) #f (deq! q)))))
-			      (when action
-			        (action)
-				(when (not (with-mutex mutex (_done-get el)))
-			          (loop3)))))
-			  (when (and (char-ready? event-in)
-				     (not (with-mutex mutex (_done-get el))))
-			    (loop2)))
-			 (else
-			  (error "Invalid character in event pipe: " c))))))))
+		   (when (and (char-ready? event-in)
+			      (not (eof-object? c))) ;; this shouldn't ever happen
+		     (loop2)))))
+	     (let loop3 ()
+	       (let ((action (with-mutex mutex
+			       (if (q-empty? q) #f (deq! q)))))
+		 (when action
+		   (action)
+		   ;; one of the posted events may have called
+		   ;; event-loop-quit!, so test for it
+		   (when (not (with-mutex mutex (_done-get el)))
+		     (loop3))))))
 	   (if (not (with-mutex mutex (_done-get el)))
 	       (loop1)
 	       ;; clear out any stale events before returning and
@@ -391,30 +391,30 @@
 ;; there is already a read watch for the file passed, the old one will
 ;; be replaced by the new one.  If proc returns #f, the read watch
 ;; will be removed from the event loop, otherwise the watch will
-;; continue.  The file argument can be either a port or a file
-;; descriptor.  If 'file' is a file descriptor, any port for the
-;; descriptor is not referenced for garbage collection purposes - it
-;; must remain valid while operations are carried out on the
-;; descriptor.  If 'file' is a buffered port, buffering will be taken
-;; into account in indicating whether a read can be made without
-;; blocking (but on a buffered port, for efficiency purposes each read
-;; operation in response to this watch should usually exhaust the
-;; buffer by looping on char-ready?).  In a multi-threaded program
-;; only the thread in which the event loop runs can call this
-;; procedure - any other thread should call this procedure in an event
-;; posted with event-post!.
+;; continue.  This is thread safe - any thread may add a watch, and
+;; the callback will execute in the event loop thread.  The file
+;; argument can be either a port or a file descriptor.  If 'file' is a
+;; file descriptor, any port for the descriptor is not referenced for
+;; garbage collection purposes - it must remain valid while operations
+;; are carried out on the descriptor.  If 'file' is a buffered port,
+;; buffering will be taken into account in indicating whether a read
+;; can be made without blocking (but on a buffered port, for
+;; efficiency purposes each read operation in response to this watch
+;; should usually exhaust the buffer by looping on char-ready?).
 (define* (event-loop-add-read-watch! file proc #:optional el)
   (let ((el (or el (get-default-event-loop))))
     (when (not el) 
       (error "No default event loop set for call to event-loop-add-read-watch!"))
-    (_read-files-set!
-     el
-     (cons file
-	   (delete! file (_read-files-get el) _file-equal?)))
-    (_read-files-actions-set!
-     el
-     (acons file proc
-	    (alist-delete! file (_read-files-actions-get el) _file-equal?)))))
+    (event-post! (lambda ()
+		   (_read-files-set!
+		    el
+		    (cons file
+			  (delete! file (_read-files-get el) _file-equal?)))
+		   (_read-files-actions-set!
+		    el
+		    (acons file proc
+			   (alist-delete! file (_read-files-actions-get el) _file-equal?))))
+		 el)))
 
 ;; The 'el' (event loop) argument is optional.  This procedure will
 ;; start a write watch in the event loop passed in as an argument, or
@@ -432,57 +432,58 @@
 ;; there is already a write watch for the file passed, the old one
 ;; will be replaced by the new one.  If proc returns #f, the write
 ;; watch will be removed from the event loop, otherwise the watch will
-;; continue.  The file argument can be either a port or a file
-;; descriptor.  If 'file' is a file descriptor, any port for the
-;; descriptor is not referenced for garbage collection purposes - it
-;; must remain valid while operations are carried out on the
-;; descriptor.  If 'file' is a buffered port, buffering will be taken
-;; into account in indicating whether a write can be made without
-;; blocking.  In a multi-threaded program only the thread in which the
-;; event loop runs can call this procedure - any other thread should
-;; call this procedure in an event posted with event-post!.
+;; continue.  This is thread safe - any thread may add a watch, and
+;; the callback will execute in the event loop thread.  The file
+;; argument can be either a port or a file descriptor.  If 'file' is a
+;; file descriptor, any port for the descriptor is not referenced for
+;; garbage collection purposes - it must remain valid while operations
+;; are carried out on the descriptor.  If 'file' is a buffered port,
+;; buffering will be taken into account in indicating whether a write
+;; can be made without blocking.
 (define* (event-loop-add-write-watch! file proc #:optional el)
   (let ((el (or el (get-default-event-loop))))
     (when (not el) 
       (error "No default event loop set for call to event-loop-add-write-watch!"))
-    (_write-files-set!
-     el
-     (cons file
-	   (delete! file (_write-files-get el) _file-equal?)))
-    (_write-files-actions-set!
-     el
-     (acons file proc
-	    (alist-delete! file (_write-files-actions-get el) _file-equal?)))))
+    (event-post! (lambda ()
+		   (_write-files-set!
+		    el
+		    (cons file
+			  (delete! file (_write-files-get el) _file-equal?)))
+		   (_write-files-actions-set!
+		    el
+		    (acons file proc
+			   (alist-delete! file (_write-files-actions-get el) _file-equal?))))
+		 el)))
 
 ;; The 'el' (event loop) argument is optional.  This procedure will
 ;; remove a read watch from the event loop passed in as an argument,
 ;; or if none is passed (or #f is passed), from the default event
-;; loop.  The file argument may be a port or a file descriptor.  A
-;; file descriptor and a port with the same underlying file descriptor
-;; compare equal for the purposes of removal.  In a multi-threaded
-;; program only the thread in which the event loop runs can call this
-;; procedure - any other thread should call this procedure in an event
-;; posted with event-post!.
+;; loop.  The file argument may be a port or a file descriptor.  This
+;; is thread safe - any thread may remove a watch.  A file descriptor
+;; and a port with the same underlying file descriptor compare equal
+;; for the purposes of removal.
 (define* (event-loop-remove-read-watch! file #:optional el)
   (let ((el (or el (get-default-event-loop))))
     (when (not el) 
       (error "No default event loop set for call to event-loop-remove-read-watch!"))
-    (_remove-read-watch-impl! file el)))
+    (event-post! (lambda ()
+		   (_remove-read-watch-impl! file el))
+		 el)))
 
 ;; The 'el' (event loop) argument is optional.  This procedure will
 ;; remove a write watch from the event loop passed in as an argument,
 ;; or if none is passed (or #f is passed), from the default event
-;; loop.  The file argument may be a port or a file descriptor.  A
-;; file descriptor and a port with the same underlying file descriptor
-;; compare equal for the purposes of removal.  In a multi-threaded
-;; program only the thread in which the event loop runs can call this
-;; procedure - any other thread should call this procedure in an event
-;; posted with event-post!.
+;; loop.  The file argument may be a port or a file descriptor.  This
+;; is thread safe - any thread may remove a watch.  A file descriptor
+;; and a port with the same underlying file descriptor compare equal
+;; for the purposes of removal.
 (define* (event-loop-remove-write-watch! file #:optional el)
   (let ((el (or el (get-default-event-loop))))
     (when (not el) 
       (error "No default event loop set for call to event-loop-remove-write-watch!"))
-    (_remove-write-watch-impl! file el)))
+    (event-post! (lambda ()
+		   (_remove-write-watch-impl! file el))
+		 el)))
 
 ;; The 'el' (event loop) argument is optional.  This procedure will
 ;; post a callback for execution in the event loop passed in as an
@@ -518,36 +519,40 @@
 ;; will repeat unless and until the passed-in callback returns #f or
 ;; timeout-remove! is called.  The passed-in callback must be a thunk.
 ;; This procedure returns a tag symbol to which timeout-remove! can be
-;; applied.  In a multi-threaded program only the thread in which the
-;; event loop runs can call this procedure - any other thread should
-;; call this procedure in an event posted with event-post!.
+;; applied.  It may be called by any thread, and the timeout callback
+;; will execute in the event loop thread.
 (define* (timeout-post! msecs action #:optional el)
   (let ((el (or el (get-default-event-loop))))
     (when (not el) 
       (error "No default event loop set for call to timeout-post!"))
     (let ((tag (gensym "timeout-"))
 	  (abstime (_get-abstime msecs)))
-      (let ((new-timeouts (cons (vector abstime
-					tag
-					msecs
-					action)
-				(_timeouts-get el))))
-	(_timeouts-set! el new-timeouts)
-	(_current-timeout-set! el (_next-timeout new-timeouts)))
+      (event-post! (lambda ()
+		     (let ((new-timeouts (cons (vector abstime
+						       tag
+						       msecs
+						       action)
+					       (_timeouts-get el))))
+		       (_timeouts-set! el new-timeouts)
+		       (_current-timeout-set! el (_next-timeout new-timeouts))))
+		   el)
       tag)))
 
 ;; The 'el' (event loop) argument is optional.  This procedure stops
 ;; the timeout with the given tag from executing in the event loop
 ;; passed in as an argument, or if none is passed (or #f is passed),
-;; in the default event loop.  In a multi-threaded program only the
-;; thread in which the event loop runs can call this procedure - any
-;; other thread should call this procedure in an event posted with
-;; event-post!.
+;; in the default event loop.  It may be called by any thread.
 (define* (timeout-remove! tag #:optional el)
   (let ((el (or el (get-default-event-loop))))
     (when (not el) 
       (error "No default event loop set for call to timeout-remove!"))
-    (_timeouts-set! el (_filter-timeout (_timeouts-get el) tag))))
+    (event-post! (lambda ()
+		   (_timeouts-set! el (_filter-timeout (_timeouts-get el) tag))
+		   ;; the timeout removed might be the current-timeout
+		   ;; - if so, reset current-timeout
+		   (when (eq? tag (vector-ref (_current-timeout-get el) 1))
+		     (_current-timeout-set! el (_next-timeout (_timeouts-get el)))))
+		 el)))
       
 ;; By default, upon there being no more watches, timeouts and posted
 ;; events for an event loop, event-loop-run! will return, which is
@@ -757,8 +762,9 @@
 ;; argument, or if none is passed (or #f is passed), on the default
 ;; event loop.
 ;;
-;; This procedure must (like the a-sync procedure) be called in the
-;; same thread as that in which the event loop runs.
+;; Because this procedure takes a 'resume' argument derived from the
+;; a-sync procedure, it must (like the a-sync procedure) in practice
+;; be called in the same thread as that in which the event loop runs.
 (define* (a-sync-read-watch! resume file proc #:optional loop)
   (event-loop-add-read-watch! file
 			      (lambda (status)
@@ -831,8 +837,9 @@
 ;; operates on the event loop passed in as an argument, or if none is
 ;; passed (or #f is passed), on the default event loop.
 ;;
-;; This procedure must (like the a-sync procedure) be called in the
-;; same thread as that in which the event loop runs.
+;; Because this procedure takes a 'resume' argument derived from the
+;; a-sync procedure, it must (like the a-sync procedure) in practice
+;; be called in the same thread as that in which the event loop runs.
 (define* (a-sync-write-watch! resume file proc #:optional loop)
   (event-loop-add-write-watch! file
 			       (lambda (status)
