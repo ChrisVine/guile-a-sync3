@@ -23,11 +23,12 @@
 ;; which has a 'yield' parameter for its first or only argument,
 ;; followed by such other arguments (other than the one for the
 ;; 'yield' parameter) as the generator procedure requires, and
-;; constructs an iterator from them.  When the iterator is invoked, it
-;; will begin executing the procedure unless and until the argument
-;; comprising the yield procedure is called, which will cause the
-;; iterator to suspend computation and instead return the value passed
-;; to yield (yield is a procedure taking no or one argument).  If
+;; constructs an iterator from them.  When the iterator (which
+;; optionally takes no or one argument) is invoked, it will begin
+;; executing the procedure unless and until the argument comprising
+;; the yield procedure is called, which will cause the iterator to
+;; suspend computation and instead return the value passed to yield,
+;; if any (yield is a procedure taking no or one argument).  If
 ;; invoked again, the iterator will resume computation at the point
 ;; where it last left off (returning the value, if any, passed to the
 ;; iterator on resuming).  When the generator procedure has executed
