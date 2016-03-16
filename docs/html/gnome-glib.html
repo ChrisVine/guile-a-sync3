@@ -187,21 +187,21 @@ possible to call this procedure in any thread.
 </p></dd></dl>
 
 <dl>
-<dt><a name="index-a_002dsync_002dglib_002dread_002dwatch"></a>Scheme Procedure: <strong>a-sync-glib-read-watch</strong> <em>resume port proc</em></dt>
+<dt><a name="index-a_002dsync_002dglib_002dread_002dwatch"></a>Scheme Procedure: <strong>a-sync-glib-read-watch</strong> <em>resume fd proc</em></dt>
 <dd><p>This is a convenience procedure for use with a glib main loop, which
-will run &rsquo;proc&rsquo; in the default glib main loop whenever &rsquo;port&rsquo; is ready
-for reading, and apply resume (obtained from a call to a-sync) to the
-return value of &rsquo;proc&rsquo;.  &rsquo;proc&rsquo; should take two arguments, the first
-of which will be set by glib to the g-io-channel object constructed
-for the watch and the second of which will be set to the GIOCondition
-(&rsquo;in, &rsquo;pri, &rsquo;hup or &rsquo;err) provided by glib which caused the watch to
-activate.  It is intended to be called in a waitable procedure invoked
-by a-sync.  The watch is multi-shot - it is for the user to bring it
-to an end at the right time by calling g-source-remove in the waitable
-procedure on the id tag returned by this procedure.  The revealed
-count of the file descriptor underlying the port is incremented, and
-it is also for the programmer, when removing the watch, to call
-release-port-handle on the port.  This procedure is mainly intended as
+will run &rsquo;proc&rsquo; in the default glib main loop whenever the file
+descriptor &rsquo;fd&rsquo; is ready for reading, and apply resume (obtained from
+a call to a-sync) to the return value of &rsquo;proc&rsquo;.  &rsquo;proc&rsquo; should take
+two arguments, the first of which will be set by glib to the
+g-io-channel object constructed for the watch and the second of which
+will be set to the GIOCondition (&rsquo;in, &rsquo;pri, &rsquo;hup or &rsquo;err) provided by
+glib which caused the watch to activate.  It is intended to be called
+in a waitable procedure invoked by a-sync.  The watch is multi-shot -
+it is for the user to bring it to an end at the right time by calling
+g-source-remove in the waitable procedure on the id tag returned by
+this procedure.  Any port for the file descriptor &rsquo;fd&rsquo; is not
+referenced for garbage collection purposes - it must remain valid
+while the read watch is active.  This procedure is mainly intended as
 something from which higher-level asynchronous file operations can be
 constructed, such as the await-glib-getline procedure.
 </p>
@@ -216,7 +216,7 @@ implementation of await-glib-getline:
 <pre class="example">(define (await-glib-getline await resume port)
   (define text '())
   (define id (a-sync-glib-read-watch resume
-				     port
+				     (port-&gt;fdes port)
 				     (lambda (ioc status)
 				       (if (or (eq? status 'pri)
 					       (eq? status 'err))
@@ -272,22 +272,23 @@ thread as that in which the default glib main loop runs.
 </dd></dl>
 
 <dl>
-<dt><a name="index-a_002dsync_002dglib_002dwrite_002dwatch"></a>Scheme Procedure: <strong>a-sync-glib-write-watch</strong> <em>resume port proc</em></dt>
+<dt><a name="index-a_002dsync_002dglib_002dwrite_002dwatch"></a>Scheme Procedure: <strong>a-sync-glib-write-watch</strong> <em>resume fd proc</em></dt>
 <dd><p>This is a convenience procedure for use with a glib main loop, which
-will run &rsquo;proc&rsquo; in the default glib main loop whenever &rsquo;port&rsquo; is ready
-for writing, and apply resume (obtained from a call to a-sync) to the
-return value of &rsquo;proc&rsquo;.  &rsquo;proc&rsquo; should take two arguments, the first
-of which will be set by glib to the g-io-channel object constructed
-for the watch and the second of which will be set to the GIOCondition
-(&rsquo;out or &rsquo;err) provided by glib which caused the watch to activate.
-It is intended to be called in a waitable procedure invoked by a-sync.
-The watch is multi-shot - it is for the user to bring it to an end at
-the right time by calling g-source-remove in the waitable procedure on
-the id tag returned by this procedure.  The revealed count of the file
-descriptor underlying the port is incremented, and it is also for the
-programmer, when removing the watch, to call release-port-handle on
-the port.  This procedure is mainly intended as something from which
-higher-level asynchronous file operations can be constructed.
+will run &rsquo;proc&rsquo; in the default glib main loop whenever the file
+descriptor &rsquo;fd&rsquo; is ready for writing, and apply resume (obtained from
+a call to a-sync) to the return value of &rsquo;proc&rsquo;.  &rsquo;proc&rsquo; should take
+two arguments, the first of which will be set by glib to the
+g-io-channel object constructed for the watch and the second of which
+will be set to the GIOCondition (&rsquo;out or &rsquo;err) provided by glib which
+caused the watch to activate.  It is intended to be called in a
+waitable procedure invoked by a-sync.  The watch is multi-shot - it is
+for the user to bring it to an end at the right time by calling
+g-source-remove in the waitable procedure on the id tag returned by
+this procedure.  Any port for the file descriptor &rsquo;fd&rsquo; is not
+referenced for garbage collection purposes - it must remain valid
+while the read watch is active.  This procedure is mainly intended as
+something from which higher-level asynchronous file operations can be
+constructed.
 </p>
 <p>Because this procedure takes a &rsquo;resume&rsquo; argument derived from the
 a-sync procedure, it must (like the a-sync procedure) in practice be
