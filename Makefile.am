@@ -16,6 +16,6 @@ snapshot: dist
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = guile-a-sync.pc
 
-EXTRA_DIST = m4/*.m4 autogen.sh config.rpath compile TODO
+EXTRA_DIST = m4/*.m4 autogen.sh config.rpath compile
 
 ACLOCAL_AMFLAGS = -I m4

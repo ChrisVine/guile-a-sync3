@@ -19,4 +19,4 @@ install-data-hook:
 uninstall-hook:
 	for files in `ls html`; do rm -f $(DESTDIR)$(htmldir)/html/$$files; done
 
-EXTRA_DIST = html/*.html *.texi guile-a-sync.info
+EXTRA_DIST = html/*.html *.texi guile-a-sync.info $(doc_DATA)
