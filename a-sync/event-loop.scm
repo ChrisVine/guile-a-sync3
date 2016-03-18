@@ -698,12 +698,10 @@
 ;; corollary of await-task-in-thread!.  This means that (unlike with
 ;; await-task-in-thread!) while 'thunk' is running other events in the
 ;; event loop will not make progress.  This is not particularly useful
-;; except when called by the event loop thread for the purpose of
-;; bringing the event loop to an end at its own place in the event
-;; queue, or when called by a worker thread to report a result
-;; expected by a waitable procedure running in the event loop thread.
-;; (For the latter case though, await-task-in-thread! is generally a
-;; more convenient wrapper.)
+;; except, say, when called by the event loop thread for the purpose
+;; of bringing the event loop to an end at its own place in the event
+;; queue, or for composing results with compose-a-sync (see
+;; compose.scm).
 ;;
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the event loop runs.
