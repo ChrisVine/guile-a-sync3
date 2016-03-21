@@ -562,8 +562,9 @@
 ;; await-task-in-thread!, because the main loop may have ended before
 ;; it posts.  Passing #t to the val argument of this procedure will
 ;; prevent that from happening, so that the event loop can only be
-;; ended by calling event-loop-quit!.  To switch it back to
-;; non-blocking mode, pass #f.  This is thread safe - any thread may
+;; ended by calling event-loop-quit!, or by calling event-loop-block!
+;; again with a #f argument (to switch the event loop back to
+;; non-blocking mode, pass #f).  This is thread safe - any thread may
 ;; call this procedure.  The 'el' (event loop) argument is optional:
 ;; this procedure operates on the event loop passed in as an argument,
 ;; or if none is passed (or #f is passed), on the default event loop.
