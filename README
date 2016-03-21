@@ -16,21 +16,29 @@ docs/example.scm file.
 Installation
 ------------
 
-Configure in the ordinary way with something like:
+When first run from git, or a tarball obtained from github, it is
+necessary to set up autotools.  This can be done with:
 
-  ./configure --prefix=/usr
+  ./autogen.sh --prefix=/usr
 
 or on a 64-bit system, probably:
 
+  /autogen.sh --prefix=/usr --libdir=/usr/lib64
+
+This generates a configure script and installs libtool.  Subsequent
+configuration can be done just with
+
+  ./configure --prefix=/usr
+
+and
+
   ./configure --prefix=/usr --libdir=/usr/lib64
+
+respectively.
 
 On a 64 bit system you may also need to include -fPIC in your CFLAGS
 options if libtool doesn't do that for you (libtool normally does when
 necessary).
-
-If compiling from git rather than from a release tarball, you will
-need to set up the library by running ./autogen.sh before running
-configure.
 
 After compiling, install with 'make install' as root.
 
@@ -47,3 +55,6 @@ Documentation
 Html documentation is available after installation in the default html
 directory for the target installation (normally at
 $(prefix)/share/doc/guile-a-sync/html/index.html).
+
+In addition, the documentation can be viewed at github at:
+https://github.com/ChrisVine/guile-a-sync/wiki
