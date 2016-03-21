@@ -36,10 +36,9 @@ started.  This procedure is not thread safe - if it might be called by
 a different thread from others which might access the default event
 loop, then external synchronization may be required.  However, that
 should not normally be an issue.  The normal course would be to call
-this procedure once only on program start up as soon as the main
-program event loop has been constructed, before other threads have
-started.  It is usually a mistake to call this procedure twice: if
-there are asynchronous events pending (that is, if event-loop-run!
+this procedure once only on program start up, before other threads
+have started.  It is usually a mistake to call this procedure twice:
+if there are asynchronous events pending (that is, if event-loop-run!
 has not returned) you will probably not get the results you expect.
 @end deffn
 
