@@ -272,9 +272,9 @@ The (a-sync coroutines) module provides the following procedures:
           (compose-a-sync ((ret1 (await-timeout! 100
           				       (lambda ()
           					 "expired")))
-          	      (ignore ((no-await (simple-format #t "Timeout ~A\n" ret1))))
-          	      (ret2 (await-task! (lambda ()
-          				   (+ 1 1)))))
+          		 (ignore ((no-await (simple-format #t "Timeout ~A\n" ret1))))
+          		 (ret2 (await-task! (lambda ()
+          				      (+ 1 1)))))
           	   ((no-await (simple-format #t "1 + 1 is ~A\n" ret2))))
           (event-loop-run!)
 
@@ -1046,9 +1046,9 @@ coroutines. module.
 Tag Table:
 Node: Top85
 Node: coroutines1099
-Node: event loop14946
-Node: monotonic time36013
-Node: gnome glib37447
-Node: compose48812
+Node: event loop14941
+Node: monotonic time36008
+Node: gnome glib37442
+Node: compose48807
 
 End Tag Table

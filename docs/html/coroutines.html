@@ -307,9 +307,9 @@ this first case the two asynchronous operations run consecutively)
 (compose-a-sync ((ret1 (await-timeout! 100
 				       (lambda ()
 					 &quot;expired&quot;)))
-	      (ignore ((no-await (simple-format #t &quot;Timeout ~A\n&quot; ret1))))
-	      (ret2 (await-task! (lambda ()
-				   (+ 1 1)))))
+		 (ignore ((no-await (simple-format #t &quot;Timeout ~A\n&quot; ret1))))
+		 (ret2 (await-task! (lambda ()
+				      (+ 1 1)))))
 	   ((no-await (simple-format #t &quot;1 + 1 is ~A\n&quot; ret2))))
 (event-loop-run!)
 </pre></div>
