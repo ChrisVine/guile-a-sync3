@@ -97,12 +97,10 @@
 ;; single-threaded corollary of await-glib-task-in-thread.  This means
 ;; that (unlike with await-glib-task-in-thread) while 'thunk' is
 ;; running other events in the main loop will not make progress.  This
-;; is not particularly useful except when called by the main loop
-;; thread for the purpose of bringing the loop to an end at its own
-;; place in the event queue, or when called by a worker thread to
-;; report a result expected by a waitable procedure running in the
-;; main loop thread.  (For the latter case though,
-;; await-glib-task-in-thread is generally a more convenient wrapper.)
+;; is not particularly useful except, say, when called by the main
+;; loop thread for the purpose of bringing the loop to an end at its
+;; own place in the event queue, or for composing results with
+;; compose-a-sync (see compose.scm).
 ;;
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the default glib main loop runs.
