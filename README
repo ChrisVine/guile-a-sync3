@@ -10,8 +10,8 @@ It also provides a coroutines interface (coroutines.scm) which
 provides await semantics on such events, so as to avoid inversion of
 control (aka "callback hell").
 
-See docs/coroutines and docs/event-loop for further details, and the
-docs/example.scm file.
+See the documentation mentioned below for further details, and the
+docs/example.scm and docs/example-glib.scm files.
 
 Installation
 ------------
