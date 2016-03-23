@@ -1,7 +1,7 @@
-#! /usr/bin/guile-gnome-2
+#!/usr/bin/guile-gnome-2
 !#
 
-;; Copyright Chris Vine 2016
+;; Copyright (C) 2016 Chris Vine
 ;;
 ;; Permission is hereby granted, free of charge, to any person
 ;; obtaining a copy of this file (the "Software"), to deal in the

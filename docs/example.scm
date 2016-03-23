@@ -1,7 +1,7 @@
 #!/usr/bin/env guile
 !#
 
-;; Copyright Chris Vine 2014 and 2016
+;; Copyright (C) 2014 and 2016 Chris Vine
 ;;
 ;; Permission is hereby granted, free of charge, to any person
 ;; obtaining a copy of this file (the "Software"), to deal in the
