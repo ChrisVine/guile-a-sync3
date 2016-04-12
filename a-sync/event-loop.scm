@@ -648,14 +648,10 @@
      (apply _await-task-in-thread-impl! await resume rest)]
     [(($ <event-loop>) _)
      (apply _await-task-in-thread-impl! await resume rest)]
-    [(_ _)
-     (apply (lambda (await resume thunk handler)
-	      (_await-task-in-thread-impl! await resume #f thunk handler))
-	    await resume rest)]
-    [(_)
-     (apply (lambda (await resume thunk)
-	      (_await-task-in-thread-impl! await resume #f thunk #f))
-	    await resume rest)]
+    [(thunk handler)
+     (_await-task-in-thread-impl! await resume #f thunk handler)]
+    [(thunk)
+     (_await-task-in-thread-impl! await resume #f thunk #f)]
     [_
      (error "Wrong number of arguments passed to await-task-in-thread!" await resume rest)]))
 
