@@ -186,7 +186,17 @@
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the default glib main loop runs.
 (define (await-glib-getline await resume port)
-  (define text '())
+  (define chunk-size 128)
+  (define text (make-string chunk-size))
+  (define text-len 0)
+  (define (append-char! ch)
+    (when (and (= (modulo text-len chunk-size) 0)
+	       (> text-len 0))
+      (let ([tmp text])
+	(set! text (make-string (+ text-len chunk-size)))
+	(string-copy! text 0 tmp)))
+    (string-set! text text-len ch)
+    (set! text-len (1+ text-len)))
   (define id (a-sync-glib-read-watch resume
 				     (port->fdes port)
 				     (lambda (ioc status)
@@ -195,14 +205,14 @@
 					   #f
 					   (let next ()
 					     (let ((ch (read-char port)))
-					       (if (not (or (eof-object? ch)
-							    (char=? ch #\newline)))
+					       (if (or (eof-object? ch)
+						       (char=? ch #\newline))
+						   (substring/shared text 0 text-len)
 						   (begin
-						     (set! text (cons ch text))
+						     (append-char! ch)
 						     (if (char-ready? port)
 							 (next)
-							 'more))
-						   (reverse-list->string text))))))))
+							 'more)))))))))
   (let next ((res (await)))
     (if (eq? res 'more)
 	(next (await))
