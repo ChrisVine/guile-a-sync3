@@ -399,7 +399,7 @@ implementation of await-getline!:
        (define (append-char! ch)
 	 (when (and (= (modulo text-len chunk-size) 0)
 		    (&gt; text-len 0))
-	   (let ([tmp text])
+	   (let ((tmp text))
 	     (set! text (make-string (+ text-len chunk-size)))
 	     (string-copy! text 0 tmp)))
 	 (string-set! text text-len ch)
