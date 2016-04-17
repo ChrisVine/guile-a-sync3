@@ -172,16 +172,15 @@
 		    #t)))
 			   
 ;; This is a convenience procedure for use with a glib main loop,
-;; which will start a read watch on 'port' and run 'thunk' in the
-;; default glib main loop whenver an entire line of text has been
-;; received.  This procedure calls 'await' while waiting for input and
-;; will return the line of text received (without the terminating '\n'
-;; character).  The event loop will not be blocked by this procedure
-;; even if only individual characters are available at any one time.
-;; It is intended to be called in a waitable procedure invoked by
-;; a-sync.  This procedure is implemented using
-;; a-sync-glib-read-watch.  If an exceptional condition ('pri) or an
-;; error ('err) is encountered, #f will be returned.
+;; which will start a read watch on 'port' for a line of input.  It
+;; calls 'await' while waiting for input and will return the line of
+;; text received (without the terminating '\n' character).  The event
+;; loop will not be blocked by this procedure even if only individual
+;; characters are available at any one time.  It is intended to be
+;; called in a waitable procedure invoked by a-sync.  This procedure
+;; is implemented using a-sync-glib-read-watch.  If an exceptional
+;; condition ('pri) or an error ('err) is encountered, #f will be
+;; returned.
 ;;
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the default glib main loop runs.

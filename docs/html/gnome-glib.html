@@ -253,9 +253,8 @@ implementation of await-glib-getline:
 <dl>
 <dt><a name="index-await_002dglib_002dgetline"></a>Scheme Procedure: <strong>await-glib-getline</strong> <em>await resume port</em></dt>
 <dd><p>This is a convenience procedure for use with a glib main loop, which
-will start a file watch and run &rsquo;thunk&rsquo; in the default glib main loop
-whenver an entire line of text has been received.  This procedure
-calls &rsquo;await&rsquo; while waiting for input and will return the line of text
+will start a read watch on &rsquo;port&rsquo; for a line of input.  It calls
+&rsquo;await&rsquo; while waiting for input and will return the line of text
 received (without the terminating &rsquo;\n&rsquo; character).  The event loop
 will not be blocked by this procedure even if only individual
 characters are available at any one time.  It is intended to be called
