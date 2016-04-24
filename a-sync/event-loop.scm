@@ -40,7 +40,8 @@
 	    await-timeout!
 	    a-sync-read-watch!
 	    a-sync-write-watch!
-	    await-getline!))
+	    await-getline!
+	    await-geteveryline!))
 
 
 ;; this variable is not exported - use the accessors below
@@ -818,19 +819,23 @@
 ;; the line of text received (without the terminating '\n' character).
 ;; The event loop will not be blocked by this procedure even if only
 ;; individual characters are available at any one time.  It is
-;; intended to be called in a waitable procedure invoked by a-sync.
-;; This procedure is implemented using a-sync-read-watch!.  If an
+;; intended to be called in a waitable procedure invoked by a-sync,
+;; and this procedure is implemented using a-sync-read-watch!.  If an
 ;; exceptional condition ('excpt) is encountered, #f will be returned.
-;; The 'loop' argument is optional: this procedure operates on the
-;; event loop passed in as an argument, or if none is passed (or #f is
-;; passed), on the default event loop.
+;; If an end-of-file object is encountered which terminates a line of
+;; text, a string containing the line of text will be returned (and
+;; from version 0.3, if an end-of-file object is encountered without
+;; any text, the end-of-file object is returned rather than an empty
+;; string).  The 'loop' argument is optional: this procedure operates
+;; on the event loop passed in as an argument, or if none is passed
+;; (or #f is passed), on the default event loop.
 ;;
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the event loop runs.
 ;;
 ;; Exceptions may propagate out of this procedure if they arise while
 ;; setting up (that is, before the first call to 'await' is made),
-;; which shouldn't happen if memory is not exhausted.  Subsequent
+;; which shouldn't happen unless memory is exhausted.  Subsequent
 ;; exceptions (say, because of port errors) will propagate out of
 ;; event-loop-run!.
 (define await-getline!
@@ -857,14 +862,18 @@
 				 #f
 				 (let next ()
 				   (let ((ch (read-char port)))
-				     (if (or (eof-object? ch)
-					     (char=? ch #\newline))
-					 (substring/shared text 0 text-len)
-					 (begin
-					   (append-char! ch)
-					   (if (char-ready? port)
-					       (next)
-					       'more)))))))
+				     (cond
+				      ((eof-object? ch)
+				       (if (= text-len 0)
+					   ch
+					   (substring/shared text 0 text-len)))
+				      ((char=? ch #\newline)
+				       (substring/shared text 0 text-len))
+				      (else
+				       (append-char! ch)
+				       (if (char-ready? port)
+					   (next)
+					   'more)))))))
 			   loop))
      (let next ((res (await)))
        (if (eq? res 'more)
@@ -872,6 +881,96 @@
 	   (begin
 	     (event-loop-remove-read-watch! port loop)
 	     res))))))
+
+;; This is a convenience procedure whose signature is:
+;;
+;;   (await-geteveryline! await resume [loop] port proc)
+;;
+;; This procedure will start a read watch on 'port' for lines of
+;; input.  It calls 'await' while waiting for input and will apply
+;; 'proc' to every complete line of text received (without the
+;; terminating '\n' character).  'proc' should be a procedure taking a
+;; string as its only argument.
+;;
+;; The event loop will not be blocked by this procedure even if only
+;; individual characters are available at any one time.  It is
+;; intended to be called in a waitable procedure invoked by a-sync.
+;; This procedure is implemented using a-sync-read-watch!.  Unlike the
+;; await-getline! procedure, the watch will continue after a line of
+;; text has been received in order to receive further lines.  The
+;; watch will not end until end-of-file or an exceptional condition is
+;; reached.  In the event of that happening, this procedure will end
+;; and return an end-of-file object or #f respectively.  To finish
+;; before end-of-file or an exceptional condition, 'proc' can invoke a
+;; call/ec escape continuation.
+;;
+;; The 'loop' argument is optional: this procedure operates on the
+;; event loop passed in as an argument, or if none is passed (or #f is
+;; passed), on the default event loop.
+;;
+;; This procedure must (like the a-sync procedure) be called in the
+;; same thread as that in which the event loop runs.
+;;
+;; Exceptions may propagate out of this procedure if they arise while
+;; setting up (that is, before the first call to 'await' is made),
+;; which shouldn't happen unless memory is exhausted.  Subsequent
+;; exceptions (say, because of port errors) will propagate out of
+;; event-loop-run!.
+(define await-geteveryline!
+  (case-lambda
+    ((await resume port proc)
+     (await-geteveryline! await resume #f port proc))
+    ((await resume loop port proc)
+     (let ()
+       (define chunk-size 128)
+       (define text (make-string chunk-size))
+       (define text-len 0)
+       (define (reset)
+	 (set! text (make-string chunk-size))
+	 (set! text-len 0))
+       (define (append-char! ch)
+	 (when (and (= (modulo text-len chunk-size) 0)
+		    (> text-len 0))
+	   (let ((tmp text))
+	     (set! text (make-string (+ text-len chunk-size)))
+	     (string-copy! text 0 tmp)))
+	 (string-set! text text-len ch)
+	 (set! text-len (1+ text-len)))
+       (a-sync-read-watch! resume
+			   port
+			   (lambda (status)
+			     (if (eq? status 'excpt)
+				 #f
+				 (let next ()
+				   (let ((ch (read-char port)))
+				     (cond
+				      ((eof-object? ch)
+				       (if (= text-len 0)
+					   ch
+					   (let ((line (substring/shared text 0 text-len)))
+					     (reset)
+					     line)))
+				      ((char=? ch #\newline)
+				       (let ((line (substring/shared text 0 text-len)))
+					 (reset)
+					 line))
+				      (else
+				       (append-char! ch)
+				       (if (char-ready? port)
+					   (next)
+					   'more)))))))
+			   loop))
+     (let next ((res (await)))
+       (cond
+	((eq? res 'more)
+	 (next (await)))
+	((or (eof-object? res)
+	     (not res))
+	 (event-loop-remove-read-watch! port loop)
+	 res)
+	(else
+	 (proc res)
+	 (next (await))))))))
 
 ;; This is a convenience procedure for use with an event loop, which
 ;; will run 'proc' in the event loop thread whenever 'file' is ready

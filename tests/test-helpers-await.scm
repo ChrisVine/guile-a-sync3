@@ -103,7 +103,33 @@
   (force-output out)
   (event-loop-run! main-loop))
 
-;; Test 6: a-sync-write-watch!
+;; Test 6: await-geteveryline! (also tests a-sync-read-watch!)
+
+(let ()
+  (define test-pipe (pipe))
+  (define in (car test-pipe))
+  (define out (cdr test-pipe))
+  (define count 0)
+  (a-sync (lambda (await resume)
+	    (let ((res (await-geteveryline! await resume
+					    main-loop
+					    in
+					    (lambda (line)
+					      (set! count (1+ count))
+					      (when (= count 1)
+						(assert (string=? line "test-string1")))
+					      (when (= count 2)
+						(assert (string=? line "test-string2"))
+						(close out))))))
+	      (assert (eof-object? res))
+	      (test-result 2 count)
+	      (print-result))))
+  (write-line "test-string1" out)
+  (write-line "test-string2" out)
+  (force-output out)
+  (event-loop-run! main-loop))
+
+;; Test 7: a-sync-write-watch!
 
 (let ()
   (define test-pipe (pipe))
@@ -138,7 +164,7 @@
 	    (print-result)))
   (event-loop-run! main-loop))
 
-;; Test 7: compose-a-sync and no-await
+;; Test 8: compose-a-sync and no-await
 
 (compose-a-sync main-loop ((res (await-task-in-thread! (lambda ()
 							 (+ 5 10)))))
@@ -153,7 +179,7 @@
 (event-loop-block! #f main-loop)
 (set-default-event-loop! main-loop)
 
-;; Test 8: await-task!
+;; Test 9: await-task!
 
 (a-sync (lambda (await resume)
 	  (let ((res
@@ -164,7 +190,7 @@
 	    (print-result))))
 (event-loop-run!)
 
-;; Test 9: await-task-in-thread! without handler
+;; Test 10: await-task-in-thread! without handler
 
 ;; set a new default event loop
 (set-default-event-loop!)
@@ -181,7 +207,7 @@
 (event-loop-run!)
 (event-loop-block! #f)
   
-;; Test 10: await-task-in-thread! with handler
+;; Test 11: await-task-in-thread! with handler
 
 (a-sync (lambda (await resume)
 	  (let ((res
@@ -198,7 +224,7 @@
 (event-loop-run!)
 (event-loop-block! #f)
 
-;; Test 11: await-timeout!
+;; Test 12: await-timeout!
 
 (a-sync (lambda (await resume)
 	  (let ((res
@@ -209,7 +235,7 @@
 	    (print-result))))
 (event-loop-run!)
   
-;; Test 12: await-getline! (also tests a-sync-read-watch!)
+;; Test 13: await-getline! (also tests a-sync-read-watch!)
 
 (let ()
   (define test-pipe (pipe))
@@ -224,7 +250,32 @@
   (force-output out)
   (event-loop-run!))
 
-;; Test 13: a-sync-write-watch!
+;; Test 14: await-geteveryline! (also tests a-sync-read-watch!)
+
+(let ()
+  (define test-pipe (pipe))
+  (define in (car test-pipe))
+  (define out (cdr test-pipe))
+  (define count 0)
+  (a-sync (lambda (await resume)
+	    (let ((res (await-geteveryline! await resume
+					    in
+					    (lambda (line)
+					      (set! count (1+ count))
+					      (when (= count 1)
+						(assert (string=? line "test-string1")))
+					      (when (= count 2)
+					      	(assert (string=? line "test-string2"))
+						(close out))))))
+	      (assert (eof-object? res))
+	      (test-result 2 count)
+	      (print-result))))
+  (write-line "test-string1" out)
+  (write-line "test-string2" out)
+  (force-output out)
+  (event-loop-run!))
+
+;; Test 15: a-sync-write-watch!
 
 (let ()
   (define test-pipe (pipe))
@@ -258,7 +309,7 @@
 	    (print-result)))
   (event-loop-run!))
 
-;; Test 14: compose-a-sync and no-await
+;; Test 16: compose-a-sync and no-await
 
 (compose-a-sync ((res (await-task-in-thread! (lambda ()
 					       (+ 5 10)))))

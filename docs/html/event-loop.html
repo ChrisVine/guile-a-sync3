@@ -453,14 +453,18 @@ implementation of await-getline!:
 				 #f
 				 (let next ()
 				   (let ((ch (read-char port)))
-				     (if (or (eof-object? ch)
-					     (char=? ch #\newline))
-					 (substring/shared text 0 text-len)
-					 (begin
-					   (append-char! ch)
-					   (if (char-ready? port)
-					       (next)
-					       'more)))))))
+				     (cond
+				      ((eof-object? ch)
+				       (if (= text-len 0)
+					   ch
+					   (substring/shared text 0 text-len)))
+				      ((char=? ch #\newline)
+				       (substring/shared text 0 text-len))
+				      (else
+				       (append-char! ch)
+				       (if (char-ready? port)
+					   (next)
+					   'more)))))))
 			   loop))
      (let next ((res (await)))
        (if (eq? res 'more)
@@ -479,18 +483,23 @@ while waiting for input and will return the line of text received
 (without the terminating &rsquo;\n&rsquo; character).  The event loop will not be
 blocked by this procedure even if only individual characters are
 available at any one time.  It is intended to be called in a waitable
-procedure invoked by a-sync.  This procedure is implemented using
+procedure invoked by a-sync, and this procedure is implemented using
 a-sync-read-watch!.  If an exceptional condition (&rsquo;excpt) is
-encountered, #f will be returned.  The &rsquo;loop&rsquo; argument is optional:
-this procedure operates on the event loop passed in as an argument, or
-if none is passed (or #f is passed), on the default event loop.
+encountered, #f will be returned.  If an end-of-file object is
+encountered which terminates a line of text, a string containing the
+line of text will be returned (and from version 0.3, if an end-of-file
+object is encountered without any text, the end-of-file object is
+returned rather than an empty string).  The &rsquo;loop&rsquo; argument is
+optional: this procedure operates on the event loop passed in as an
+argument, or if none is passed (or #f is passed), on the default event
+loop.
 </p>
 <p>This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the event loop runs.
 </p>
 <p>Exceptions may propagate out of this procedure if they arise while
 setting up (that is, before the first call to &rsquo;await&rsquo; is made), which
-shouldn&rsquo;t happen if memory is not exhausted.  Subsequent exceptions
+shouldn&rsquo;t happen unless memory is exhausted.  Subsequent exceptions
 (say, because of port errors) will propagate out of event-loop-run!.
 </p>
 <p>Here is an example of the use of await-getline!:
@@ -502,6 +511,57 @@ shouldn&rsquo;t happen if memory is not exhausted.  Subsequent exceptions
 			 &quot;The line was: ~A\n&quot;
 			 (await-getline! await resume
 					 (open &quot;/dev/tty&quot; O_RDONLY)))))
+(event-loop-run!)
+</pre></div>
+</dd></dl>
+
+<dl>
+<dt><a name="index-await_002dgeteveryline_0021"></a>Scheme Procedure: <strong>await-geteveryline!</strong> <em>await resume [loop] port proc</em></dt>
+<dd><p>This is a convenience procedure for use with an event loop, which will
+start a read watch on &rsquo;port&rsquo; for lines of input.  It calls &rsquo;await&rsquo;
+while waiting for input and will apply &rsquo;proc&rsquo; to every complete line
+of text received (without the terminating &rsquo;\n&rsquo; character).  &rsquo;proc&rsquo;
+should be a procedure taking a string as its only argument.
+</p>
+<p>The event loop will not be blocked by this procedure even if only
+individual characters are available at any one time.  It is intended
+to be called in a waitable procedure invoked by a-sync, and this
+procedure is implemented using a-sync-read-watch!.  Unlike the
+await-getline! procedure, the watch will continue after a line of text
+has been received in order to receive further lines.  The watch will
+not end until end-of-file or an exceptional condition is reached.  In
+the event of that happening, this procedure will end and return an
+end-of-file object or #f respectively.  To finish before end-of-file
+or an exceptional condition, &rsquo;proc&rsquo; can invoke a call/ec escape
+continuation.
+</p>
+<p>The &rsquo;loop&rsquo; argument is optional: this procedure operates on the event
+loop passed in as an argument, or if none is passed (or #f is passed),
+on the default event loop.
+</p>
+<p>This procedure must (like the a-sync procedure) be called in the same
+thread as that in which the event loop runs.
+</p>
+<p>Exceptions may propagate out of this procedure if they arise while
+setting up (that is, before the first call to &rsquo;await&rsquo; is made), which
+shouldn&rsquo;t happen unless memory is exhausted.  Subsequent exceptions
+(say, because of port errors) will propagate out of event-loop-run!.
+</p>
+<p>Here is an example of the use of await-geteveryline!:
+</p><div class="example">
+<pre class="example">(set-default-event-loop!) ;; if none has yet been set
+(a-sync (lambda (await resume)
+	  (display &quot;Enter lines of text at the keyboard, enter empty line to finish\n&quot;)
+	  (call/ec (lambda (k)
+		     (await-geteveryline! await resume
+					  (open &quot;/dev/tty&quot; O_RDONLY)
+					  (lambda (line)
+					    (when (string=? line &quot;&quot;)
+					      (k #f))
+					    (simple-format #t
+							   &quot;The line was: ~A\n&quot;
+							   line)))))
+	  (event-loop-quit!)))
 (event-loop-run!)
 </pre></div>
 </dd></dl>

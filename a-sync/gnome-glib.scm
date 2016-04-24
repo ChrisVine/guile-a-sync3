@@ -167,8 +167,8 @@
 ;; (obtained from a call to a-sync) to the return value of 'proc'.
 ;; 'proc' should take two arguments, the first of which will be set by
 ;; glib to the g-io-channel object constructed for the watch and the
-;; second of which will be set to the GIOCondition ('in, 'pri, 'hup or
-;; 'err) provided by glib which caused the watch to activate.  It is
+;; second of which will be set to the GIOCondition ('in, 'hup or 'err)
+;; provided by glib which caused the watch to activate.  It is
 ;; intended to be called in a waitable procedure invoked by a-sync.
 ;; The watch is multi-shot - it is for the user to bring it to an end
 ;; at the right time by calling g-source-remove in the waitable
@@ -190,7 +190,7 @@
 ;; locally, it will propagate out of g-main-loop-run.
 (define (a-sync-glib-read-watch resume fd proc)
   (glib-add-watch (g-io-channel-unix-new fd)
-		  '(in pri hup err)
+		  '(in hup err)
 		  (lambda (a b)
 		    (resume (proc a b))
 		    #t)))
@@ -201,17 +201,20 @@
 ;; text received (without the terminating '\n' character).  The event
 ;; loop will not be blocked by this procedure even if only individual
 ;; characters are available at any one time.  It is intended to be
-;; called in a waitable procedure invoked by a-sync.  This procedure
-;; is implemented using a-sync-glib-read-watch.  If an exceptional
-;; condition ('pri) or an error ('err) is encountered, #f will be
-;; returned.
+;; called in a waitable procedure invoked by a-sync, and this
+;; procedure is implemented using a-sync-glib-read-watch.  If an
+;; end-of-file object is encountered which terminates a line of text,
+;; a string containing the line of text will be returned (and from
+;; version 0.3, if an end-of-file object is encountered without any
+;; text, the end-of-file object is returned rather than an empty
+;; string).
 ;;
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the default glib main loop runs.
 ;;
 ;; Exceptions may propagate out of this procedure if they arise while
 ;; setting up (that is, before the first call to 'await' is made),
-;; which shouldn't happen if memory is not exhausted.  Subsequent
+;; which shouldn't happen unless memory is exhausted.  Subsequent
 ;; exceptions (say, because of port errors) will propagate out of
 ;; g-main-loop-run.
 (define (await-glib-getline await resume port)
@@ -229,19 +232,27 @@
   (define id (a-sync-glib-read-watch resume
 				     (port->fdes port)
 				     (lambda (ioc status)
-				       (if (or (eq? status 'pri)
-					       (eq? status 'err))
-					   #f
-					   (let next ()
-					     (let ((ch (read-char port)))
-					       (if (or (eof-object? ch)
-						       (char=? ch #\newline))
-						   (substring/shared text 0 text-len)
-						   (begin
-						     (append-char! ch)
-						     (if (char-ready? port)
-							 (next)
-							 'more)))))))))
+				       ;; this doesn't work.  The wrapper does not seem to provide
+				       ;; any way of extracting GIOCondition enumeration values
+				       ;; which actually works.  However, 'err or 'pri should cause
+				       ;; a read of the port to return an eof-object
+				       ;; (if (or (eq? status 'pri)
+				       ;; 	  (eq? status 'err))
+				       ;;     #f
+				       (let next ()
+					 (let ((ch (read-char port)))
+					   (cond
+					    ((eof-object? ch)
+					     (if (= text-len 0)
+						 ch
+						 (substring/shared text 0 text-len)))
+					    ((char=? ch #\newline)
+					     (substring/shared text 0 text-len))
+					    (else
+					     (append-char! ch)
+					     (if (char-ready? port)
+						 (next)
+						 'more))))))))
   (let next ((res (await)))
     (if (eq? res 'more)
 	(next (await))
@@ -249,7 +260,7 @@
 	  (g-source-remove id)
 	  (release-port-handle port)
 	  res))))
-	
+
 ;; This is a convenience procedure for use with a glib main loop,
 ;; which will run 'proc' in the default glib main loop whenever the
 ;; file descriptor 'fd' is ready for writing, and apply resume

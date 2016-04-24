@@ -664,14 +664,18 @@ thread.
           				 #f
           				 (let next ()
           				   (let ((ch (read-char port)))
-          				     (if (or (eof-object? ch)
-          					     (char=? ch #\newline))
-          					 (substring/shared text 0 text-len)
-          					 (begin
-          					   (append-char! ch)
-          					   (if (char-ready? port)
-          					       (next)
-          					       'more)))))))
+          				     (cond
+          				      ((eof-object? ch)
+          				       (if (= text-len 0)
+          					   ch
+          					   (substring/shared text 0 text-len)))
+          				      ((char=? ch #\newline)
+          				       (substring/shared text 0 text-len))
+          				      (else
+          				       (append-char! ch)
+          				       (if (char-ready? port)
+          					   (next)
+          					   'more)))))))
           			   loop))
                (let next ((res (await)))
                  (if (eq? res 'more)
@@ -687,19 +691,23 @@ thread.
      received (without the terminating '\n' character).  The event loop
      will not be blocked by this procedure even if only individual
      characters are available at any one time.  It is intended to be
-     called in a waitable procedure invoked by a-sync.  This procedure
-     is implemented using a-sync-read-watch!.  If an exceptional
-     condition ('excpt) is encountered, #f will be returned.  The 'loop'
-     argument is optional: this procedure operates on the event loop
-     passed in as an argument, or if none is passed (or #f is passed),
-     on the default event loop.
+     called in a waitable procedure invoked by a-sync, and this
+     procedure is implemented using a-sync-read-watch!.  If an
+     exceptional condition ('excpt) is encountered, #f will be returned.
+     If an end-of-file object is encountered which terminates a line of
+     text, a string containing the line of text will be returned (and
+     from version 0.3, if an end-of-file object is encountered without
+     any text, the end-of-file object is returned rather than an empty
+     string).  The 'loop' argument is optional: this procedure operates
+     on the event loop passed in as an argument, or if none is passed
+     (or #f is passed), on the default event loop.
 
      This procedure must (like the a-sync procedure) be called in the
      same thread as that in which the event loop runs.
 
      Exceptions may propagate out of this procedure if they arise while
      setting up (that is, before the first call to 'await' is made),
-     which shouldn't happen if memory is not exhausted.  Subsequent
+     which shouldn't happen unless memory is exhausted.  Subsequent
      exceptions (say, because of port errors) will propagate out of
      event-loop-run!.
 
@@ -711,6 +719,55 @@ thread.
           			 "The line was: ~A\n"
           			 (await-getline! await resume
           					 (open "/dev/tty" O_RDONLY)))))
+          (event-loop-run!)
+
+ -- Scheme Procedure: await-geteveryline! await resume [loop] port proc
+     This is a convenience procedure for use with an event loop, which
+     will start a read watch on 'port' for lines of input.  It calls
+     'await' while waiting for input and will apply 'proc' to every
+     complete line of text received (without the terminating '\n'
+     character).  'proc' should be a procedure taking a string as its
+     only argument.
+
+     The event loop will not be blocked by this procedure even if only
+     individual characters are available at any one time.  It is
+     intended to be called in a waitable procedure invoked by a-sync,
+     and this procedure is implemented using a-sync-read-watch!.  Unlike
+     the await-getline!  procedure, the watch will continue after a line
+     of text has been received in order to receive further lines.  The
+     watch will not end until end-of-file or an exceptional condition is
+     reached.  In the event of that happening, this procedure will end
+     and return an end-of-file object or #f respectively.  To finish
+     before end-of-file or an exceptional condition, 'proc' can invoke a
+     call/ec escape continuation.
+
+     The 'loop' argument is optional: this procedure operates on the
+     event loop passed in as an argument, or if none is passed (or #f is
+     passed), on the default event loop.
+
+     This procedure must (like the a-sync procedure) be called in the
+     same thread as that in which the event loop runs.
+
+     Exceptions may propagate out of this procedure if they arise while
+     setting up (that is, before the first call to 'await' is made),
+     which shouldn't happen unless memory is exhausted.  Subsequent
+     exceptions (say, because of port errors) will propagate out of
+     event-loop-run!.
+
+     Here is an example of the use of await-geteveryline!:
+          (set-default-event-loop!) ;; if none has yet been set
+          (a-sync (lambda (await resume)
+          	  (display "Enter lines of text at the keyboard, enter empty line to finish\n")
+          	  (call/ec (lambda (k)
+          		     (await-geteveryline! await resume
+          					  (open "/dev/tty" O_RDONLY)
+          					  (lambda (line)
+          					    (when (string=? line "")
+          					      (k #f))
+          					    (simple-format #t
+          							   "The line was: ~A\n"
+          							   line)))))
+          	  (event-loop-quit!)))
           (event-loop-run!)
 
  -- Scheme Procedure: a-sync-write-watch! resume file proc [loop]
@@ -918,8 +975,8 @@ module, so as not to create a hard dependency on guile-gnome.
      (obtained from a call to a-sync) to the return value of 'proc'.
      'proc' should take two arguments, the first of which will be set by
      glib to the g-io-channel object constructed for the watch and the
-     second of which will be set to the GIOCondition ('in, 'pri, 'hup or
-     'err) provided by glib which caused the watch to activate.  It is
+     second of which will be set to the GIOCondition ('in, 'hup or 'err)
+     provided by glib which caused the watch to activate.  It is
      intended to be called in a waitable procedure invoked by a-sync.
      The watch is multi-shot - it is for the user to bring it to an end
      at the right time by calling g-source-remove in the waitable
@@ -957,19 +1014,20 @@ module, so as not to create a hard dependency on guile-gnome.
             (define id (a-sync-glib-read-watch resume
           				     (port->fdes port)
           				     (lambda (ioc status)
-          				       (if (or (eq? status 'pri)
-          					       (eq? status 'err))
-          					   #f
-          					   (let next ()
-          					     (let ((ch (read-char port)))
-          					       (if (or (eof-object? ch)
-          						       (char=? ch #\newline))
-          						   (substring/shared text 0 text-len)
-          						   (begin
-          						     (append-char! ch)
-          						     (if (char-ready? port)
-          							 (next)
-          							 'more)))))))))
+          				       (let next ()
+          					 (let ((ch (read-char port)))
+          					   (cond
+          					    ((eof-object? ch)
+          					     (if (= text-len 0)
+          						 ch
+          						 (substring/shared text 0 text-len)))
+          					    ((char=? ch #\newline)
+          					     (substring/shared text 0 text-len))
+          					    (else
+          					     (append-char! ch)
+          					     (if (char-ready? port)
+          						 (next)
+          						 'more))))))))
             (let next ((res (await)))
               (if (eq? res 'more)
           	(next (await))
@@ -985,17 +1043,20 @@ module, so as not to create a hard dependency on guile-gnome.
      text received (without the terminating '\n' character).  The event
      loop will not be blocked by this procedure even if only individual
      characters are available at any one time.  It is intended to be
-     called in a waitable procedure invoked by a-sync.  This procedure
-     is implemented using a-sync-glib-read-watch.  If an exceptional
-     condition ('pri) or an error ('err) is encountered, #f will be
-     returned.
+     called in a waitable procedure invoked by a-sync, and this
+     procedure is implemented using a-sync-glib-read-watch.  If an
+     end-of-file object is encountered which terminates a line of text,
+     a string containing the line of text will be returned (and from
+     version 0.3, if an end-of-file object is encountered without any
+     text, the end-of-file object is returned rather than an empty
+     string).
 
      This procedure must (like the a-sync procedure) be called in the
      same thread as that in which the default glib main loop runs.
 
      Exceptions may propagate out of this procedure if they arise while
      setting up (that is, before the first call to 'await' is made),
-     which shouldn't happen if memory is not exhausted.  Subsequent
+     which shouldn't happen unless memory is exhausted.  Subsequent
      exceptions (say, because of port errors) will propagate out of
      g-main-loop-run.
 
@@ -1161,8 +1222,8 @@ Tag Table:
 Node: Top85
 Node: coroutines1099
 Node: event loop14941
-Node: monotonic time39259
-Node: gnome glib40693
-Node: compose54269
+Node: monotonic time42148
+Node: gnome glib43582
+Node: compose57361
 
 End Tag Table
