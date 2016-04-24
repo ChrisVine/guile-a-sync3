@@ -123,7 +123,8 @@ in the thread which calls this procedure.  If this procedure has
 returned, including after a call to event-loop-quit!, this procedure
 may be called again to restart the event loop.  If a callback throws,
 or something else throws in the implementation, then this procedure
-will return and it will be as if event-loop-quit! had been called.
+will clean up the event loop as if event-loop-quit! had been called,
+and the exception will be rethrown out of this procedure.
 </p></dd></dl>
 
 <dl>
@@ -149,6 +150,11 @@ indicating whether a read can be made without blocking (but on a
 buffered port, for efficiency purposes each read operation in response
 to this watch should usually exhaust the buffer by looping on
 char-ready?).
+</p>
+<p>This procedure should not throw an exception unless memory is
+exhausted.  If &rsquo;proc&rsquo; throws, say because of port errors, and the
+exception is not caught locally, it will propagate out of
+event-loop-run!.
 </p></dd></dl>
 
 <dl>
@@ -176,6 +182,11 @@ garbage collection purposes - it must remain valid while operations
 are carried out on the descriptor.  If &rsquo;file&rsquo; is a buffered port,
 buffering will be taken into account in indicating whether a write can
 be made without blocking.
+</p>
+<p>This procedure should not throw an exception unless memory is
+exhausted.  If &rsquo;proc&rsquo; throws, say because of port errors, and the
+exception is not caught locally, it will propagate out of
+event-loop-run!.
 </p></dd></dl>
 
 <dl>
@@ -211,6 +222,10 @@ callback will execute in the event loop thread.  Actions execute in
 the order in which they were posted.  If an event is posted from a
 worker thread, it will normally be necessary to call event-loop-block!
 beforehand.
+</p>
+<p>This procedure should not throw an exception unless memory is
+exhausted.  If the &rsquo;action&rsquo; callback throws, and the exception is not
+caught locally, it will propagate out of event-loop-run!.
 </p></dd></dl>
 
 <dl>
@@ -223,6 +238,10 @@ timeout-remove! is called.  The passed-in callback must be a thunk.
 This procedure returns a tag symbol to which timeout-remove! can be
 applied.  It may be called by any thread, and the timeout callback
 will execute in the event loop thread.
+</p>
+<p>This procedure should not throw an exception unless memory is
+exhausted.  If the &rsquo;action&rsquo; callback throws, and the exception is not
+caught locally, it will propagate out of event-loop-run!.
 </p></dd></dl>
 
 
@@ -279,15 +298,21 @@ in the event loop thread if &rsquo;thunk&rsquo; throws and the return value of t
 handler would become the return value of this procedure; otherwise the
 program will terminate if an unhandled exception propagates out of
 &rsquo;thunk&rsquo;.  &rsquo;handler&rsquo; should take the same arguments as a guile catch
-handler (this is implemented using catch).  If &rsquo;handler&rsquo; throws, the
-exception will propagate out of event-loop-run!.
+handler (this is implemented using catch).
 </p>
 <p>This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the event loop runs, where the result of
 calling &rsquo;thunk&rsquo; will be received.  As mentioned above, the thunk
 itself will run in its own thread.
 </p>
-<p>Here is an example:
+<p>Exceptions may propagate out of this procedure if they arise while
+setting up (that is, before the worker thread starts), which shouldn&rsquo;t
+happen unless memory is exhausted or pthread has run out of resources.
+Exceptions arising during execution of the task, if not caught by a
+handler procedure, will terminate the program.  Exceptions thrown by
+the handler procedure will propagate out of event-loop-run!.
+</p>
+<p>Here is an example of the use of await-task-in-thread!:
 </p><div class="example">
 <pre class="example">(set-default-event-loop!) ;; if none has yet been set
 (a-sync (lambda (await resume)
@@ -314,13 +339,20 @@ means that (unlike with await-task-in-thread!) while &rsquo;thunk&rsquo; is
 running other events in the event loop will not make progress.  This
 is not particularly useful except, say, when called by the event loop
 thread for the purpose of bringing the event loop to an end at its own
-place in the event queue, or for composing results with compose-a-sync
-(see the <a href="compose.html#compose">compose</a> module).
+place in the event queue, or for co-operative multi-tasking, say by
+composing tasks with compose-a-sync (see the <a href="compose.html#compose">compose</a>
+module).
 </p>
 <p>This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the event loop runs.
 </p>
-<p>Here is an example:
+<p>Exceptions may propagate out of this procedure if they arise while
+setting up (that is, before the task starts), which shouldn&rsquo;t happen
+unless memory is exhausted.  Exceptions arising during execution of
+the task, if not caught locally, will propagate out of
+event-loop-run!.
+</p>
+<p>Here is an example of the use of await-task!:
 </p><div class="example">
 <pre class="example">(set-default-event-loop!) ;; if none has yet been set
 (a-sync (lambda (await resume)
@@ -347,7 +379,12 @@ the default event loop.
 <p>This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the event loop runs.
 </p>
-<p>Here is an example:
+<p>Exceptions may propagate out of this procedure if they arise while
+setting up (that is, before the first call to &rsquo;await&rsquo; is made), which
+shouldn&rsquo;t happen unless memory is exhausted.  Exceptions thrown by
+&rsquo;thunk&rsquo;, if not caught locally, will propagate out of event-loop-run!.
+</p>
+<p>Here is an example of the use of event-timeout!:
 </p><div class="example">
 <pre class="example">(set-default-event-loop!) ;; if none has yet been set
 (a-sync (lambda (await resume)
@@ -383,6 +420,11 @@ none is passed (or #f is passed), on the default event loop
 <p>Because this procedure takes a &rsquo;resume&rsquo; argument derived from the
 a-sync procedure, it must (like the a-sync procedure) in practice be
 called in the same thread as that in which the event loop runs.
+</p>
+<p>This procedure should not throw an exception unless memory is
+exhausted.  If &rsquo;proc&rsquo; throws, say because of port errors, and the
+exception is not caught locally, it will propagate out of
+event-loop-run!.
 </p>
 <p>As an example of how to use a-sync-read-watch!, here is the
 implementation of await-getline!:
@@ -446,7 +488,12 @@ if none is passed (or #f is passed), on the default event loop.
 <p>This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the event loop runs.
 </p>
-<p>Here is an example:
+<p>Exceptions may propagate out of this procedure if they arise while
+setting up (that is, before the first call to &rsquo;await&rsquo; is made), which
+shouldn&rsquo;t happen if memory is not exhausted.  Subsequent exceptions
+(say, because of port errors) will propagate out of event-loop-run!.
+</p>
+<p>Here is an example of the use of await-getline!:
 </p><div class="example">
 <pre class="example">(set-default-event-loop!) ;; if none has yet been set
 (a-sync (lambda (await resume)
@@ -481,6 +528,11 @@ the default event loop
 <p>Because this procedure takes a &rsquo;resume&rsquo; argument derived from the
 a-sync procedure, it must (like the a-sync procedure) in practice be
 called in the same thread as that in which the event loop runs.
+</p>
+<p>This procedure should not throw an exception unless memory is
+exhausted.  If &rsquo;proc&rsquo; throws, say because of port errors, and the
+exception is not caught locally, it will propagate out of
+event-loop-run!.
 </p></dd></dl>
 
 <p>The (async event-loop) module also loads the <a href="monotonic-time.html#monotonic-time">(a-sync monotonic-time)</a> module.

@@ -60,13 +60,20 @@
 ;; this procedure; otherwise the program will terminate if an
 ;; unhandled exception propagates out of 'thunk'.  'handler' should
 ;; take the same arguments as a guile catch handler (this is
-;; implemented using catch).  If 'handler' throws, the exception will
-;; propagate out of g-mail-loop-run.
+;; implemented using catch).
 ;;
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the default glib main loop runs, where
 ;; the result of calling 'thunk' will be received.  As mentioned
 ;; above, the thunk itself will run in its own thread.
+;;
+;; Exceptions may propagate out of this procedure if they arise while
+;; setting up (that is, before the worker thread starts), which
+;; shouldn't happen unless memory is exhausted or pthread has run out
+;; of resources.  Exceptions arising during execution of the task, if
+;; not caught by a handler procedure, will terminate the program.
+;; Exceptions thrown by the handler procedure will propagate out of
+;; g-main-loop-run.
 (define* (await-glib-task-in-thread await resume thunk #:optional handler)
   (if handler
       (call-with-new-thread
@@ -99,11 +106,17 @@
 ;; running other events in the main loop will not make progress.  This
 ;; is not particularly useful except, say, when called by the main
 ;; loop thread for the purpose of bringing the loop to an end at its
-;; own place in the event queue, or for composing results with
-;; compose-a-sync (see compose.scm).
+;; own place in the event queue, or for co-operative multi-tasking,
+;; say by composing tasks with compose-a-sync (see compose.scm).
 ;;
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the default glib main loop runs.
+;;
+;; Exceptions may propagate out of this procedure if they arise while
+;; setting up (that is, before the task starts), which shouldn't
+;; happen unless memory is exhausted.  Exceptions arising during
+;; execution of the task, if not caught locally, will propagate out of
+;; g-main-loop-run.
 (define (await-glib-task await resume thunk)
   (g-idle-add (lambda ()
 		(resume (thunk))
@@ -120,6 +133,12 @@
 ;;
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the default glib main loop runs.
+;;
+;; Exceptions may propagate out of this procedure if they arise while
+;; setting up (that is, before the first call to 'await' is made),
+;; which shouldn't happen unless memory is exhausted.  Exceptions
+;; thrown by 'thunk', if not caught locally, will propagate out of
+;; g-main-loop-run.
 (define (await-glib-timeout await resume msecs thunk)
   (g-timeout-add msecs
 		 (lambda ()
@@ -164,6 +183,11 @@
 ;; a-sync procedure, it must (like the a-sync procedure) in practice
 ;; be called in the same thread as that in which the default glib main
 ;; loop runs.
+;;
+;; This procedure should not throw an exception unless memory is
+;; exhausted, or guile-glib throws for some other reason.  If 'proc'
+;; throws, say because of port errors, and the exception is not caught
+;; locally, it will propagate out of g-main-loop-run.
 (define (a-sync-glib-read-watch resume fd proc)
   (glib-add-watch (g-io-channel-unix-new fd)
 		  '(in pri hup err)
@@ -184,6 +208,12 @@
 ;;
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the default glib main loop runs.
+;;
+;; Exceptions may propagate out of this procedure if they arise while
+;; setting up (that is, before the first call to 'await' is made),
+;; which shouldn't happen if memory is not exhausted.  Subsequent
+;; exceptions (say, because of port errors) will propagate out of
+;; g-main-loop-run.
 (define (await-glib-getline await resume port)
   (define chunk-size 128)
   (define text (make-string chunk-size))
@@ -241,6 +271,11 @@
 ;; a-sync procedure, it must (like the a-sync procedure) in practice
 ;; be called in the same thread as that in which the default glib main
 ;; loop runs.
+;;
+;; This procedure should not throw an exception unless memory is
+;; exhausted, or guile-glib throws for some other reason.  If 'proc'
+;; throws, say because of port errors, and the exception is not caught
+;; locally, it will propagate out of g-main-loop-run.
 (define (a-sync-glib-write-watch resume fd proc)
   (glib-add-watch (g-io-channel-unix-new fd)
 		  '(out err)

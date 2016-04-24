@@ -110,6 +110,10 @@
 ;; its body.  When used as an initializer, it evaluates to the value
 ;; of the last expression in the 'no-await' body.  See the example.scm
 ;; file with the distribution for further particulars.
+;;
+;; If the body throws an exception which is not caught locally, it
+;; will propagate out of event-loop-run! or g-main-loop-run, as the
+;; case may be.
 (define-syntax no-await
   (syntax-rules ()
     ((_ body0 body1 ...)

@@ -107,6 +107,12 @@ compose-a-sync, either for use as an initializer or as a clause in its
 body.  When used as an initializer, it evaluates to the value of the
 last expression in the 'no-await' body.
 
+If the body throws an exception which is not caught locally, it will
+propagate out of event-loop-run! or g-main-loop-run, as the case may
+be.
+
+Here is an example of the use of no-await:
+
 @example
 (var ((no-await (+ a b))))
 @end example

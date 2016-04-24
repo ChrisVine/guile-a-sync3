@@ -90,18 +90,23 @@ throws and its return value will be the return value of this
 procedure; otherwise the program will terminate if an unhandled
 exception propagates out of &rsquo;thunk&rsquo;.  &rsquo;handler&rsquo; should take the same
 arguments as a guile catch handler (this is implemented using catch).
-If &rsquo;handler&rsquo; throws, the exception will propagate out of
-g-mail-loop-run.
 </p>
 <p>This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the default glib main loop runs, where the
 result of calling &rsquo;thunk&rsquo; will be received.  As mentioned above, the
 thunk itself will run in its own thread.
 </p>
+<p>Exceptions may propagate out of this procedure if they arise while
+setting up (that is, before the worker thread starts), which shouldn&rsquo;t
+happen unless memory is exhausted or pthread has run out of resources.
+Exceptions arising during execution of the task, if not caught by a
+handler procedure, will terminate the program.  Exceptions thrown by
+the handler procedure will propagate out of g-main-loop-run.
+</p>
 <p>This procedure uses g-idle-add: see the introductory remarks about
 that.
 </p>
-<p>Here is an example:
+<p>Here is an example of the use of await-glib-task-in-thread:
 </p><div class="example">
 <pre class="example">(define main-loop (g-main-loop-new #f #f))
 (a-sync (lambda (await resume)
@@ -125,16 +130,22 @@ await-glib-task-in-thread) while &rsquo;thunk&rsquo; is running other events in
 the main loop will not make progress.  This is not particularly useful
 except, say, when called by the main loop thread for the purpose of
 bringing the loop to an end at its own place in the event queue, or
-for composing results with compose-a-sync (see the
-<a href="compose.html#compose">compose</a> module).
+for co-operative multi-tasking, say by composing tasks with
+compose-a-sync (see the <a href="compose.html#compose">(a-sync compose)</a> module).
 </p>
 <p>This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the default glib main loop runs.
 </p>
+<p>Exceptions may propagate out of this procedure if they arise while
+setting up (that is, before the task starts), which shouldn&rsquo;t happen
+unless memory is exhausted.  Exceptions arising during execution of
+the task, if not caught locally, will propagate out of
+g-main-loop-run.
+</p>
 <p>This procedure uses g-idle-add: see the introductory remarks about
 that.
 </p>
-<p>Here is an example:
+<p>Here is an example of the use of await-glib-task:
 </p><div class="example">
 <pre class="example">(define main-loop (g-main-loop-new #f #f))
 (a-sync (lambda (await resume)
@@ -160,7 +171,12 @@ the event loop.
 <p>This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the default glib main loop runs.
 </p>
-<p>Here is an example:
+<p>Exceptions may propagate out of this procedure if they arise while
+setting up (that is, before the first call to &rsquo;await&rsquo; is made), which
+shouldn&rsquo;t happen unless memory is exhausted.  Exceptions thrown by
+&rsquo;thunk&rsquo;, if not caught locally, will propagate out of g-main-loop-run.
+</p>
+<p>Here is an example of the use of await-glib-timeout:
 </p><div class="example">
 <pre class="example">(define main-loop (g-main-loop-new #f #f))
 (a-sync (lambda (await resume)
@@ -208,6 +224,11 @@ constructed, such as the await-glib-getline procedure.
 a-sync procedure, it must (like the a-sync procedure) in practice be
 called in the same thread as that in which the default glib main loop
 runs.
+</p>
+<p>This procedure should not throw an exception unless memory is
+exhausted, or guile-glib throws for some other reason.  If &rsquo;proc&rsquo;
+throws, say because of port errors, and the exception is not caught
+locally, it will propagate out of g-main-loop-run.
 </p>
 <p>As an example of how to use a-sync-glib-read-watch, here is the
 implementation of await-glib-getline:
@@ -265,7 +286,12 @@ implemented using a-sync-glib-read-watch.  If an exceptional condition
 <p>This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the default glib main loop runs.
 </p>
-<p>Here is an example:
+<p>Exceptions may propagate out of this procedure if they arise while
+setting up (that is, before the first call to &rsquo;await&rsquo; is made), which
+shouldn&rsquo;t happen if memory is not exhausted.  Subsequent exceptions
+(say, because of port errors) will propagate out of g-main-loop-run.
+</p>
+<p>Here is an example of the use of await-glib-getline:
 </p><div class="example">
 <pre class="example">(define main-loop (g-main-loop-new #f #f))
 (a-sync (lambda (await resume)
@@ -302,6 +328,11 @@ constructed.
 a-sync procedure, it must (like the a-sync procedure) in practice be
 called in the same thread as that in which the default glib main loop
 runs.
+</p>
+<p>This procedure should not throw an exception unless memory is
+exhausted, or guile-glib throws for some other reason.  If &rsquo;proc&rsquo;
+throws, say because of port errors, and the exception is not caught
+locally, it will propagate out of g-main-loop-run.
 </p></dd></dl>
 <hr>
 <div class="header">

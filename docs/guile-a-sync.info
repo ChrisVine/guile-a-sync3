@@ -359,8 +359,9 @@ thread.
      this procedure has returned, including after a call to
      event-loop-quit!, this procedure may be called again to restart the
      event loop.  If a callback throws, or something else throws in the
-     implementation, then this procedure will return and it will be as
-     if event-loop-quit!  had been called.
+     implementation, then this procedure will clean up the event loop as
+     if event-loop-quit!  had been called, and the exception will be
+     rethrown out of this procedure.
 
  -- Scheme Procedure: event-loop-add-read-watch! file proc [loop]
      The 'loop' (event loop) argument is optional.  This procedure will
@@ -384,6 +385,11 @@ thread.
      can be made without blocking (but on a buffered port, for
      efficiency purposes each read operation in response to this watch
      should usually exhaust the buffer by looping on char-ready?).
+
+     This procedure should not throw an exception unless memory is
+     exhausted.  If 'proc' throws, say because of port errors, and the
+     exception is not caught locally, it will propagate out of
+     event-loop-run!.
 
  -- Scheme Procedure: event-loop-add-write-watch! file proc [loop]
      The 'loop' (event loop) argument is optional.  This procedure will
@@ -410,6 +416,11 @@ thread.
      are carried out on the descriptor.  If 'file' is a buffered port,
      buffering will be taken into account in indicating whether a write
      can be made without blocking.
+
+     This procedure should not throw an exception unless memory is
+     exhausted.  If 'proc' throws, say because of port errors, and the
+     exception is not caught locally, it will propagate out of
+     event-loop-run!.
 
  -- Scheme Procedure: event-loop-remove-read-watch! file [loop]
      The 'loop' (event loop) argument is optional.  This procedure will
@@ -440,6 +451,10 @@ thread.
      posted from a worker thread, it will normally be necessary to call
      event-loop-block!  beforehand.
 
+     This procedure should not throw an exception unless memory is
+     exhausted.  If the 'action' callback throws, and the exception is
+     not caught locally, it will propagate out of event-loop-run!.
+
  -- Scheme Procedure: timeout-post! msecs action [loop]
      The 'loop' (event loop) argument is optional.  This procedure adds
      a timeout to the event loop passed in as an argument, or if none is
@@ -449,6 +464,10 @@ thread.
      thunk.  This procedure returns a tag symbol to which
      timeout-remove!  can be applied.  It may be called by any thread,
      and the timeout callback will execute in the event loop thread.
+
+     This procedure should not throw an exception unless memory is
+     exhausted.  If the 'action' callback throws, and the exception is
+     not caught locally, it will propagate out of event-loop-run!.
 
  -- Scheme Procedure: timeout-remove! tag [loop]
      The 'loop' (event loop) argument is optional.  This procedure stops
@@ -499,15 +518,22 @@ thread.
      value of this procedure; otherwise the program will terminate if an
      unhandled exception propagates out of 'thunk'.  'handler' should
      take the same arguments as a guile catch handler (this is
-     implemented using catch).  If 'handler' throws, the exception will
-     propagate out of event-loop-run!.
+     implemented using catch).
 
      This procedure must (like the a-sync procedure) be called in the
      same thread as that in which the event loop runs, where the result
      of calling 'thunk' will be received.  As mentioned above, the thunk
      itself will run in its own thread.
 
-     Here is an example:
+     Exceptions may propagate out of this procedure if they arise while
+     setting up (that is, before the worker thread starts), which
+     shouldn't happen unless memory is exhausted or pthread has run out
+     of resources.  Exceptions arising during execution of the task, if
+     not caught by a handler procedure, will terminate the program.
+     Exceptions thrown by the handler procedure will propagate out of
+     event-loop-run!.
+
+     Here is an example of the use of await-task-in-thread!:
           (set-default-event-loop!) ;; if none has yet been set
           (a-sync (lambda (await resume)
           	  (simple-format #t "1 + 1 is ~A\n"
@@ -531,13 +557,20 @@ thread.
      the event loop will not make progress.  This is not particularly
      useful except, say, when called by the event loop thread for the
      purpose of bringing the event loop to an end at its own place in
-     the event queue, or for composing results with compose-a-sync (see
-     the *note compose: compose. module).
+     the event queue, or for co-operative multi-tasking, say by
+     composing tasks with compose-a-sync (see the *note compose:
+     compose. module).
 
      This procedure must (like the a-sync procedure) be called in the
      same thread as that in which the event loop runs.
 
-     Here is an example:
+     Exceptions may propagate out of this procedure if they arise while
+     setting up (that is, before the task starts), which shouldn't
+     happen unless memory is exhausted.  Exceptions arising during
+     execution of the task, if not caught locally, will propagate out of
+     event-loop-run!.
+
+     Here is an example of the use of await-task!:
           (set-default-event-loop!) ;; if none has yet been set
           (a-sync (lambda (await resume)
           	  (simple-format #t "1 + 1 is ~A\n"
@@ -560,7 +593,13 @@ thread.
      This procedure must (like the a-sync procedure) be called in the
      same thread as that in which the event loop runs.
 
-     Here is an example:
+     Exceptions may propagate out of this procedure if they arise while
+     setting up (that is, before the first call to 'await' is made),
+     which shouldn't happen unless memory is exhausted.  Exceptions
+     thrown by 'thunk', if not caught locally, will propagate out of
+     event-loop-run!.
+
+     Here is an example of the use of event-timeout!:
           (set-default-event-loop!) ;; if none has yet been set
           (a-sync (lambda (await resume)
           	  (simple-format #t
@@ -593,6 +632,11 @@ thread.
      Because this procedure takes a 'resume' argument derived from the
      a-sync procedure, it must (like the a-sync procedure) in practice
      be called in the same thread as that in which the event loop runs.
+
+     This procedure should not throw an exception unless memory is
+     exhausted.  If 'proc' throws, say because of port errors, and the
+     exception is not caught locally, it will propagate out of
+     event-loop-run!.
 
      As an example of how to use a-sync-read-watch!, here is the
      implementation of await-getline!:
@@ -653,7 +697,13 @@ thread.
      This procedure must (like the a-sync procedure) be called in the
      same thread as that in which the event loop runs.
 
-     Here is an example:
+     Exceptions may propagate out of this procedure if they arise while
+     setting up (that is, before the first call to 'await' is made),
+     which shouldn't happen if memory is not exhausted.  Subsequent
+     exceptions (say, because of port errors) will propagate out of
+     event-loop-run!.
+
+     Here is an example of the use of await-getline!:
           (set-default-event-loop!) ;; if none has yet been set
           (a-sync (lambda (await resume)
           	  (display "Enter a line of text at the keyboard\n")
@@ -684,6 +734,11 @@ thread.
      Because this procedure takes a 'resume' argument derived from the
      a-sync procedure, it must (like the a-sync procedure) in practice
      be called in the same thread as that in which the event loop runs.
+
+     This procedure should not throw an exception unless memory is
+     exhausted.  If 'proc' throws, say because of port errors, and the
+     exception is not caught locally, it will propagate out of
+     event-loop-run!.
 
    The (async event-loop) module also loads the *note (a-sync
 monotonic-time): monotonic time. module.
@@ -753,18 +808,25 @@ module, so as not to create a hard dependency on guile-gnome.
      this procedure; otherwise the program will terminate if an
      unhandled exception propagates out of 'thunk'.  'handler' should
      take the same arguments as a guile catch handler (this is
-     implemented using catch).  If 'handler' throws, the exception will
-     propagate out of g-mail-loop-run.
+     implemented using catch).
 
      This procedure must (like the a-sync procedure) be called in the
      same thread as that in which the default glib main loop runs, where
      the result of calling 'thunk' will be received.  As mentioned
      above, the thunk itself will run in its own thread.
 
+     Exceptions may propagate out of this procedure if they arise while
+     setting up (that is, before the worker thread starts), which
+     shouldn't happen unless memory is exhausted or pthread has run out
+     of resources.  Exceptions arising during execution of the task, if
+     not caught by a handler procedure, will terminate the program.
+     Exceptions thrown by the handler procedure will propagate out of
+     g-main-loop-run.
+
      This procedure uses g-idle-add: see the introductory remarks about
      that.
 
-     Here is an example:
+     Here is an example of the use of await-glib-task-in-thread:
           (define main-loop (g-main-loop-new #f #f))
           (a-sync (lambda (await resume)
           	  (simple-format #t "1 + 1 is ~A\n"
@@ -784,16 +846,23 @@ module, so as not to create a hard dependency on guile-gnome.
      running other events in the main loop will not make progress.  This
      is not particularly useful except, say, when called by the main
      loop thread for the purpose of bringing the loop to an end at its
-     own place in the event queue, or for composing results with
-     compose-a-sync (see the *note compose: compose. module).
+     own place in the event queue, or for co-operative multi-tasking,
+     say by composing tasks with compose-a-sync (see the *note (a-sync
+     compose): compose. module).
 
      This procedure must (like the a-sync procedure) be called in the
      same thread as that in which the default glib main loop runs.
 
+     Exceptions may propagate out of this procedure if they arise while
+     setting up (that is, before the task starts), which shouldn't
+     happen unless memory is exhausted.  Exceptions arising during
+     execution of the task, if not caught locally, will propagate out of
+     g-main-loop-run.
+
      This procedure uses g-idle-add: see the introductory remarks about
      that.
 
-     Here is an example:
+     Here is an example of the use of await-glib-task:
           (define main-loop (g-main-loop-new #f #f))
           (a-sync (lambda (await resume)
           	  (simple-format #t "1 + 1 is ~A\n"
@@ -815,7 +884,13 @@ module, so as not to create a hard dependency on guile-gnome.
      This procedure must (like the a-sync procedure) be called in the
      same thread as that in which the default glib main loop runs.
 
-     Here is an example:
+     Exceptions may propagate out of this procedure if they arise while
+     setting up (that is, before the first call to 'await' is made),
+     which shouldn't happen unless memory is exhausted.  Exceptions
+     thrown by 'thunk', if not caught locally, will propagate out of
+     g-main-loop-run.
+
+     Here is an example of the use of await-glib-timeout:
           (define main-loop (g-main-loop-new #f #f))
           (a-sync (lambda (await resume)
           	  (simple-format #t
@@ -859,6 +934,11 @@ module, so as not to create a hard dependency on guile-gnome.
      a-sync procedure, it must (like the a-sync procedure) in practice
      be called in the same thread as that in which the default glib main
      loop runs.
+
+     This procedure should not throw an exception unless memory is
+     exhausted, or guile-glib throws for some other reason.  If 'proc'
+     throws, say because of port errors, and the exception is not caught
+     locally, it will propagate out of g-main-loop-run.
 
      As an example of how to use a-sync-glib-read-watch, here is the
      implementation of await-glib-getline:
@@ -913,7 +993,13 @@ module, so as not to create a hard dependency on guile-gnome.
      This procedure must (like the a-sync procedure) be called in the
      same thread as that in which the default glib main loop runs.
 
-     Here is an example:
+     Exceptions may propagate out of this procedure if they arise while
+     setting up (that is, before the first call to 'await' is made),
+     which shouldn't happen if memory is not exhausted.  Subsequent
+     exceptions (say, because of port errors) will propagate out of
+     g-main-loop-run.
+
+     Here is an example of the use of await-glib-getline:
           (define main-loop (g-main-loop-new #f #f))
           (a-sync (lambda (await resume)
                     (display "Enter a line of text at the keyboard\n")
@@ -946,6 +1032,11 @@ module, so as not to create a hard dependency on guile-gnome.
      a-sync procedure, it must (like the a-sync procedure) in practice
      be called in the same thread as that in which the default glib main
      loop runs.
+
+     This procedure should not throw an exception unless memory is
+     exhausted, or guile-glib throws for some other reason.  If 'proc'
+     throws, say because of port errors, and the exception is not caught
+     locally, it will propagate out of g-main-loop-run.
 
 
 File: guile-a-sync.info,  Node: compose,  Prev: gnome glib,  Up: Top
@@ -1056,6 +1147,12 @@ coroutines. module.
      its body.  When used as an initializer, it evaluates to the value
      of the last expression in the 'no-await' body.
 
+     If the body throws an exception which is not caught locally, it
+     will propagate out of event-loop-run!  or g-main-loop-run, as the
+     case may be.
+
+     Here is an example of the use of no-await:
+
           (var ((no-await (+ a b))))
 
 
@@ -1064,8 +1161,8 @@ Tag Table:
 Node: Top85
 Node: coroutines1099
 Node: event loop14941
-Node: monotonic time36462
-Node: gnome glib37896
-Node: compose49487
+Node: monotonic time39259
+Node: gnome glib40693
+Node: compose54269
 
 End Tag Table

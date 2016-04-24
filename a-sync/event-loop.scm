@@ -226,8 +226,9 @@
 ;; procedure has returned, including after a call to event-loop-quit!,
 ;; this procedure may be called again to restart the event loop.  If a
 ;; callback throws, or something else throws in the implementation,
-;; then this procedure will return and it will be as if
-;; event-loop-quit! had been called.
+;; then this procedure will clean up the event loop as if
+;; event-loop-quit! had been called, and the exception will be
+;; rethrown out of this procedure.
 (define* (event-loop-run! #:optional el)
   (let ((el (or el (get-default-event-loop))))
     (when (not el) 
@@ -400,6 +401,11 @@
 ;; can be made without blocking (but on a buffered port, for
 ;; efficiency purposes each read operation in response to this watch
 ;; should usually exhaust the buffer by looping on char-ready?).
+;;
+;; This procedure should not throw an exception unless memory is
+;; exhausted.  If 'proc' throws, say because of port errors, and the
+;; exception is not caught locally, it will propagate out of
+;; event-loop-run!.
 (define* (event-loop-add-read-watch! file proc #:optional el)
   (let ((el (or el (get-default-event-loop))))
     (when (not el) 
@@ -439,6 +445,11 @@
 ;; are carried out on the descriptor.  If 'file' is a buffered port,
 ;; buffering will be taken into account in indicating whether a write
 ;; can be made without blocking.
+;;
+;; This procedure should not throw an exception unless memory is
+;; exhausted.  If 'proc' throws, say because of port errors, and the
+;; exception is not caught locally, it will propagate out of
+;; event-loop-run!.
 (define* (event-loop-add-write-watch! file proc #:optional el)
   (let ((el (or el (get-default-event-loop))))
     (when (not el) 
@@ -493,6 +504,10 @@
 ;; execute in the order in which they were posted.  If an event is
 ;; posted from a worker thread, it will normally be necessary to call
 ;; event-loop-block! beforehand.
+;;
+;; This procedure should not throw an exception unless memory is
+;; exhausted.  If the 'action' callback throws, and the exception is
+;; not caught locally, it will propagate out of event-loop-run!.
 (define* (event-post! action #:optional el)
   (let ((el (or el (get-default-event-loop))))
     (when (not el) 
@@ -520,6 +535,10 @@
 ;; This procedure returns a tag symbol to which timeout-remove! can be
 ;; applied.  It may be called by any thread, and the timeout callback
 ;; will execute in the event loop thread.
+;;
+;; This procedure should not throw an exception unless memory is
+;; exhausted.  If the 'action' callback throws, and the exception is
+;; not caught locally, it will propagate out of event-loop-run!.
 (define* (timeout-post! msecs action #:optional el)
   (let ((el (or el (get-default-event-loop))))
     (when (not el) 
@@ -633,13 +652,20 @@
 ;; value of this procedure; otherwise the program will terminate if an
 ;; unhandled exception propagates out of 'thunk'.  'handler' should
 ;; take the same arguments as a guile catch handler (this is
-;; implemented using catch).  If 'handler' throws, the exception will
-;; propagate out of event-loop-run!.
+;; implemented using catch).
 ;;
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the event loop runs, where the result
 ;; of calling 'thunk' will be received.  As mentioned above, the thunk
 ;; itself will run in its own thread.
+;;
+;; Exceptions may propagate out of this procedure if they arise while
+;; setting up (that is, before the worker thread starts), which
+;; shouldn't happen unless memory is exhausted or pthread has run out
+;; of resources.  Exceptions arising during execution of the task, if
+;; not caught by a handler procedure, will terminate the program.
+;; Exceptions thrown by the handler procedure will propagate out of
+;; event-loop-run!.
 (define (await-task-in-thread! await resume . rest)
   (match rest
     [(_ _ _)
@@ -696,11 +722,17 @@
 ;; event loop will not make progress.  This is not particularly useful
 ;; except, say, when called by the event loop thread for the purpose
 ;; of bringing the event loop to an end at its own place in the event
-;; queue, or for composing results with compose-a-sync (see
-;; compose.scm).
+;; queue, or for co-operative multi-tasking, say by composing tasks
+;; with compose-a-sync (see compose.scm).
 ;;
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the event loop runs.
+;;
+;; Exceptions may propagate out of this procedure if they arise while
+;; setting up (that is, before the task starts), which shouldn't
+;; happen unless memory is exhausted.  Exceptions arising during
+;; execution of the task, if not caught locally, will propagate out of
+;; event-loop-run!.
 (define await-task!
   (case-lambda
     ((await resume thunk)
@@ -726,6 +758,12 @@
 ;;
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the event loop runs.
+;;
+;; Exceptions may propagate out of this procedure if they arise while
+;; setting up (that is, before the first call to 'await' is made),
+;; which shouldn't happen unless memory is exhausted.  Exceptions
+;; thrown by 'thunk', if not caught locally, will propagate out of
+;; event-loop-run!.
 (define await-timeout!
   (case-lambda
     ((await resume msecs thunk)
@@ -759,6 +797,11 @@
 ;; Because this procedure takes a 'resume' argument derived from the
 ;; a-sync procedure, it must (like the a-sync procedure) in practice
 ;; be called in the same thread as that in which the event loop runs.
+;;
+;; This procedure should not throw an exception unless memory is
+;; exhausted.  If 'proc' throws, say because of port errors, and the
+;; exception is not caught locally, it will propagate out of
+;; event-loop-run!.
 (define* (a-sync-read-watch! resume file proc #:optional loop)
   (event-loop-add-read-watch! file
 			      (lambda (status)
@@ -784,6 +827,12 @@
 ;;
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the event loop runs.
+;;
+;; Exceptions may propagate out of this procedure if they arise while
+;; setting up (that is, before the first call to 'await' is made),
+;; which shouldn't happen if memory is not exhausted.  Subsequent
+;; exceptions (say, because of port errors) will propagate out of
+;; event-loop-run!.
 (define await-getline!
    (case-lambda
     ((await resume port)
@@ -844,6 +893,11 @@
 ;; Because this procedure takes a 'resume' argument derived from the
 ;; a-sync procedure, it must (like the a-sync procedure) in practice
 ;; be called in the same thread as that in which the event loop runs.
+;;
+;; This procedure should not throw an exception unless memory is
+;; exhausted.  If 'proc' throws, say because of port errors, and the
+;; exception is not caught locally, it will propagate out of
+;; event-loop-run!.
 (define* (a-sync-write-watch! resume file proc #:optional loop)
   (event-loop-add-write-watch! file
 			       (lambda (status)
