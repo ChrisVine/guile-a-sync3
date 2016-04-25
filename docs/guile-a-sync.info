@@ -735,11 +735,10 @@ thread.
      and this procedure is implemented using a-sync-read-watch!.  Unlike
      the await-getline!  procedure, the watch will continue after a line
      of text has been received in order to receive further lines.  The
-     watch will not end until end-of-file or an exceptional condition is
-     reached.  In the event of that happening, this procedure will end
-     and return an end-of-file object or #f respectively.  To finish
-     before end-of-file or an exceptional condition, 'proc' can invoke a
-     call/ec escape continuation.
+     watch will not end until end-of-file or an exceptional condition
+     ('excpt) is reached.  In the event of that happening, this
+     procedure will end and return an end-of-file object or #f
+     respectively.
 
      The 'loop' argument is optional: this procedure operates on the
      event loop passed in as an argument, or if none is passed (or #f is
@@ -754,20 +753,18 @@ thread.
      exceptions (say, because of port errors) will propagate out of
      event-loop-run!.
 
-     Here is an example of the use of await-geteveryline!:
+     Here is an example of the use of await-geteveryline!  (because the
+     keyboard has no end-of-file, use Ctrl-C to exit this code snippet):
           (set-default-event-loop!) ;; if none has yet been set
           (a-sync (lambda (await resume)
-          	  (display "Enter lines of text at the keyboard, enter empty line to finish\n")
-          	  (call/ec (lambda (k)
-          		     (await-geteveryline! await resume
-          					  (open "/dev/tty" O_RDONLY)
-          					  (lambda (line)
-          					    (when (string=? line "")
-          					      (k #f))
-          					    (simple-format #t
-          							   "The line was: ~A\n"
-          							   line)))))
-          	  (event-loop-quit!)))
+          	  (display "Enter lines of text at the keyboard, ^C to finish\n")
+          	  (let ((port (open "/dev/tty" O_RDONLY)))
+          	    (await-geteveryline! await resume
+          				 port
+          				 (lambda (line)
+          				   (simple-format #t
+          						  "The line was: ~A\n"
+          						  line))))))
           (event-loop-run!)
 
  -- Scheme Procedure: a-sync-write-watch! resume file proc [loop]
@@ -1222,8 +1219,8 @@ Tag Table:
 Node: Top85
 Node: coroutines1099
 Node: event loop14941
-Node: monotonic time42148
-Node: gnome glib43582
-Node: compose57361
+Node: monotonic time41996
+Node: gnome glib43430
+Node: compose57209
 
 End Tag Table

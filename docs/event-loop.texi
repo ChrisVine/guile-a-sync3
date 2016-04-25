@@ -455,11 +455,9 @@ to be called in a waitable procedure invoked by a-sync, and this
 procedure is implemented using a-sync-read-watch!.  Unlike the
 await-getline! procedure, the watch will continue after a line of text
 has been received in order to receive further lines.  The watch will
-not end until end-of-file or an exceptional condition is reached.  In
-the event of that happening, this procedure will end and return an
-end-of-file object or #f respectively.  To finish before end-of-file
-or an exceptional condition, 'proc' can invoke a call/ec escape
-continuation.
+not end until end-of-file or an exceptional condition ('excpt) is
+reached.  In the event of that happening, this procedure will end and
+return an end-of-file object or #f respectively.
 
 The 'loop' argument is optional: this procedure operates on the event
 loop passed in as an argument, or if none is passed (or #f is passed),
@@ -473,21 +471,19 @@ setting up (that is, before the first call to 'await' is made), which
 shouldn't happen unless memory is exhausted.  Subsequent exceptions
 (say, because of port errors) will propagate out of event-loop-run!.
 
-Here is an example of the use of await-geteveryline!:
+Here is an example of the use of await-geteveryline! (because the
+keyboard has no end-of-file, use Ctrl-C to exit this code snippet):
 @example
 (set-default-event-loop!) ;; if none has yet been set
 (a-sync (lambda (await resume)
-	  (display "Enter lines of text at the keyboard, enter empty line to finish\n")
-	  (call/ec (lambda (k)
-		     (await-geteveryline! await resume
-					  (open "/dev/tty" O_RDONLY)
-					  (lambda (line)
-					    (when (string=? line "")
-					      (k #f))
-					    (simple-format #t
-							   "The line was: ~A\n"
-							   line)))))
-	  (event-loop-quit!)))
+	  (display "Enter lines of text at the keyboard, ^C to finish\n")
+	  (let ((port (open "/dev/tty" O_RDONLY)))
+	    (await-geteveryline! await resume
+				 port
+				 (lambda (line)
+				   (simple-format #t
+						  "The line was: ~A\n"
+						  line))))))
 (event-loop-run!)
 @end example
 @end deffn

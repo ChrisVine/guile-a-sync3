@@ -898,11 +898,10 @@
 ;; This procedure is implemented using a-sync-read-watch!.  Unlike the
 ;; await-getline! procedure, the watch will continue after a line of
 ;; text has been received in order to receive further lines.  The
-;; watch will not end until end-of-file or an exceptional condition is
-;; reached.  In the event of that happening, this procedure will end
-;; and return an end-of-file object or #f respectively.  To finish
-;; before end-of-file or an exceptional condition, 'proc' can invoke a
-;; call/ec escape continuation.
+;; watch will not end until end-of-file or an exceptional condition
+;; ('excpt) is reached.  In the event of that happening, this
+;; procedure will end and return an end-of-file object or #f
+;; respectively.
 ;;
 ;; The 'loop' argument is optional: this procedure operates on the
 ;; event loop passed in as an argument, or if none is passed (or #f is
