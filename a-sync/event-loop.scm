@@ -959,17 +959,29 @@
 					   (next)
 					   'more)))))))
 			   loop))
-     (let next ((res (await)))
-       (cond
-	((eq? res 'more)
-	 (next (await)))
-	((or (eof-object? res)
-	     (not res))
-	 (event-loop-remove-read-watch! port loop)
-	 res)
-	(else
-	 (proc res)
-	 (next (await))))))))
+     ;; exceptions thrown from the remainder of this procedure (and in
+     ;; particular from 'proc') will in the first instance be thrown
+     ;; out of this procedure, before being thrown out of
+     ;; event-loop-run! on coming out of the a-sync block.  This catch
+     ;; block ensures that the watch is removed even if the user has
+     ;; her own exception handler within the a-sync block which covers
+     ;; this procedure.
+     (catch #t
+	    (lambda ()
+	      (let next ((res (await)))
+		(cond
+		 ((eq? res 'more)
+		  (next (await)))
+		 ((or (eof-object? res)
+		      (not res))
+		  (event-loop-remove-read-watch! port loop)
+		  res)
+		 (else
+		  (proc res)
+		  (next (await))))))
+	    (lambda args
+	      (event-loop-remove-read-watch! port loop)
+	      (apply throw args))))))
 
 ;; This is a convenience procedure for use with an event loop, which
 ;; will run 'proc' in the event loop thread whenever 'file' is ready
