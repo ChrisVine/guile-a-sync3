@@ -545,6 +545,8 @@ setting up (that is, before the first call to &rsquo;await&rsquo; is made), whic
 shouldn&rsquo;t happen unless memory is exhausted.  Subsequent exceptions
 (say, because of port errors) will propagate out of event-loop-run!.
 </p>
+<p>This procedure is available from version 0.3.
+</p>
 <p>Here is an example of the use of await-geteveryline! (because the
 keyboard has no end-of-file, use Ctrl-C to exit this code snippet):
 </p><div class="example">
@@ -555,6 +557,64 @@ keyboard has no end-of-file, use Ctrl-C to exit this code snippet):
 	    (await-geteveryline! await resume
 				 port
 				 (lambda (line)
+				   (simple-format #t
+						  &quot;The line was: ~A\n&quot;
+						  line))))))
+(event-loop-run!)
+</pre></div>
+</dd></dl>
+
+<dl>
+<dt><a name="index-await_002dgetsomelines_0021"></a>Scheme Procedure: <strong>await-getsomelines!</strong> <em>await resume [loop] port proc</em></dt>
+<dd><p>This is a convenience procedure for use with an event loop, which does
+the same as await-geteveryline!, except that it provides a second
+argument to &rsquo;proc&rsquo;, namely an escape continuation which can be invoked
+by &rsquo;proc&rsquo; to cause the procedure to return before end-of-file is
+reached.  Behavior is identical to await-geteveryline! if the
+continuation is not invoked.
+</p>
+<p>This procedure will start a read watch on &rsquo;port&rsquo; for lines of input.
+It calls &rsquo;await&rsquo; while waiting for input and will apply &rsquo;proc&rsquo; to any
+complete line of text received (without the terminating &rsquo;\n&rsquo;
+character).  &rsquo;proc&rsquo; should be a procedure taking two arguments, a
+string as the first argument containing the line of text read, and an
+escape continuation as its second.
+</p>
+<p>The event loop will not be blocked by this procedure even if only
+individual characters are available at any one time.  It is intended
+to be called in a waitable procedure invoked by a-sync.  This
+procedure is implemented using a-sync-read-watch!.  The watch will not
+end until end-of-file or an exceptional condition (&rsquo;excpt) is reached,
+which would cause this procedure to end and return an end-of-file
+object or #f respectively, or until the escape continuation is
+invoked, in which case the value passed to the escape continuation
+will be returned.
+</p>
+<p>The &rsquo;loop&rsquo; argument is optional: this procedure operates on the event
+loop passed in as an argument, or if none is passed (or #f is passed),
+on the default event loop.
+</p>
+<p>This procedure must (like the a-sync procedure) be called in the same
+thread as that in which the event loop runs.
+</p>
+<p>Exceptions may propagate out of this procedure if they arise while
+setting up (that is, before the first call to &rsquo;await&rsquo; is made), which
+shouldn&rsquo;t happen unless memory is exhausted.  Subsequent exceptions
+(say, because of port errors) will propagate out of event-loop-run!.
+</p>
+<p>This procedure is available from version 0.4.
+</p>
+<p>Here is an example of the use of await-geteveryline!:
+</p><div class="example">
+<pre class="example">(set-default-event-loop!) ;; if none has yet been set
+(a-sync (lambda (await resume)
+	  (display &quot;Enter lines of text at the keyboard, enter an empty line to finish\n&quot;)
+	  (let ((port (open &quot;/dev/tty&quot; O_RDONLY)))
+	    (await-getsomelines! await resume
+				 port
+				 (lambda (line k)
+                                   (when (string=? line &quot;&quot;)
+					 (k #f))
 				   (simple-format #t
 						  &quot;The line was: ~A\n&quot;
 						  line))))))
