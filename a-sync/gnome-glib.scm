@@ -209,6 +209,11 @@
 ;; text, the end-of-file object is returned rather than an empty
 ;; string).
 ;;
+;; This procedure only works correctly if the port passed to the
+;; 'port' argument has buffering switched off, say by using the R6RS
+;; open-file-input-port procedure with a buffer-mode of none.  This
+;; makes the procedure less useful than would otherwise be the case.
+;;
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the default glib main loop runs.
 ;;

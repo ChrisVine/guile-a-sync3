@@ -287,6 +287,11 @@ line of text will be returned (and from version 0.3, if an end-of-file
 object is encountered without any text, the end-of-file object is
 returned rather than an empty string).
 </p>
+<p>This procedure only works correctly if the port passed to the &rsquo;port&rsquo;
+argument has buffering switched off, say by using the R6RS
+open-file-input-port procedure with a buffer-mode of none.  This makes
+the procedure less useful than would otherwise be the case.
+</p>
 <p>This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the default glib main loop runs.
 </p>
@@ -303,7 +308,7 @@ shouldn&rsquo;t happen unless memory is exhausted.  Subsequent exceptions
           (simple-format #t
                          &quot;The line was: ~A\n&quot;
                          (await-glib-getline await resume
-					     (open &quot;/dev/tty&quot; O_RDONLY)))
+					     (open-file-input-port &quot;/dev/tty&quot; (file-options) (buffer-mode none))))
 	  (g-main-loop-quit main-loop)))
 (g-main-loop-run main-loop)
 </pre></div>

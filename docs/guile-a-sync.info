@@ -1105,6 +1105,11 @@ module, so as not to create a hard dependency on guile-gnome.
      text, the end-of-file object is returned rather than an empty
      string).
 
+     This procedure only works correctly if the port passed to the
+     'port' argument has buffering switched off, say by using the R6RS
+     open-file-input-port procedure with a buffer-mode of none.  This
+     makes the procedure less useful than would otherwise be the case.
+
      This procedure must (like the a-sync procedure) be called in the
      same thread as that in which the default glib main loop runs.
 
@@ -1121,7 +1126,7 @@ module, so as not to create a hard dependency on guile-gnome.
                     (simple-format #t
                                    "The line was: ~A\n"
                                    (await-glib-getline await resume
-          					     (open "/dev/tty" O_RDONLY)))
+          					     (open-file-input-port "/dev/tty" (file-options) (buffer-mode none))))
           	  (g-main-loop-quit main-loop)))
           (g-main-loop-run main-loop)
 
@@ -1278,6 +1283,6 @@ Node: coroutines1099
 Node: event loop14941
 Node: monotonic time44818
 Node: gnome glib46252
-Node: compose60031
+Node: compose60352
 
 End Tag Table
