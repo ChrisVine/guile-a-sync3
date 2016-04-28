@@ -1089,6 +1089,8 @@
 			     (not res))
 			 res)
 			(else
+			 ;; we could use call/ec, but that means disallowing
+			 ;; use of guile earlier than 2.0.8
 			 (call/cc
 			  (lambda (k)
 			    (proc res k)

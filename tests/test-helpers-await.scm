@@ -129,7 +129,104 @@
   (force-output out)
   (event-loop-run! main-loop))
 
-;; Test 7: a-sync-write-watch!
+;; Test 7: await-getsomelines! (also tests a-sync-read-watch!)
+
+(let ()
+  (define test-pipe (pipe))
+  (define in (car test-pipe))
+  (define out (cdr test-pipe))
+  (define count 0)
+  (a-sync (lambda (await resume)
+	    (let ((res (await-getsomelines! await resume
+					    main-loop
+					    in
+					    (lambda (line k)
+					      (set! count (1+ count))
+					      (when (= count 1)
+						    (assert (string=? line "test-string1")))
+					      (when (= count 2)
+						    (assert (string=? line "test-string2")))
+					      (when (= count 3)
+						    (assert (string=? line "test-string3"))
+						    (k 'exit-await))))))
+	      (assert (eq? res 'exit-await))
+	      (test-result 3 count)
+	      (print-result))))
+  (write-line "test-string1" out)
+  (write-line "test-string2" out)
+  (write-line "test-string3" out)
+  (force-output out)
+  (event-loop-run! main-loop)
+  (close out))
+
+;; Test 8: await-getsomelines! exception handling (also tests strategy for await-geteveryline!)
+;; exception propagates out of event-loop-run!
+(let ()
+  (define test-pipe (pipe))
+  (define in (car test-pipe))
+  (define out (cdr test-pipe))
+  (define count 0)
+  (a-sync (lambda (await resume)
+	    (await-getsomelines! await resume
+				 main-loop
+				 in
+				 (lambda (line k)
+				   (set! count (1+ count))
+				   (when (= count 1)
+					 (assert (string=? line "test-string1")))
+				   (when (= count 2)
+					 (throw 'exit-exception))
+				   (when (= count 3)
+					 (assert #f)))) ;; we should never reach here
+	    (assert #f))) ;; we should never reach here
+  (write-line "test-string1" out)
+  (write-line "test-string2" out)
+  (write-line "test-string3" out)
+  (force-output out)
+  (catch #t
+	 (lambda ()
+	   (event-loop-run! main-loop)
+	   (assert #f)) ;; we should never reach here
+	 (lambda args
+	   (assert (eq? (car args) 'exit-exception))))
+  (close out)
+  (test-result 2 count)
+  (print-result))
+
+;; Test 9: await-getsomelines! exception handling (also tests strategy for await-geteveryline!)
+;; exception caught within a-sync block
+(let ()
+  (define test-pipe (pipe))
+  (define in (car test-pipe))
+  (define out (cdr test-pipe))
+  (define count 0)
+  (a-sync (lambda (await resume)
+	    (catch #t
+		   (lambda ()
+		     (await-getsomelines! await resume
+					  main-loop
+					  in
+					  (lambda (line k)
+					    (set! count (1+ count))
+					    (when (= count 1)
+						  (assert (string=? line "test-string1")))
+					    (when (= count 2)
+						  (throw 'exit-exception))
+					    (when (= count 3)
+						  (assert #f))))   ;; we should never reach here
+		     (assert #f))   ;; we should never reach here
+		   (lambda args
+		     (assert (eq? (car args) 'exit-exception))))))
+  (write-line "test-string1" out)
+  (write-line "test-string2" out)
+  (write-line "test-string3" out)
+  (force-output out)
+  (event-loop-run! main-loop)
+  (close out)
+  (test-result 2 count)
+  (print-result))
+
+;; Test 10: a-sync-write-watch!
 
 (let ()
   (define test-pipe (pipe))
@@ -164,7 +261,7 @@
 	    (print-result)))
   (event-loop-run! main-loop))
 
-;; Test 8: compose-a-sync and no-await
+;; Test 11: compose-a-sync and no-await
 
 (compose-a-sync main-loop ((res (await-task-in-thread! (lambda ()
 							 (+ 5 10)))))
@@ -179,7 +276,7 @@
 (event-loop-block! #f main-loop)
 (set-default-event-loop! main-loop)
 
-;; Test 9: await-task!
+;; Test 12: await-task!
 
 (a-sync (lambda (await resume)
 	  (let ((res
@@ -190,7 +287,7 @@
 	    (print-result))))
 (event-loop-run!)
 
-;; Test 10: await-task-in-thread! without handler
+;; Test 13: await-task-in-thread! without handler
 
 ;; set a new default event loop
 (set-default-event-loop!)
@@ -207,7 +304,7 @@
 (event-loop-run!)
 (event-loop-block! #f)
   
-;; Test 11: await-task-in-thread! with handler
+;; Test 14: await-task-in-thread! with handler
 
 (a-sync (lambda (await resume)
 	  (let ((res
@@ -224,7 +321,7 @@
 (event-loop-run!)
 (event-loop-block! #f)
 
-;; Test 12: await-timeout!
+;; Test 15: await-timeout!
 
 (a-sync (lambda (await resume)
 	  (let ((res
@@ -235,7 +332,7 @@
 	    (print-result))))
 (event-loop-run!)
   
-;; Test 13: await-getline! (also tests a-sync-read-watch!)
+;; Test 16: await-getline! (also tests a-sync-read-watch!)
 
 (let ()
   (define test-pipe (pipe))
@@ -250,7 +347,7 @@
   (force-output out)
   (event-loop-run!))
 
-;; Test 14: await-geteveryline! (also tests a-sync-read-watch!)
+;; Test 17: await-geteveryline! (also tests a-sync-read-watch!)
 
 (let ()
   (define test-pipe (pipe))
@@ -275,7 +372,101 @@
   (force-output out)
   (event-loop-run!))
 
-;; Test 15: a-sync-write-watch!
+;; Test 18: await-getsomelines! (also tests a-sync-read-watch!)
+
+(let ()
+  (define test-pipe (pipe))
+  (define in (car test-pipe))
+  (define out (cdr test-pipe))
+  (define count 0)
+  (a-sync (lambda (await resume)
+	    (let ((res (await-getsomelines! await resume
+					    in
+					    (lambda (line k)
+					      (set! count (1+ count))
+					      (when (= count 1)
+						    (assert (string=? line "test-string1")))
+					      (when (= count 2)
+						    (assert (string=? line "test-string2")))
+					      (when (= count 3)
+						    (assert (string=? line "test-string3"))
+						    (k 'exit-await))))))
+	      (assert (eq? res 'exit-await))
+	      (test-result 3 count)
+	      (print-result))))
+  (write-line "test-string1" out)
+  (write-line "test-string2" out)
+  (write-line "test-string3" out)
+  (force-output out)
+  (event-loop-run!)
+  (close out))
+
+;; Test 19: await-getsomelines! exception handling (also tests strategy for await-geteveryline!)
+;; exception propagates out of event-loop-run!
+(let ()
+  (define test-pipe (pipe))
+  (define in (car test-pipe))
+  (define out (cdr test-pipe))
+  (define count 0)
+  (a-sync (lambda (await resume)
+	    (await-getsomelines! await resume
+				 in
+				 (lambda (line k)
+				   (set! count (1+ count))
+				   (when (= count 1)
+					 (assert (string=? line "test-string1")))
+				   (when (= count 2)
+					 (throw 'exit-exception))
+				   (when (= count 3)
+					 (assert #f)))) ;; we should never reach here
+	    (assert #f))) ;; we should never reach here
+  (write-line "test-string1" out)
+  (write-line "test-string2" out)
+  (write-line "test-string3" out)
+  (force-output out)
+  (catch #t
+	 (lambda ()
+	   (event-loop-run!)
+	   (assert #f)) ;; we should never reach here
+	 (lambda args
+	   (assert (eq? (car args) 'exit-exception))))
+  (close out)
+  (test-result 2 count)
+  (print-result))
+
+;; Test 20: await-getsomelines! exception handling (also tests strategy for await-geteveryline!)
+;; exception caught within a-sync block
+(let ()
+  (define test-pipe (pipe))
+  (define in (car test-pipe))
+  (define out (cdr test-pipe))
+  (define count 0)
+  (a-sync (lambda (await resume)
+	    (catch #t
+		   (lambda ()
+		     (await-getsomelines! await resume
+					  in
+					  (lambda (line k)
+					    (set! count (1+ count))
+					    (when (= count 1)
+						  (assert (string=? line "test-string1")))
+					    (when (= count 2)
+						  (throw 'exit-exception))
+					    (when (= count 3)
+						  (assert #f))))   ;; we should never reach here
+		     (assert #f))   ;; we should never reach here
+		   (lambda args
+		     (assert (eq? (car args) 'exit-exception))))))
+  (write-line "test-string1" out)
+  (write-line "test-string2" out)
+  (write-line "test-string3" out)
+  (force-output out)
+  (event-loop-run!)
+  (close out)
+  (test-result 2 count)
+  (print-result))
+
+;; Test 21: a-sync-write-watch!
 
 (let ()
   (define test-pipe (pipe))
@@ -309,7 +500,7 @@
 	    (print-result)))
   (event-loop-run!))
 
-;; Test 16: compose-a-sync and no-await
+;; Test 22: compose-a-sync and no-await
 
 (compose-a-sync ((res (await-task-in-thread! (lambda ()
 					       (+ 5 10)))))
@@ -318,4 +509,3 @@
 			 (event-loop-quit!))))
 (event-loop-block! #t)
 (event-loop-run!)
-
