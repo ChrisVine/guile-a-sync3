@@ -153,6 +153,10 @@
 ;; glib ID which can be passed subsequently to the g-source-remove
 ;; procedure.  It should be possible to call this procedure in any
 ;; thread.
+;;
+;; See the documentation on the a-sync-glib-read-watch procedure for
+;; some of the difficulties with using g-io-channel watches with
+;; guile-gnome.
 (define* (glib-add-watch ioc cond func #:optional context)
   (let ((s (g-io-create-watch ioc cond))
         (closure (make <gclosure>
@@ -178,6 +182,22 @@
 ;; This procedure is mainly intended as something from which
 ;; higher-level asynchronous file operations can be constructed, such
 ;; as the await-glib-getline procedure.
+;;
+;; File watches in guile-gnome are implemented using a GIOChannel
+;; object, and unfortunately GIOChannel support in guile-gnome is
+;; decaying.  The only procedure that guile-gnome provides to read
+;; from a GIOChannel object is g-io-channel-read-line, which does not
+;; work.  One is therefore usually left with having to read from a
+;; guile port (whose underlying file descriptor is 'fd') using guile's
+;; port input procedures, but this has its own difficulties because
+;; either the port has to be unbuffered (say by using the R6RS
+;; open-file-input-port procedure with a buffer-mode of none), or
+;; 'proc' must deal with everything in the port's buffer by looping on
+;; char-ready? before returning.  This is because if the port is
+;; buffered, once the port is read from there may be further
+;; characters in the buffer to be dealt with even though the
+;; GIOChannel watch does not trigger because there is nothing new to
+;; make the file descriptor ready for reading.
 ;;
 ;; Because this procedure takes a 'resume' argument derived from the
 ;; a-sync procedure, it must (like the a-sync procedure) in practice
@@ -209,10 +229,12 @@
 ;; text, the end-of-file object is returned rather than an empty
 ;; string).
 ;;
-;; This procedure only works correctly if the port passed to the
-;; 'port' argument has buffering switched off, say by using the R6RS
-;; open-file-input-port procedure with a buffer-mode of none.  This
-;; makes the procedure less useful than would otherwise be the case.
+;; For the reasons explained in the documentation on
+;; a-sync-glib-read-watch, this procedure only works correctly if the
+;; port passed to the 'port' argument has buffering switched off, say
+;; by using the R6RS open-file-input-port procedure with a buffer-mode
+;; of none.  This makes the procedure less useful than would otherwise
+;; be the case.
 ;;
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the default glib main loop runs.
@@ -282,6 +304,13 @@
 ;; purposes - it must remain valid while the read watch is active.
 ;; This procedure is mainly intended as something from which
 ;; higher-level asynchronous file operations can be constructed.
+;;
+;; The documentation on the a-sync-glib-read-watch procedure comments
+;; about about the difficulties of using GIOChannel file watches with
+;; buffered ports.  The difficulties are not quite so intense with
+;; write watches, but users are likely to get best results by using
+;; unbuffered output ports (say by using the R6RS
+;; open-file-output-port procedure with a buffer-mode of none).
 ;;
 ;; Because this procedure takes a 'resume' argument derived from the
 ;; a-sync procedure, it must (like the a-sync procedure) in practice
