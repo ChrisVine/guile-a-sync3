@@ -670,18 +670,18 @@
 ;; event-loop-run!.
 (define (await-task-in-thread! await resume . rest)
   (match rest
-    [(_ _ _)
-     (apply _await-task-in-thread-impl! await resume rest)]
-    [(#f _)
-     (apply _await-task-in-thread-impl! await resume rest)]
-    [(($ <event-loop>) _)
-     (apply _await-task-in-thread-impl! await resume rest)]
-    [(thunk handler)
-     (_await-task-in-thread-impl! await resume #f thunk handler)]
-    [(thunk)
-     (_await-task-in-thread-impl! await resume #f thunk #f)]
-    [_
-     (error "Wrong number of arguments passed to await-task-in-thread!" await resume rest)]))
+    ((_ _ _)
+     (apply _await-task-in-thread-impl! await resume rest))
+    ((#f _)
+     (apply _await-task-in-thread-impl! await resume rest))
+    ((($ <event-loop>) _)
+     (apply _await-task-in-thread-impl! await resume rest))
+    ((thunk handler)
+     (_await-task-in-thread-impl! await resume #f thunk handler))
+    ((thunk)
+     (_await-task-in-thread-impl! await resume #f thunk #f))
+    (_
+     (error "Wrong number of arguments passed to await-task-in-thread!" await resume rest))))
 
 (define* (_await-task-in-thread-impl! await resume loop thunk #:optional handler)
   ;; set the event loop value here so that if the default event
