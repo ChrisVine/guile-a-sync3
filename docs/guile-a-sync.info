@@ -1267,7 +1267,7 @@ coroutines. module.
      requirements.  Here is the same example using those procedures:
 
           (define main-loop (g-main-loop-new #f #f))
-          (compose-a-sync ((line (await-glib-getline (open "/dev/tty" O_RDONLY))))
+          (compose-a-sync ((line (await-glib-getline (open-file-input-port "/dev/tty" (file-options) (buffer-mode none)))))
           	      ((no-await (simple-format #t
           					"The line was: ~A\n"
           					line)
