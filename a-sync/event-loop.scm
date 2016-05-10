@@ -721,10 +721,9 @@
 ;; waitable procedure invoked by a-sync.  It is the single-threaded
 ;; corollary of await-task-in-thread!.  This means that (unlike with
 ;; await-task-in-thread!) while 'thunk' is running other events in the
-;; event loop will not make progress.  This is not particularly useful
-;; except, say, when called by the event loop thread for the purpose
-;; of bringing the event loop to an end at its own place in the event
-;; queue, or for co-operative multi-tasking, say by composing tasks
+;; event loop will not make progress, so blocking calls should not be
+;; made in 'thunk'.  This procedure can be useful for the purpose of
+;; implementing co-operative multi-tasking, say by composing tasks
 ;; with compose-a-sync (see compose.scm).
 ;;
 ;; This procedure must (like the a-sync procedure) be called in the

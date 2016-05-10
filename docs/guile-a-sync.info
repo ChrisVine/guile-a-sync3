@@ -554,12 +554,10 @@ thread.
      invoked by a-sync.  It is the single-threaded corollary of
      await-task-in-thread!.  This means that (unlike with
      await-task-in-thread!)  while 'thunk' is running other events in
-     the event loop will not make progress.  This is not particularly
-     useful except, say, when called by the event loop thread for the
-     purpose of bringing the event loop to an end at its own place in
-     the event queue, or for co-operative multi-tasking, say by
-     composing tasks with compose-a-sync (see the *note compose:
-     compose. module).
+     the event loop will not make progress, so blocking calls should not
+     be made in 'thunk'.  This procedure can be useful for the purpose
+     of implementing co-operative multi-tasking, say by composing tasks
+     with compose-a-sync (see the *note compose: compose. module).
 
      This procedure must (like the a-sync procedure) be called in the
      same thread as that in which the event loop runs.
@@ -1313,8 +1311,8 @@ Tag Table:
 Node: Top85
 Node: coroutines1099
 Node: event loop14941
-Node: monotonic time44818
-Node: gnome glib46252
-Node: compose62154
+Node: monotonic time44739
+Node: gnome glib46173
+Node: compose62075
 
 End Tag Table
