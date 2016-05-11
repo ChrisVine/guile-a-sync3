@@ -71,11 +71,8 @@ and will return the thunk's return value.  It is intended to be called
 in a waitable procedure invoked by a-sync.  It is the single-threaded
 corollary of await-glib-task-in-thread.  This means that (unlike with
 await-glib-task-in-thread) while 'thunk' is running other events in
-the main loop will not make progress.  This is not particularly useful
-except, say, when called by the main loop thread for the purpose of
-bringing the loop to an end at its own place in the event queue, or
-for co-operative multi-tasking, say by composing tasks with
-compose-a-sync (see the @ref{compose,,(a-sync compose)} module).
+the main loop will not make progress, so blocking calls should not be
+made in 'thunk'.
 
 This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the default glib main loop runs.
