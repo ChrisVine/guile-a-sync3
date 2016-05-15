@@ -128,10 +128,11 @@ unintended consequences: if the buffer is full but the underlying file
 descriptor is ready for a character, the next write will cause a
 buffer flush, and if the size of the buffer is greater than the number
 of characters that the file can receive without blocking, blocking
-might still occur.  This procedure will therefore generally work best
-with unbuffered ports (say by using the open-file or fdopen procedure
-with the '0' mode option or the R6RS open-file-input-port procedure
-with a buffer-mode of none, or by calling setvbuf).
+might still occur.  Unless the port will carry out a partial flush in
+such a case, this procedure will therefore generally work best with
+unbuffered ports (say by using the open-file or fdopen procedure with
+the '0' mode option or the R6RS open-file-input-port procedure with a
+buffer-mode of none, or by calling setvbuf).
 
 This procedure should not throw an exception unless memory is
 exhausted.  If 'proc' throws, say because of port errors, and the

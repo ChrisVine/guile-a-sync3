@@ -424,7 +424,8 @@ thread.
      file descriptor is ready for a character, the next write will cause
      a buffer flush, and if the size of the buffer is greater than the
      number of characters that the file can receive without blocking,
-     blocking might still occur.  This procedure will therefore
+     blocking might still occur.  Unless the port will carry out a
+     partial flush in such a case, this procedure will therefore
      generally work best with unbuffered ports (say by using the
      open-file or fdopen procedure with the '0' mode option or the R6RS
      open-file-input-port procedure with a buffer-mode of none, or by
@@ -1331,8 +1332,8 @@ Tag Table:
 Node: Top85
 Node: coroutines1099
 Node: event loop14941
-Node: monotonic time45995
-Node: gnome glib47429
-Node: compose63065
+Node: monotonic time46063
+Node: gnome glib47497
+Node: compose63133
 
 End Tag Table

@@ -455,7 +455,8 @@
 ;; file descriptor is ready for a character, the next write will cause
 ;; a buffer flush, and if the size of the buffer is greater than the
 ;; number of characters that the file can receive without blocking,
-;; blocking might still occur.  This procedure will therefore
+;; blocking might still occur.  Unless the port will carry out a
+;; partial flush in such a case, this procedure will therefore
 ;; generally work best with unbuffered ports (say by using the
 ;; open-file or fdopen procedure with the '0' mode option or the R6RS
 ;; open-file-input-port procedure with a buffer-mode of none, or by
