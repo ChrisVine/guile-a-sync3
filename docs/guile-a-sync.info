@@ -384,7 +384,8 @@ thread.
      buffering will be taken into account in indicating whether a read
      can be made without blocking (but on a buffered port, for
      efficiency purposes each read operation in response to this watch
-     should usually exhaust the buffer by looping on char-ready?).
+     should usually exhaust the buffer by calling drain-input or by
+     looping on char-ready?).
 
      This procedure should not throw an exception unless memory is
      exhausted.  If 'proc' throws, say because of port errors, and the
@@ -413,9 +414,21 @@ thread.
      argument can be either a port or a file descriptor.  If 'file' is a
      file descriptor, any port for the descriptor is not referenced for
      garbage collection purposes - it must remain valid while operations
-     are carried out on the descriptor.  If 'file' is a buffered port,
-     buffering will be taken into account in indicating whether a write
-     can be made without blocking.
+     are carried out on the descriptor.
+
+     If 'file' is a buffered port, buffering will be taken into account
+     in indicating whether a write can be made without blocking, either
+     because there is room in the buffer for a character, or because the
+     underlying file descriptor is ready for a character.  This can have
+     unintended consequences: if the buffer is full but the underlying
+     file descriptor is ready for a character, the next write will cause
+     a buffer flush, and if the size of the buffer is greater than the
+     number of characters that the file can receive without blocking,
+     blocking might still occur.  This procedure will therefore
+     generally work best with unbuffered ports (say by using the
+     open-file or fdopen procedure with the '0' mode option or the R6RS
+     open-file-input-port procedure with a buffer-mode of none, or by
+     calling setvbuf).
 
      This procedure should not throw an exception unless memory is
      exhausted.  If 'proc' throws, say because of port errors, and the
@@ -620,12 +633,19 @@ thread.
      to be called in a waitable procedure invoked by a-sync.  The watch
      is multi-shot - it is for the user to bring it to an end at the
      right time by calling event-loop-remove-read-watch!  in the
-     waitable procedure.  This procedure is mainly intended as something
-     from which higher-level asynchronous file operations can be
-     constructed, such as the await-readline!  procedure.  The 'loop'
-     argument is optional: this procedure operates on the event loop
-     passed in as an argument, or if none is passed (or #f is passed),
-     on the default event loop
+     waitable procedure.  If 'file' is a buffered port, buffering will
+     be taken into account in indicating whether a read can be made
+     without blocking (but on a buffered port, for efficiency purposes
+     each read operation in response to this watch should usually
+     exhaust the buffer by calling drain-input or by looping on
+     char-ready?).
+
+     This procedure is mainly intended as something from which
+     higher-level asynchronous file operations can be constructed, such
+     as the await-readline!  procedure.  The 'loop' argument is
+     optional: this procedure operates on the event loop passed in as an
+     argument, or if none is passed (or #f is passed), on the default
+     event loop
 
      Because this procedure takes a 'resume' argument derived from the
      a-sync procedure, it must (like the a-sync procedure) in practice
@@ -839,6 +859,10 @@ thread.
      constructed.  The 'loop' argument is optional: this procedure
      operates on the event loop passed in as an argument, or if none is
      passed (or #f is passed), on the default event loop
+
+     The documentation on the event-loop-add-write-watch!  procedure
+     explains why this procedure generally works best with an unbuffered
+     port.
 
      Because this procedure takes a 'resume' argument derived from the
      a-sync procedure, it must (like the a-sync procedure) in practice
@@ -1307,8 +1331,8 @@ Tag Table:
 Node: Top85
 Node: coroutines1099
 Node: event loop14941
-Node: monotonic time44739
-Node: gnome glib46173
-Node: compose61809
+Node: monotonic time45995
+Node: gnome glib47429
+Node: compose63065
 
 End Tag Table
