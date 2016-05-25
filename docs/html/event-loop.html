@@ -74,6 +74,19 @@ worker threads to post an event to an event loop, say with the result
 of a computation, so that the event callback will execute in the event
 loop thread.
 </p>
+<p>The file watches provided by this module use guile&rsquo;s wrapper for the
+select() system call.  This has two consequences.  First, in linux
+select() applied to sockets can give rise to spurious wake-ups, which
+means that it may be best with sockets to set the socket as
+non-blocking using the guile wrapper for the fcntl() system call in
+order to prevent a blocking read where it is not expected
+(EAGAIN/EWOULDBLOCK is handled correctly by the await-getline!,
+await-geteveryline! and await-getsomelines! procedures from version
+0.5).  Secondly, with select() the file descriptor value of a port
+passed to the watch should not exceed FD_SETSIZE.  Normally, by
+default the maximum soft user limit for open files is the same as
+FD_SETSIZE, and it is best if this situation is retained by user code.
+</p>
 <p>This modules provides the following procedures:
 </p>
 <dl>
@@ -469,8 +482,19 @@ implementation of await-getline!:
 			     (if (eq? status 'excpt)
 				 #f
 				 (let next ()
-				   (let ((ch (read-char port)))
+				   (let ((ch
+					  (catch 'system-error
+					    (lambda ()
+					      (read-char port))
+					    (lambda args
+					      (if (or (= EAGAIN (system-error-errno args))
+						      (and (defined? 'EWOULDBLOCK) 
+							   (= EWOULDBLOCK (system-error-errno args))))
+						  'more
+						  (apply throw args))))))
 				     (cond
+				      ((eq? ch 'more)
+				       'more)
 				      ((eof-object? ch)
 				       (if (= text-len 0)
 					   ch
