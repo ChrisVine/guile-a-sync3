@@ -265,8 +265,19 @@
 				       ;; 	  (eq? status 'err))
 				       ;;     #f
 				       (let next ()
-					 (let ((ch (read-char port)))
+					 (let ((ch
+						(catch 'system-error
+						  (lambda ()
+						    (read-char port))
+						  (lambda args
+						    (if (or (= EAGAIN (system-error-errno args))
+							    (and (defined? 'EWOULDBLOCK) 
+								 (= EWOULDBLOCK (system-error-errno args))))
+							'more
+							(apply throw args))))))
 					   (cond
+					    ((eq? ch 'more)
+					     'more)
 					    ((eof-object? ch)
 					     (if (= text-len 0)
 						 ch
