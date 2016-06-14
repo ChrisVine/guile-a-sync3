@@ -936,7 +936,9 @@
 					   (make-outstring)))
 				      ;; just swallow a DOS-style CR character
 				      ((= u8 (char->integer #\return))
-				       'more)
+				       (if (char-ready? port)
+					   (next)
+					   'more))
 				      ((= u8 (char->integer #\newline))
 				       (make-outstring))
 				      (else
@@ -1065,7 +1067,9 @@
 					     line)))
 				      ;; just swallow a DOS-style CR character
 				      ((= u8 (char->integer #\return))
-				       'more)
+				       (if (char-ready? port)
+					   (next)
+					   'more))
 				      ((= u8 (char->integer #\newline))
 				       (let ((line (make-outstring)))
 					 (reset)
@@ -1219,7 +1223,9 @@
 					     line)))
 				      ;; just swallow a DOS-style CR character
 				      ((= u8 (char->integer #\return))
-				       'more)
+				       (if (char-ready? port)
+					   (next)
+					   'more))
 				      ((= u8 (char->integer #\newline))
 				       (let ((line (make-outstring)))
 					 (reset)

@@ -319,7 +319,9 @@
 						 (make-outstring)))
 					    ;; just swallow a DOS-style CR character
 					    ((= u8 (char->integer #\return))
-					     'more)
+					     (if (char-ready? port)
+						 (next)
+						 'more))
 					    ((= u8 (char->integer #\newline))
 					     (make-outstring))
 					    (else

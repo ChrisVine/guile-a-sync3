@@ -434,7 +434,9 @@ implementation of await-getline!:
 					   u8
 					   (make-outstring)))
 				      ((= u8 (char->integer #\return))
-				       'more)
+				       (if (char-ready? port)
+					   (next)
+					   'more))
 				      ((= u8 (char->integer #\newline))
 				       (make-outstring))
 				      (else
