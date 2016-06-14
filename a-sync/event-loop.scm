@@ -20,6 +20,11 @@
   #:use-module (ice-9 threads)         ;; for with-mutex and call-with-new-thread
   #:use-module (srfi srfi-1)           ;; for reduce, delete!, member, alist-delete!, delete-duplicates and assoc
   #:use-module (srfi srfi-9)
+  #:use-module (rnrs bytevectors)      ;; for make-bytevector, bytevector-copy!
+  #:use-module (rnrs io ports)         ;; for get-u8
+  #:use-module ((ice-9 iconv)          ;; for bytevector->string (guile-2.0 does not provide it in rnrs)
+		#:select (bytevector->string)
+		#:renamer (symbol-prefix-proc 'iconv:))
   #:use-module (a-sync monotonic-time) ;; for get-time
   #:export (set-default-event-loop!
 	    get-default-event-loop
@@ -864,26 +869,42 @@
     ((await resume loop port)
      (let ()
        (define chunk-size 128)
-       (define text (make-string chunk-size))
+       (define text (make-bytevector chunk-size))
        (define text-len 0)
-       (define (append-char! ch)
-	 (when (and (= (modulo text-len chunk-size) 0)
-		    (> text-len 0))
+       (define (append-byte! u8)
+	 (when (= text-len (bytevector-length text))
 	   (let ((tmp text))
-	     (set! text (make-string (+ text-len chunk-size)))
-	     (string-copy! text 0 tmp)))
-	 (string-set! text text-len ch)
+	     (set! text (make-bytevector (+ text-len chunk-size)))
+	     (bytevector-copy! tmp 0 text 0 text-len)))
+	 (bytevector-u8-set! text text-len u8)
 	 (set! text-len (1+ text-len)))
+       (define (make-outstring)
+	 ;; guile's bytevector->string procedure is non-standard and
+	 ;; takes an encoding string and not a transcoder as its last
+	 ;; argument: we use the port's encoding if it has one (it
+	 ;; will if setlocale has been called), otherwise the default
+	 ;; port encoding, or if none latin-1 (which is encoding
+	 ;; neutral in guile-2.0)
+	 (let ((encoding (or (port-encoding port)
+			     (fluid-ref %default-port-encoding)
+			     "ISO-8859-1"))
+	       (out-bv (make-bytevector text-len)))
+	   ;; this copies the text twice and therefore is not very
+	   ;; efficient, but is the best we can do without writing our
+	   ;; own wrapper in C, and at least it only occurs once for
+	   ;; each line
+	   (bytevector-copy! text 0 out-bv 0 text-len)
+	   (iconv:bytevector->string out-bv encoding)))
        (a-sync-read-watch! resume
 			   port
 			   (lambda (status)
 			     (if (eq? status 'excpt)
 				 #f
 				 (let next ()
-				   (let ((ch
+				   (let ((u8
 					  (catch 'system-error
 					    (lambda ()
-					      (read-char port))
+					      (get-u8 port))
 					    (lambda args
 					      (if (or (= EAGAIN (system-error-errno args))
 						      (and (defined? 'EWOULDBLOCK) 
@@ -891,16 +912,19 @@
 						  'more
 						  (apply throw args))))))
 				     (cond
-				      ((eq? ch 'more)
+				      ((eq? u8 'more)
 				       'more)
-				      ((eof-object? ch)
+				      ((eof-object? u8)
 				       (if (= text-len 0)
-					   ch
-					   (substring/shared text 0 text-len)))
-				      ((char=? ch #\newline)
-				       (substring/shared text 0 text-len))
+					   u8
+					   (make-outstring)))
+				      ;; just swallow a DOS-style CR character
+				      ((= u8 (char->integer #\return))
+				       'more)
+				      ((= u8 (char->integer #\newline))
+				       (make-outstring))
 				      (else
-				       (append-char! ch)
+				       (append-byte! u8)
 				       (if (char-ready? port)
 					   (next)
 					   'more)))))))
@@ -954,29 +978,45 @@
     ((await resume loop port proc)
      (let ()
        (define chunk-size 128)
-       (define text (make-string chunk-size))
+       (define text (make-bytevector chunk-size))
        (define text-len 0)
        (define (reset)
-	 (set! text (make-string chunk-size))
+	 (set! text (make-bytevector chunk-size))
 	 (set! text-len 0))
-       (define (append-char! ch)
-	 (when (and (= (modulo text-len chunk-size) 0)
-		    (> text-len 0))
+       (define (append-byte! u8)
+	 (when (= text-len (bytevector-length text))
 	   (let ((tmp text))
-	     (set! text (make-string (+ text-len chunk-size)))
-	     (string-copy! text 0 tmp)))
-	 (string-set! text text-len ch)
+	     (set! text (make-bytevector (+ text-len chunk-size)))
+	     (bytevector-copy! tmp 0 text 0 text-len)))
+	 (bytevector-u8-set! text text-len u8)
 	 (set! text-len (1+ text-len)))
+       (define (make-outstring)
+	 ;; guile's bytevector->string procedure is non-standard and
+	 ;; takes an encoding string and not a transcoder as its last
+	 ;; argument: we use the port's encoding if it has one (it
+	 ;; will if setlocale has been called), otherwise the default
+	 ;; port encoding, or if none latin-1 (which is encoding
+	 ;; neutral in guile-2.0)
+	 (let ((encoding (or (port-encoding port)
+			     (fluid-ref %default-port-encoding)
+			     "ISO-8859-1"))
+	       (out-bv (make-bytevector text-len)))
+	   ;; this copies the text twice and therefore is not very
+	   ;; efficient, but is the best we can do without writing our
+	   ;; own wrapper in C, and at least it only occurs once for
+	   ;; each line
+	   (bytevector-copy! text 0 out-bv 0 text-len)
+	   (iconv:bytevector->string out-bv encoding)))
        (a-sync-read-watch! resume
 			   port
 			   (lambda (status)
 			     (if (eq? status 'excpt)
 				 #f
 				 (let next ()
-				   (let ((ch
+				   (let ((u8
 					  (catch 'system-error
 					    (lambda ()
-					      (read-char port))
+					      (get-u8 port))
 					    (lambda args
 					      (if (or (= EAGAIN (system-error-errno args))
 						      (and (defined? 'EWOULDBLOCK) 
@@ -984,20 +1024,23 @@
 						  'more
 						  (apply throw args))))))
 				     (cond
-				      ((eq? ch 'more)
+				      ((eq? u8 'more)
 				       'more)
-				      ((eof-object? ch)
+				      ((eof-object? u8)
 				       (if (= text-len 0)
-					   ch
-					   (let ((line (substring/shared text 0 text-len)))
+					   u8
+					   (let ((line (make-outstring)))
 					     (reset)
 					     line)))
-				      ((char=? ch #\newline)
-				       (let ((line (substring/shared text 0 text-len)))
+				      ;; just swallow a DOS-style CR character
+				      ((= u8 (char->integer #\return))
+				       'more)
+				      ((= u8 (char->integer #\newline))
+				       (let ((line (make-outstring)))
 					 (reset)
 					 line))
 				      (else
-				       (append-char! ch)
+				       (append-byte! u8)
 				       (if (char-ready? port)
 					   (next)
 					   'more)))))))
@@ -1074,29 +1117,45 @@
     ((await resume loop port proc)
      (let ()
        (define chunk-size 128)
-       (define text (make-string chunk-size))
+       (define text (make-bytevector chunk-size))
        (define text-len 0)
        (define (reset)
-	 (set! text (make-string chunk-size))
+	 (set! text (make-bytevector chunk-size))
 	 (set! text-len 0))
-       (define (append-char! ch)
-	 (when (and (= (modulo text-len chunk-size) 0)
-		    (> text-len 0))
+       (define (append-byte! u8)
+	 (when (= text-len (bytevector-length text))
 	   (let ((tmp text))
-	     (set! text (make-string (+ text-len chunk-size)))
-	     (string-copy! text 0 tmp)))
-	 (string-set! text text-len ch)
+	     (set! text (make-bytevector (+ text-len chunk-size)))
+	     (bytevector-copy! tmp 0 text 0 text-len)))
+	 (bytevector-u8-set! text text-len u8)
 	 (set! text-len (1+ text-len)))
+       (define (make-outstring)
+	 ;; guile's bytevector->string procedure is non-standard and
+	 ;; takes an encoding string and not a transcoder as its last
+	 ;; argument: we use the port's encoding if it has one (it
+	 ;; will if setlocale has been called), otherwise the default
+	 ;; port encoding, or if none latin-1 (which is encoding
+	 ;; neutral in guile-2.0)
+	 (let ((encoding (or (port-encoding port)
+			     (fluid-ref %default-port-encoding)
+			     "ISO-8859-1"))
+	       (out-bv (make-bytevector text-len)))
+	   ;; this copies the text twice and therefore is not very
+	   ;; efficient, but is the best we can do without writing our
+	   ;; own wrapper in C, and at least it only occurs once for
+	   ;; each line
+	   (bytevector-copy! text 0 out-bv 0 text-len)
+	   (iconv:bytevector->string out-bv encoding)))
        (a-sync-read-watch! resume
 			   port
 			   (lambda (status)
 			     (if (eq? status 'excpt)
 				 #f
 				 (let next ()
-				   (let ((ch
+				   (let ((u8
 					  (catch 'system-error
 					    (lambda ()
-					      (read-char port))
+					      (get-u8 port))
 					    (lambda args
 					      (if (or (= EAGAIN (system-error-errno args))
 						      (and (defined? 'EWOULDBLOCK) 
@@ -1104,20 +1163,23 @@
 						  'more
 						  (apply throw args))))))
 				     (cond
-				      ((eq? ch 'more)
+				      ((eq? u8 'more)
 				       'more)
-				      ((eof-object? ch)
+				      ((eof-object? u8)
 				       (if (= text-len 0)
-					   ch
-					   (let ((line (substring/shared text 0 text-len)))
+					   u8
+					   (let ((line (make-outstring)))
 					     (reset)
 					     line)))
-				      ((char=? ch #\newline)
-				       (let ((line (substring/shared text 0 text-len)))
+				      ;; just swallow a DOS-style CR character
+				      ((= u8 (char->integer #\return))
+				       'more)
+				      ((= u8 (char->integer #\newline))
+				       (let ((line (make-outstring)))
 					 (reset)
 					 line))
 				      (else
-				       (append-char! ch)
+				       (append-byte! u8)
 				       (if (char-ready? port)
 					   (next)
 					   'more)))))))

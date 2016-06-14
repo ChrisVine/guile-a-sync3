@@ -253,24 +253,30 @@ implementation of await-glib-getline:
 </p><div class="example">
 <pre class="example">(define (await-glib-getline await resume port)
   (define chunk-size 128)
-  (define text (make-string chunk-size))
+  (define text (make-bytevector chunk-size))
   (define text-len 0)
-  (define (append-char! ch)
-    (when (and (= (modulo text-len chunk-size) 0)
-	       (&gt; text-len 0))
+  (define (append-byte! u8)
+    (when (= text-len (bytevector-length text))
       (let ((tmp text))
-	(set! text (make-string (+ text-len chunk-size)))
-	(string-copy! text 0 tmp)))
-    (string-set! text text-len ch)
+	(set! text (make-bytevector (+ text-len chunk-size)))
+	(bytevector-copy! tmp 0 text 0 text-len)))
+    (bytevector-u8-set! text text-len u8)
     (set! text-len (1+ text-len)))
+  (define (make-outstring)
+    (let ((encoding (or (port-encoding port)
+			(fluid-ref %default-port-encoding)
+			&quot;ISO-8859-1&quot;))
+	  (out-bv (make-bytevector text-len)))
+      (bytevector-copy! text 0 out-bv 0 text-len)
+      (iconv:bytevector-&gt;string out-bv encoding)))
   (define id (a-sync-glib-read-watch resume
 				     (port-&gt;fdes port)
 				     (lambda (ioc status)
 				       (let next ()
-					 (let ((ch
+					 (let ((u8
 						(catch 'system-error
 						  (lambda ()
-						    (read-char port))
+						    (get-u8 port))
 						  (lambda args
 						    (if (or (= EAGAIN (system-error-errno args))
 							    (and (defined? 'EWOULDBLOCK) 
@@ -278,16 +284,18 @@ implementation of await-glib-getline:
 							'more
 							(apply throw args))))))
 					   (cond
-					    ((eq? ch 'more)
+					    ((eq? u8 'more)
 					     'more)
-					    ((eof-object? ch)
+					    ((eof-object? u8)
 					     (if (= text-len 0)
-						 ch
-						 (substring/shared text 0 text-len)))
-					    ((char=? ch #\newline)
-					     (substring/shared text 0 text-len))
+						 u8
+						 (make-outstring)))
+					    ((= u8 (char-&gt;integer #\return))
+					     'more)
+					    ((= u8 (char-&gt;integer #\newline))
+					     (make-outstring))
 					    (else
-					     (append-char! ch)
+					     (append-byte! u8)
 					     (if (char-ready? port)
 						 (next)
 						 'more))))))))
