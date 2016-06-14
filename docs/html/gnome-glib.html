@@ -335,7 +335,23 @@ thread as that in which the default glib main loop runs.
 <p>Exceptions may propagate out of this procedure if they arise while
 setting up (that is, before the first call to &rsquo;await&rsquo; is made), which
 shouldn&rsquo;t happen unless memory is exhausted.  Subsequent exceptions
-(say, because of port errors) will propagate out of g-main-loop-run.
+(say, because of port or conversion errors) will propagate out of
+g-main-loop-run.
+</p>
+<p>From version 0.6, the bytes comprising the input text will be
+converted to their string representation using the encoding of &rsquo;port&rsquo;
+if a port encoding has been set, or otherwise using the program&rsquo;s
+default port encoding, or if neither has been set using iso-8859-1
+(Latin-1).  Exceptions from conversion errors will, as mentioned,
+propagate out of g-main-loop-run.  Conversion errors should not arise
+with iso-8859-1 encoding, although the string may not necessarily have
+the desired meaning for the program concerned if the input encoding is
+in fact different.
+</p>
+<p>From version 0.6, this procedure may be used with an end-of-line
+representation of either a line-feed (\n) or a carriage-return and
+line-feed (\r\n) combination, as from version 0.6 any carriage return
+byte will be discarded (this did not occur with earlier versions).
 </p>
 <p>Here is an example of the use of await-glib-getline:
 </p><div class="example">

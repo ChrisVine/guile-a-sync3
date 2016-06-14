@@ -860,8 +860,24 @@
 ;; Exceptions may propagate out of this procedure if they arise while
 ;; setting up (that is, before the first call to 'await' is made),
 ;; which shouldn't happen unless memory is exhausted.  Subsequent
-;; exceptions (say, because of port errors) will propagate out of
-;; event-loop-run!.
+;; exceptions (say, because of port or conversion errors) will
+;; propagate out of event-loop-run!.
+;;
+;; From version 0.6, the bytes comprising the input text will be
+;; converted to their string representation using the encoding of
+;; 'port' if a port encoding has been set, or otherwise using the
+;; program's default port encoding, or if neither has been set using
+;; iso-8859-1 (Latin-1).  Exceptions from conversion errors will, as
+;; mentioned, propagate out of event-loop-run!.  Conversion errors
+;; should not arise with iso-8859-1 encoding, although the string may
+;; not necessarily have the desired meaning for the program concerned
+;; if the input encoding is in fact different.
+;;
+;; From version 0.6, this procedure may be used with an end-of-line
+;; representation of either a line-feed (\n) or a carriage-return and
+;; line-feed (\r\n) combination, as from version 0.6 any carriage
+;; return byte will be discarded (this did not occur with earlier
+;; versions).
 (define await-getline!
    (case-lambda
     ((await resume port)
@@ -967,10 +983,25 @@
 ;; Exceptions may propagate out of this procedure if they arise while
 ;; setting up (that is, before the first call to 'await' is made),
 ;; which shouldn't happen unless memory is exhausted.  Subsequent
-;; exceptions (say, because of port errors) will propagate out of
-;; event-loop-run!.
+;; exceptions (say, because of port or conversion errors) will
+;; propagate out of event-loop-run!.
 ;;
-;; This procedure is available from version 0.3.
+;; This procedure is available from version 0.3.  From version 0.6,
+;; the bytes comprising the input text will be converted to their
+;; string representation using the encoding of 'port' if a port
+;; encoding has been set, or otherwise using the program's default
+;; port encoding, or if neither has been set using iso-8859-1
+;; (Latin-1).  Exceptions from conversion errors will, as mentioned,
+;; propagate out of event-loop-run!.  Conversion errors should not
+;; arise with iso-8859-1 encoding, although strings may not
+;; necessarily have the desired meaning for the program concerned if
+;; the input encoding is in fact different.
+;;
+;; From version 0.6, this procedure may be used with an end-of-line
+;; representation of either a line-feed (\n) or a carriage-return and
+;; line-feed (\r\n) combination, as from version 0.6 any carriage
+;; return byte will be discarded (this did not occur with earlier
+;; versions).
 (define await-geteveryline!
   (case-lambda
     ((await resume port proc)
@@ -1106,10 +1137,25 @@
 ;; Exceptions may propagate out of this procedure if they arise while
 ;; setting up (that is, before the first call to 'await' is made),
 ;; which shouldn't happen unless memory is exhausted.  Subsequent
-;; exceptions (say, because of port errors) will propagate out of
-;; event-loop-run!.
+;; exceptions (say, because of port or conversion errors) will
+;; propagate out of event-loop-run!.
 ;;
-;; This procedure is available from version 0.4.
+;; This procedure is available from version 0.4.  From version 0.6,
+;; the bytes comprising the input text will be converted to their
+;; string representation using the encoding of 'port' if a port
+;; encoding has been set, or otherwise using the program's default
+;; port encoding, or if neither has been set using iso-8859-1
+;; (Latin-1).  Exceptions from conversion errors will, as mentioned,
+;; propagate out of event-loop-run!.  Conversion errors should not
+;; arise with iso-8859-1 encoding, although strings may not
+;; necessarily have the desired meaning for the program concerned if
+;; the input encoding is in fact different.
+;;
+;; From version 0.6, this procedure may be used with an end-of-line
+;; representation of either a line-feed (\n) or a carriage-return and
+;; line-feed (\r\n) combination, as from version 0.6 any carriage
+;; return byte will be discarded (this did not occur with earlier
+;; versions).
 (define await-getsomelines!
   (case-lambda
     ((await resume port proc)
