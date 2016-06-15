@@ -479,9 +479,10 @@ implementation of await-getline!:
 	 (let ((encoding (or (port-encoding port)
 			     (fluid-ref %default-port-encoding)
 			     &quot;ISO-8859-1&quot;))
+	       (conversion-strategy (port-conversion-strategy port))
 	       (out-bv (make-bytevector text-len)))
 	   (bytevector-copy! text 0 out-bv 0 text-len)
-	   (iconv:bytevector-&gt;string out-bv encoding)))
+	   (iconv:bytevector-&gt;string out-bv encoding conversion-strategy)))
        (a-sync-read-watch! resume
 			   port
 			   (lambda (status)
@@ -562,7 +563,10 @@ default port encoding, or if neither has been set using iso-8859-1
 propagate out of event-loop-run!.  Conversion errors should not arise
 with iso-8859-1 encoding, although the string may not necessarily have
 the desired meaning for the program concerned if the input encoding is
-in fact different.
+in fact different.  From version 0.7, this procedure uses the
+conversion strategy for &rsquo;port&rsquo; (which defaults at program start-up to
+&rsquo;substitute); version 0.6 instead always used a conversion strategy of
+&rsquo;error if encountering unconvertible characters).
 </p>
 <p>From version 0.6, this procedure may be used with an end-of-line
 representation of either a line-feed (\n) or a carriage-return and
@@ -622,7 +626,10 @@ conversion errors will, as mentioned, propagate out of
 event-loop-run!.  Conversion errors should not arise with iso-8859-1
 encoding, although strings may not necessarily have the desired
 meaning for the program concerned if the input encoding is in fact
-different.
+different.  From version 0.7, this procedure uses the conversion
+strategy for &rsquo;port&rsquo; (which defaults at program start-up to
+&rsquo;substitute); version 0.6 instead always used a conversion strategy of
+&rsquo;error if encountering unconvertible characters).
 </p>
 <p>From version 0.6, this procedure may be used with an end-of-line
 representation of either a line-feed (\n) or a carriage-return and
@@ -694,7 +701,10 @@ conversion errors will, as mentioned, propagate out of
 event-loop-run!.  Conversion errors should not arise with iso-8859-1
 encoding, although strings may not necessarily have the desired
 meaning for the program concerned if the input encoding is in fact
-different.
+different.  From version 0.7, this procedure uses the conversion
+strategy for &rsquo;port&rsquo; (which defaults at program start-up to
+&rsquo;substitute); version 0.6 instead always used a conversion strategy of
+&rsquo;error if encountering unconvertible characters).
 </p>
 <p>From version 0.6, this procedure may be used with an end-of-line
 representation of either a line-feed (\n) or a carriage-return and
