@@ -256,7 +256,11 @@
 ;; mentioned, propagate out of g-main-loop-run.  Conversion errors
 ;; should not arise with iso-8859-1 encoding, although the string may
 ;; not necessarily have the desired meaning for the program concerned
-;; if the input encoding is in fact different.
+;; if the input encoding is in fact different.  From version 0.7, this
+;; procedure uses the conversion strategy for 'port' (which defaults
+;; at program start-up to 'substitute); version 0.6 instead always
+;; used a conversion strategy of 'error if encountering unconvertible
+;; characters).
 ;;
 ;; From version 0.6, this procedure may be used with an end-of-line
 ;; representation of either a line-feed (\n) or a carriage-return and
@@ -283,12 +287,13 @@
     (let ((encoding (or (port-encoding port)
 			(fluid-ref %default-port-encoding)
 			"ISO-8859-1"))
+	  (conversion-strategy (port-conversion-strategy port))
 	  (out-bv (make-bytevector text-len)))
       ;; this copies the text twice and therefore is not very
       ;; efficient, but is the best we can do without writing our own
       ;; wrapper in C, and at least it only occurs once for each line
       (bytevector-copy! text 0 out-bv 0 text-len)
-      (iconv:bytevector->string out-bv encoding)))
+      (iconv:bytevector->string out-bv encoding conversion-strategy)))
   (define id (a-sync-glib-read-watch resume
 				     (port->fdes port)
 				     (lambda (ioc status)
