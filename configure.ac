@@ -42,6 +42,10 @@ AC_CHECK_COMPILE_SCHEME
 dnl check if we have a monotonic clock
 AC_CHECK_HAVE_MONOTONIC_CLOCK
 
+dnl Check for POSIX headers.
+AC_CHECK_HEADERS([ unistd.h errno.h time.h ],
+                 [:],[AC_MSG_ERROR([Standard POSIX headers not found], 1)])
+
 dnl define MAKE for subdirectories
 AC_PROG_MAKE_SET
 
