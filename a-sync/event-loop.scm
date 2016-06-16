@@ -18,9 +18,10 @@
   #:use-module (ice-9 q)               ;; for make-q, etc
   #:use-module (ice-9 match)
   #:use-module (ice-9 threads)         ;; for with-mutex and call-with-new-thread
-  #:use-module (srfi srfi-1)           ;; for reduce, delete!, member, alist-delete!, delete-duplicates and assoc
+  #:use-module (srfi srfi-1)           ;; for reduce, delete!, member and delete-duplicates
   #:use-module (srfi srfi-9)
   #:use-module (rnrs bytevectors)      ;; for make-bytevector, bytevector-copy!
+  #:use-module (rnrs hashtables)       ;; for make-hashtable, etc
   #:use-module (rnrs io ports)         ;; for get-u8
   #:use-module ((ice-9 iconv)          ;; for bytevector->string (guile-2.0 does not provide it in rnrs)
 		#:select (bytevector->string)
@@ -91,9 +92,9 @@
   (event-in _event-in-get _event-in-set!)
   (event-out _event-out-get _event-out-set!)
   (read-files _read-files-get _read-files-set!)
-  (read-files-actions _read-files-actions-get _read-files-actions-set!)
+  (read-files-actions _read-files-actions-get)
   (write-files _write-files-get _write-files-set!)
-  (write-files-actions _write-files-actions-get _write-files-actions-set!)
+  (write-files-actions _write-files-actions-get)
   (timeouts _timeouts-get _timeouts-set!)
   (current-timeout _current-timeout-get _current-timeout-set!)
   (block _block-get _block-set!))
@@ -114,9 +115,9 @@
 		      in
 		      out
 		      '()
+		      (make-hashtable _file-hash _file-equal?)
 		      '()
-		      '()
-		      '()
+		      (make-hashtable _file-hash _file-equal?)
 		      '()
 		      #f
 		      #f)))
@@ -196,11 +197,21 @@
 
 ;; for the purposes of the event loop, two files compare equal if
 ;; their file descriptors are the same, even if one is a port and one
-;; is a file descriptor (or both are a file)
+;; is a file descriptor (or both are ports)
 (define (_file-equal? file1 file2)
   (let ((fd1 (if (port? file1) (fileno file1) file1))
 	(fd2 (if (port? file2) (fileno file2) file2)))
     (= fd1 fd2)))
+
+;; this procedure is a hash function for port/file descriptor hashing.
+;; For file descriptors it just returns the descriptor, and for ports
+;; it returns the underlying file descriptor, so this hasher matches
+;; the _file-equal? equality predicate, and meets the requirements
+;; that (i) the same input always provides the same output, and (ii)
+;; any two files which compare equal with _file-equal? will also have
+;; the same hash value.
+(define (_file-hash file)
+  (if (port? file) (fileno file) file))
 
 ;; we don't need any mutexes here as we only access any of the
 ;; read-files, read-files-actions, write-files and write-files-actions
@@ -211,7 +222,7 @@
 ;; purposes of removal.
 (define (_remove-read-watch-impl! file el)
   (_read-files-set! el (delete! file (_read-files-get el) _file-equal?))
-  (_read-files-actions-set! el (alist-delete! file (_read-files-actions-get el) _file-equal?)))
+  (hashtable-delete! (_read-files-actions-get el) file))
 
 ;; we don't need any mutexes here as we only access any of the
 ;; read-files, read-files-actions, write-files and write-files-actions
@@ -222,7 +233,7 @@
 ;; purposes of removal.
 (define (_remove-write-watch-impl! file el)
   (_write-files-set! el (delete! file (_write-files-get el) _file-equal?))
-  (_write-files-actions-set! el (alist-delete! file (_write-files-actions-get el) _file-equal?)))
+  (hashtable-delete! (_write-files-actions-get el) file))
 
 ;; the 'el' (event loop) argument is optional.  This procedure starts
 ;; the event loop passed in as an argument, or if none is passed (or
@@ -286,8 +297,7 @@
 			      (apply throw args))))))
 	     (for-each (lambda (elt)
 			 (let ((action
-				(let ((item (assoc elt read-files-actions _file-equal?)))
-				  (if item (cdr item) #f))))
+				(hashtable-ref read-files-actions elt #f)))
 			   (if action
 			       (when (not (action 'in))
 				 (_remove-read-watch-impl! elt el))
@@ -295,8 +305,7 @@
 		       (delv event-fd (car res)))
 	     (for-each (lambda (elt)
 			 (let ((action
-				(let ((item (assoc elt write-files-actions _file-equal?)))
-				  (if item (cdr item) #f))))
+				(hashtable-ref write-files-actions elt #f)))
 			   (if action
 			       (when (not (action 'out))
 			         (_remove-write-watch-impl! elt el))
@@ -304,8 +313,8 @@
 		       (cadr res))
 	     (for-each (lambda (elt)
 			 (let ((action
-				(let ((item (assoc elt (append read-files-actions write-files-actions) _file-equal?)))
-				  (if item (cdr item) #f))))
+				(or (hashtable-ref read-files-actions elt #f)
+				    (hashtable-ref write-files-actions elt #f))))
 			   (if action
 			       (when (not (action 'excpt))
 				 (if (member elt read-files _file-equal?)
@@ -381,9 +390,9 @@
 	  (loop))))
     (_done-set! el #f))
   (_read-files-set! el '())
-  (_read-files-actions-set! el '())
+  (hashtable-clear! (_read-files-actions-get el))
   (_write-files-set! el '())
-  (_write-files-actions-set! el '())
+  (hashtable-clear! (_write-files-actions-get el))
   (_timeouts-set! el '())
   (_current-timeout-set! el #f))
 
@@ -423,10 +432,15 @@
 		    el
 		    (cons file
 			  (delete! file (_read-files-get el) _file-equal?)))
-		   (_read-files-actions-set!
-		    el
-		    (acons file proc
-			   (alist-delete! file (_read-files-actions-get el) _file-equal?))))
+		   ;; before adding the new action entry, first
+		   ;; explicitly remove any old entry in case we
+		   ;; replace a file descriptor with a port, or vice
+		   ;; versa, where the port has the same underlying
+		   ;; file descriptor: R6RS is not clear that the key
+		   ;; as well as the value will be substituted in such
+		   ;; circumstances
+		   (hashtable-delete! (_read-files-actions-get el) file)
+		   (hashtable-set! (_read-files-actions-get el) file proc))
 		 el)))
 
 ;; The 'el' (event loop) argument is optional.  This procedure will
@@ -451,7 +465,7 @@
 ;; file descriptor, any port for the descriptor is not referenced for
 ;; garbage collection purposes - it must remain valid while operations
 ;; are carried out on the descriptor.
-
+;;
 ;; If 'file' is a buffered port, buffering will be taken into account
 ;; in indicating whether a write can be made without blocking, either
 ;; because there is room in the buffer for a character, or because the
@@ -480,10 +494,15 @@
 		    el
 		    (cons file
 			  (delete! file (_write-files-get el) _file-equal?)))
-		   (_write-files-actions-set!
-		    el
-		    (acons file proc
-			   (alist-delete! file (_write-files-actions-get el) _file-equal?))))
+		   ;; before adding the new action entry, first
+		   ;; explicitly remove any old entry in case we
+		   ;; replace a file descriptor with a port, or vice
+		   ;; versa, where the port has the same underlying
+		   ;; file descriptor: R6RS is not clear that the key
+		   ;; as well as the value will be substituted in such
+		   ;; circumstances
+		   (hashtable-delete! (_write-files-actions-get el) file)
+		   (hashtable-set! (_write-files-actions-get el) file proc))
 		 el)))
 
 ;; The 'el' (event loop) argument is optional.  This procedure will
