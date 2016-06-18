@@ -200,9 +200,8 @@
 ;; case of a port).  It is used by _file-equal? to test for file
 ;; equality and to make keys for the file watch actions hashtables.
 (define-syntax-rule (_fd-or-port->fd file)
-  ;; 'file' must be a file descriptor or a port object so we do not
-  ;; need to worry about the multiple evaluation
-  (if (port? file) (fileno file) file))
+  (let ((f file))
+    (if (port? f) (fileno f) f)))
 
 ;; for the purposes of the event loop, two files compare equal if
 ;; their file descriptors are the same, even if one is a port and one
