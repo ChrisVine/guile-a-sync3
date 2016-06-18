@@ -195,12 +195,21 @@
 	      (append (reverse checked) (cdr remaining))
 	      (loop (cdr remaining) (cons first checked)))))))
 
+;; this takes a port or a file descriptor as an argument and returns a
+;; file descriptor (being the port's underlying file descriptor in the
+;; case of a port).  It is used by _file-equal? to test for file
+;; equality and to make keys for the file watch actions hashtables.
+(define-syntax-rule (_fd-or-port->fd file)
+  ;; 'file' must be a file descriptor or a port object so we do not
+  ;; need to worry about the multiple evaluation
+  (if (port? file) (fileno file) file))
+
 ;; for the purposes of the event loop, two files compare equal if
 ;; their file descriptors are the same, even if one is a port and one
 ;; is a file descriptor (or both are ports)
 (define (_file-equal? file1 file2)
-  (let ((fd1 (if (port? file1) (fileno file1) file1))
-	(fd2 (if (port? file2) (fileno file2) file2)))
+  (let ((fd1 (_fd-or-port->fd file1))
+	(fd2 (_fd-or-port->fd file2)))
     (= fd1 fd2)))
 
 ;; we don't need any mutexes here as we only access any of the
@@ -213,7 +222,7 @@
 (define (_remove-read-watch-impl! file el)
   (_read-files-set! el (delete! file (_read-files-get el) _file-equal?))
   (hashtable-delete! (_read-files-actions-get el)
-		     (if (port? file) (fileno file) file)))
+		     (_fd-or-port->fd file)))
 
 ;; we don't need any mutexes here as we only access any of the
 ;; read-files, read-files-actions, write-files and write-files-actions
@@ -225,7 +234,7 @@
 (define (_remove-write-watch-impl! file el)
   (_write-files-set! el (delete! file (_write-files-get el) _file-equal?))
   (hashtable-delete! (_write-files-actions-get el)
-		     (if (port? file) (fileno file) file)))
+		     (_fd-or-port->fd file)))
 
 ;; the 'el' (event loop) argument is optional.  This procedure starts
 ;; the event loop passed in as an argument, or if none is passed (or
@@ -290,7 +299,7 @@
 	     (for-each (lambda (elt)
 			 (let ((action
 				(hashtable-ref read-files-actions
-					       (if (port? elt) (fileno elt) elt)
+					       (_fd-or-port->fd elt)
 					       #f)))
 			   (if action
 			       (when (not (action 'in))
@@ -300,7 +309,7 @@
 	     (for-each (lambda (elt)
 			 (let ((action
 				(hashtable-ref write-files-actions
-					       (if (port? elt) (fileno elt) elt)
+					       (_fd-or-port->fd elt)
 					       #f)))
 			   (if action
 			       (when (not (action 'out))
@@ -310,10 +319,10 @@
 	     (for-each (lambda (elt)
 			 (let ((action
 				(or (hashtable-ref read-files-actions
-						   (if (port? elt) (fileno elt) elt)
+						   (_fd-or-port->fd elt)
 						   #f)
 				    (hashtable-ref write-files-actions
-						   (if (port? elt) (fileno elt) elt)
+						   (_fd-or-port->fd elt)
 						   #f))))
 			   (if action
 			       (when (not (action 'excpt))
@@ -433,7 +442,7 @@
 		    (cons file
 			  (delete! file (_read-files-get el) _file-equal?)))
 		   (hashtable-set! (_read-files-actions-get el)
-				   (if (port? file) (fileno file) file)
+				   (_fd-or-port->fd file)
 				   proc))
 		 el)))
 
@@ -489,7 +498,7 @@
 		    (cons file
 			  (delete! file (_write-files-get el) _file-equal?)))
 		   (hashtable-set! (_write-files-actions-get el)
-				   (if (port? file) (fileno file) file)
+				   (_fd-or-port->fd file)
 				   proc))
 		 el)))
 
