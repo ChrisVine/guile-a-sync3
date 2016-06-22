@@ -1,7 +1,7 @@
 Overview
 --------
 
-This library provides a thread safe event loop for guile
+This library provides a thread safe event loop for guile-2.2
 (event-loop.scm) with support for watches on ports/file descriptors
 and timeouts, and which permits events to be posted by other tasks.
 This includes tasks running on other threads.
@@ -54,7 +54,7 @@ Documentation
 
 Html documentation is available after installation in the default html
 directory for the target installation (normally at
-$(prefix)/share/doc/guile-a-sync/html/index.html).
+$(prefix)/share/doc/guile-a-sync2/html/index.html).
 
 In addition, the documentation can be viewed at github at:
-https://github.com/ChrisVine/guile-a-sync/wiki
+https://github.com/ChrisVine/guile-a-sync2/wiki

@@ -46,7 +46,7 @@ static SCM get_time(void) {
   if (clock_gettime(CLOCK_MONOTONIC, &ts) == -1) {
     scm_throw(scm_from_latin1_symbol("a-sync-exception"),
 	      scm_list_4(scm_from_latin1_string("get-time"),
-	      		 scm_from_latin1_string("guile-a-sync: ~A"),
+	      		 scm_from_latin1_string("guile-a-sync2: ~A"),
 	      		 scm_list_1(scm_from_latin1_string("monotonic time not supported "
 							   "by underlying implementation")),
 	      		 scm_from_int(errno)));

@@ -3,6 +3,6 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
 
-Name: guile-a-sync
-Description: Event loop and coroutine interface for guile
+Name: guile-a-sync2
+Description: Event loop and coroutine interface for guile-2.2
 Version: @VERSION@

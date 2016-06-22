@@ -1,17 +1,17 @@
-This is guile-a-sync.info, produced by makeinfo version 6.1 from
-guile-a-sync.texi.
+This is guile-a-sync2.info, produced by makeinfo version 6.1 from
+guile-a-sync2.texi.
 
 
-File: guile-a-sync.info,  Node: Top,  Next: coroutines
+File: guile-a-sync2.info,  Node: Top,  Next: coroutines
 
-guile-a-sync reference
-**********************
+guile-a-sync2 reference
+***********************
 
-This is the guile-a-sync library.  It provides both an asynchronous
-event loop for guile, and coroutines to enable an event loop (including
-other event loops such as the glib event loop) to be used with 'await'
-semantics to deal with inversion of control - otherwise known as
-"callback hell".
+This is the guile-a-sync2 library.  It provides both an asynchronous
+event loop for guile-2.2, and coroutines to enable an event loop
+(including other event loops such as the glib event loop) to be used
+with 'await' semantics to deal with inversion of control - otherwise
+known as "callback hell".
 
    The guile-a-sync library is provided in five modules:
 * Menu:
@@ -23,7 +23,7 @@ semantics to deal with inversion of control - otherwise known as
 * compose::        In module (a-sync compose) - provides the compose-a-sync macro interface for the a-sync coroutine
 
 
-File: guile-a-sync.info,  Node: coroutines,  Next: event loop,  Prev: Top,  Up: Top
+File: guile-a-sync2.info,  Node: coroutines,  Next: event loop,  Prev: Top,  Up: Top
 
 The (a-sync coroutines) module provides the following procedures:
 
@@ -296,7 +296,7 @@ The (a-sync coroutines) module provides the following procedures:
      and with the event loop in the event-loop module.
 
 
-File: guile-a-sync.info,  Node: event loop,  Next: monotonic time,  Prev: coroutines,  Up: Top
+File: guile-a-sync2.info,  Node: event loop,  Next: monotonic time,  Prev: coroutines,  Up: Top
 
 The (a-sync event-loop) module provides an event loop for asynchronous
 operations.  The event loop does not of itself start any new threads.
@@ -971,7 +971,7 @@ situation is retained by user code.
 monotonic-time): monotonic time. module.
 
 
-File: guile-a-sync.info,  Node: monotonic time,  Next: gnome glib,  Prev: event loop,  Up: Top
+File: guile-a-sync2.info,  Node: monotonic time,  Next: gnome glib,  Prev: event loop,  Up: Top
 
 The (a-sync monotonic-time) module provides two procedures.  It is
 loaded by the *note (a-sync event-loop): event loop. module.
@@ -998,7 +998,7 @@ loaded by the *note (a-sync event-loop): event loop. module.
      should always give the correct answer
 
 
-File: guile-a-sync.info,  Node: gnome glib,  Next: compose,  Prev: monotonic time,  Up: Top
+File: guile-a-sync2.info,  Node: gnome glib,  Next: compose,  Prev: monotonic time,  Up: Top
 
 When using the scheme (gnome gtk) bindings of guile-gnome with guile, in
 order to provide await semantics on gtk+ callbacks it will normally be
@@ -1345,7 +1345,7 @@ module, so as not to create a hard dependency on guile-gnome.
      locally, it will propagate out of g-main-loop-run.
 
 
-File: guile-a-sync.info,  Node: compose,  Prev: gnome glib,  Up: Top
+File: guile-a-sync2.info,  Node: compose,  Prev: gnome glib,  Up: Top
 
 This (a-sync compose) module provides a compose-a-sync macro interface
 for the a-sync procedure provided by the *note (a-sync coroutines):
@@ -1464,11 +1464,11 @@ coroutines. module.
 
 
 Tag Table:
-Node: Top85
-Node: coroutines1099
-Node: event loop14941
-Node: monotonic time51359
-Node: gnome glib52793
-Node: compose70556
+Node: Top87
+Node: coroutines1109
+Node: event loop14952
+Node: monotonic time51371
+Node: gnome glib52806
+Node: compose70570
 
 End Tag Table

@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT([guile-a-sync], [0.7])
+AC_INIT([guile-a-sync2], [0.1])
 
 dnl Require autoconf 2.59c or greater for docdir and htmldir
 AC_PREREQ(2.59c)
@@ -18,8 +18,8 @@ dnl  ? : ? : 0   == no new interfaces, but breaks apps
 dnl  ? :+1 : ?   == just some internal changes, nothing breaks (eg bump with
 dnl                 minor/micro library version number changes changing
 dnl                 compiled code but no new interface)
-GUILE_A_SYNC_SO_VERSION=0:0:0
-AC_SUBST(GUILE_A_SYNC_SO_VERSION)
+GUILE_A_SYNC2_SO_VERSION=0:0:0
+AC_SUBST(GUILE_A_SYNC2_SO_VERSION)
 
 AM_INIT_AUTOMAKE([1.11])
 
@@ -34,7 +34,7 @@ AC_CONFIG_MACRO_DIR([m4])
 
 dnl check for guile
 GUILE_SITE_DIR
-PKG_CHECK_MODULES(GUILE, guile-2.0 >= 2.0.2)
+PKG_CHECK_MODULES(GUILE, guile-2.2 >= 2.1.3)
 
 dnl check whether to compile scheme files to bytecode
 AC_CHECK_COMPILE_SCHEME
@@ -50,5 +50,5 @@ dnl define MAKE for subdirectories
 AC_PROG_MAKE_SET
 
 AC_CONFIG_FILES([ Makefile a-sync/Makefile lib/Makefile docs/Makefile \
-                  tests/Makefile guile-a-sync.pc ])
+                  tests/Makefile guile-a-sync2.pc ])
 AC_OUTPUT
