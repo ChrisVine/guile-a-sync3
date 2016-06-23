@@ -137,3 +137,20 @@ AC_DEFUN([AC_CHECK_COMPILE_SCHEME],
   AM_CONDITIONAL([COMPILE_TO_BYTECODE], [test x$compile_scheme = xtrue])
 ])
   
+AC_DEFUN([AC_CHECK_GUILE_SITEDIR],
+[
+  if test -z "$PKG_CONFIG"; then
+    AC_PATH_PROG(PKG_CONFIG, pkg-config, no)
+  fi
+  if test "$PKG_CONFIG" = "no" ; then
+    echo "*** The pkg-config script could not be found. Make sure it is"
+    echo "*** in your path, or set the PKG_CONFIG environment variable"
+    echo "*** to the full path to pkg-config."
+    echo "*** Or see http://www.freedesktop.org/software/pkgconfig to get pkg-config."
+  else
+    AC_MSG_CHECKING([guile-2.2 site directory])
+    GUILE22_SITEDIR=`$PKG_CONFIG guile-2.2 --variable=sitedir`
+    AC_MSG_RESULT([$GUILE22_SITEDIR])
+  fi
+  AC_SUBST(GUILE22_SITEDIR)
+])

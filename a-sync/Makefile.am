@@ -2,10 +2,7 @@
 
 SOURCES = monotonic-time.scm coroutines.scm event-loop.scm compose.scm
 
-#moduledir = $(GUILE_SITE)/a-sync
-# FIXME22 - until guile.m4 works with guile-2.2, this is a cludge which
-# assumes guile-2.2 is in the library prefix
-moduledir = $(prefix)/share/guile/site/2.2/a-sync
+moduledir = $(GUILE22_SITEDIR)/a-sync
 module_DATA = $(SOURCES) gnome-glib.scm
 
 # FIXME22 - prior compilation to bytecode requires a more final
