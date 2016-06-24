@@ -41,19 +41,20 @@
   #:use-module (gnome glib)            ;; for g-io-channel-* and g-source-*
   #:use-module (gnome gobject)         ;; for gclosure
   #:use-module (oop goops)             ;; for make
-  #:use-module (rnrs bytevectors)      ;; for make-bytevector, bytevector-copy!
-  #:use-module (rnrs io ports)         ;; for get-u8
   #:use-module ((ice-9 iconv)          ;; for bytevector->string (guile-2.0 does not provide it in rnrs)
 		#:select (bytevector->string)
 		#:renamer (symbol-prefix-proc 'iconv:))
+  #:use-module (ice-9 rdelim)          ;; for read-line
   #:export (await-glib-task-in-thread
 	    await-glib-task
 	    await-glib-timeout
 	    glib-add-watch
-	    a-sync-glib-read-watch
-	    a-sync-glib-write-watch
+	    await-glib-read-suspendable
+	    await-glib-write-suspendable
 	    await-glib-getline))
 
+(use-modules (ice-9 suspendable-ports))
+(install-suspendable-ports!)
 
 ;; This is a convenience procedure which will run 'thunk' in its own
 ;; thread, and then post an event to the default glib main loop when
@@ -156,9 +157,26 @@
 ;; procedure.  It should be possible to call this procedure in any
 ;; thread.
 ;;
-;; See the documentation on the a-sync-glib-read-watch procedure for
-;; some of the difficulties with using g-io-channel watches with
-;; guile-gnome.
+;; File watches in guile-gnome are implemented using a GIOChannel
+;; object, and unfortunately GIOChannel support in guile-gnome is
+;; decaying.  The only procedure that guile-gnome provides to read
+;; from a GIOChannel object is g-io-channel-read-line, which does not
+;; work.  One is therefore usually left with having to read from a
+;; guile port (whose underlying file descriptor is 'fd') using guile's
+;; port input procedures, but this has its own difficulties, which
+;; means that one of the following approaches should be adopted (i)
+;; the port has to be unbuffered (say by using the open-file or fdopen
+;; procedure with the '0' mode option or the R6RS open-file-input-port
+;; procedure with a buffer-mode of none, or by calling setvbuf), or
+;; (ii) 'proc' must deal with everything in the port's buffer by
+;; calling drain-input, or by looping on char-ready? before returning,
+;; or (iii) the port's ordinary input procedures should be used with
+;; suspendable ports using the await-glib-read-suspendable procedure.
+;; This is because otherwise, if the port is buffered, once the port
+;; is read from there may be further characters in the buffer to be
+;; dealt with even though the GIOChannel watch does not trigger
+;; because there is nothing new to make the file descriptor ready for
+;; reading.
 (define* (glib-add-watch ioc cond func #:optional context)
   (let ((s (g-io-create-watch ioc cond))
         (closure (make <gclosure>
@@ -167,222 +185,101 @@
     (g-source-set-closure s closure)
     (g-source-attach s context)))
 
-;; This is a convenience procedure for use with a glib main loop,
-;; which will run 'proc' in the default glib main loop whenever the
-;; file descriptor 'fd' is ready for reading, and apply resume
-;; (obtained from a call to a-sync) to the return value of 'proc'.
-;; 'proc' should take two arguments, the first of which will be set by
-;; glib to the g-io-channel object constructed for the watch and the
-;; second of which will be set to the GIOCondition ('in, 'hup or 'err)
-;; provided by glib which caused the watch to activate.  It is
-;; intended to be called in a waitable procedure invoked by a-sync.
-;; The watch is multi-shot - it is for the user to bring it to an end
-;; at the right time by calling g-source-remove in the waitable
-;; procedure on the id tag returned by this procedure.  Any port for
-;; the file descriptor 'fd' is not referenced for garbage collection
-;; purposes - it must remain valid while the read watch is active.
-;; This procedure is mainly intended as something from which
-;; higher-level asynchronous file operations can be constructed, such
-;; as the await-glib-getline procedure.
-;;
-;; File watches in guile-gnome are implemented using a GIOChannel
-;; object, and unfortunately GIOChannel support in guile-gnome is
-;; decaying.  The only procedure that guile-gnome provides to read
-;; from a GIOChannel object is g-io-channel-read-line, which does not
-;; work.  One is therefore usually left with having to read from a
-;; guile port (whose underlying file descriptor is 'fd') using guile's
-;; port input procedures, but this has its own difficulties because
-;; either (i) the port has to be unbuffered (say by using the
-;; open-file or fdopen procedure with the '0' mode option or the R6RS
-;; open-file-input-port procedure with a buffer-mode of none, or by
-;; calling setvbuf), or (ii) 'proc' must deal with everything in the
-;; port's buffer by calling drain-input, or by looping on char-ready?
-;; before returning.  This is because otherwise, if the port is
-;; buffered, once the port is read from there may be further
-;; characters in the buffer to be dealt with even though the
-;; GIOChannel watch does not trigger because there is nothing new to
-;; make the file descriptor ready for reading.
-;;
-;; Because this procedure takes a 'resume' argument derived from the
-;; a-sync procedure, it must (like the a-sync procedure) in practice
-;; be called in the same thread as that in which the default glib main
-;; loop runs.
-;;
-;; This procedure should not throw an exception unless memory is
-;; exhausted, or guile-glib throws for some other reason.  If 'proc'
-;; throws, say because of port errors, and the exception is not caught
-;; locally, it will propagate out of g-main-loop-run.
-(define (a-sync-glib-read-watch resume fd proc)
-  (glib-add-watch (g-io-channel-unix-new fd)
-		  '(in hup err)
-		  (lambda (a b)
-		    (resume (proc a b))
-		    #t)))
-			   
-;; This is a convenience procedure for use with a glib main loop,
-;; which will start a read watch on 'port' for a line of input.  It
-;; calls 'await' while waiting for input and will return the line of
-;; text received (without the terminating '\n' character).  The event
-;; loop will not be blocked by this procedure even if only individual
-;; characters are available at any one time.  It is intended to be
-;; called in a waitable procedure invoked by a-sync, and this
-;; procedure is implemented using a-sync-glib-read-watch.  If an
-;; end-of-file object is encountered which terminates a line of text,
-;; a string containing the line of text will be returned (and from
-;; version 0.3, if an end-of-file object is encountered without any
-;; text, the end-of-file object is returned rather than an empty
-;; string).
-;;
-;; For the reasons explained in the documentation on
-;; a-sync-glib-read-watch, this procedure only works correctly if the
-;; port passed to the 'port' argument has buffering switched off.
-;; This makes the procedure less useful than would otherwise be the
-;; case.
+;; 'proc' is a procedure taking a single argument, to which the port
+;; will be passed when func is invoked.  'port' must be a suspendable
+;; non-blocking port.  'proc' will be executed whenever there is
+;; something available to read, and this procedure will return when
+;; 'proc' returns, as if by a blocking read.  The glib event loop will
+;; not be blocked by this procedure even if only individual characters
+;; or bytes comprising part characters are available at any one time.
+;; It is intended to be called in a waitable procedure invoked by
+;; a-sync.
 ;;
 ;; This procedure must (like the a-sync procedure) be called in the
-;; same thread as that in which the default glib main loop runs.
+;; same thread as that in which the event loop runs.
 ;;
-;; Exceptions may propagate out of this procedure if they arise while
-;; setting up (that is, before the first call to 'await' is made),
-;; which shouldn't happen unless memory is exhausted.  Subsequent
-;; exceptions (say, because of port or conversion errors) will
-;; propagate out of g-main-loop-run.
-;;
-;; From version 0.6, the bytes comprising the input text will be
-;; converted to their string representation using the encoding of
-;; 'port' if a port encoding has been set, or otherwise using the
-;; program's default port encoding, or if neither has been set using
-;; iso-8859-1 (Latin-1).  Exceptions from conversion errors will, as
-;; mentioned, propagate out of g-main-loop-run.  Conversion errors
-;; should not arise with iso-8859-1 encoding, although the string may
-;; not necessarily have the desired meaning for the program concerned
-;; if the input encoding is in fact different.  From version 0.7, this
-;; procedure uses the conversion strategy for 'port' (which defaults
-;; at program start-up to 'substitute); version 0.6 instead always
-;; used a conversion strategy of 'error if encountering unconvertible
-;; characters).
-;;
-;; From version 0.6, this procedure may be used with an end-of-line
-;; representation of either a line-feed (\n) or a carriage-return and
-;; line-feed (\r\n) combination, as from version 0.6 any carriage
-;; return byte will be discarded (this did not occur with earlier
-;; versions).
-(define (await-glib-getline await resume port)
-  (define chunk-size 128)
-  (define text (make-bytevector chunk-size))
-  (define text-len 0)
-  (define (append-byte! u8)
-    (when (= text-len (bytevector-length text))
-      (let ((tmp text))
-	(set! text (make-bytevector (+ text-len chunk-size)))
-	(bytevector-copy! tmp 0 text 0 text-len)))
-    (bytevector-u8-set! text text-len u8)
-    (set! text-len (1+ text-len)))
-  (define (make-outstring)
-    ;; guile's bytevector->string procedure is non-standard and takes
-    ;; an encoding string and not a transcoder as its second argument,
-    ;; and an optional conversion strategy as its third: we use the
-    ;; port's encoding if it has one (it will if setlocale has been
-    ;; called), otherwise the default port encoding, or if none
-    ;; latin-1 (which is encoding neutral in guile-2.0).  We also use
-    ;; the port's conversion strategy.
-    (let ((encoding (or (port-encoding port)
-			(fluid-ref %default-port-encoding)
-			"ISO-8859-1"))
-	  (conversion-strategy (port-conversion-strategy port))
-	  (out-bv (make-bytevector text-len)))
-      ;; this copies the text twice and therefore is not very
-      ;; efficient, but is the best we can do without writing our own
-      ;; wrapper in C, and at least it only occurs once for each line
-      (bytevector-copy! text 0 out-bv 0 text-len)
-      (iconv:bytevector->string out-bv encoding conversion-strategy)))
-  (define id (a-sync-glib-read-watch resume
-				     (port->fdes port)
-				     (lambda (ioc status)
-				       ;; this doesn't work.  The wrapper does not seem to provide
-				       ;; any way of extracting GIOCondition enumeration values
-				       ;; which actually works.  However, 'err or 'pri should cause
-				       ;; a read of the port to return an eof-object
-				       ;; (if (or (eq? status 'pri)
-				       ;; 	  (eq? status 'err))
-				       ;;     #f
-				       (let next ()
-					 (let ((u8
-						(catch 'system-error
-						  (lambda ()
-						    (get-u8 port))
-						  (lambda args
-						    (if (or (= EAGAIN (system-error-errno args))
-							    (and (defined? 'EWOULDBLOCK) 
-								 (= EWOULDBLOCK (system-error-errno args))))
-							'more
-							(apply throw args))))))
-					   (cond
-					    ((eq? u8 'more)
-					     'more)
-					    ((eof-object? u8)
-					     (if (= text-len 0)
-						 u8
-						 (make-outstring)))
-					    ;; just swallow a DOS-style CR character
-					    ((= u8 (char->integer #\return))
-					     (if (char-ready? port)
-						 (next)
-						 'more))
-					    ((= u8 (char->integer #\newline))
-					     (make-outstring))
-					    (else
-					     (append-byte! u8)
-					     (if (char-ready? port)
-						 (next)
-						 'more))))))))
-  (let next ((res (await)))
-    (if (eq? res 'more)
-	(next (await))
-	(begin
-	  (g-source-remove id)
-	  (release-port-handle port)
-	  res))))
+;; Exceptions (say, because of port or conversion errors) will
+;; propagate out of this procedure in the first instance, and if not
+;; caught locally will then propagate out of g-main-loop-run.
+(define (await-glib-read-suspendable await resume port proc)
+  (define (read-waiter p)
+    (await))
+  (define id (glib-add-watch (g-io-channel-unix-new (port->fdes port))
+			     '(in hup err)
+			     (lambda (ioc status)
+			       ;; accessing 'status' doesn't work.  The wrapper does not
+			       ;; seem to provide any way of extracting GIOCondition
+			       ;; enumeration values which actually works.  However, 'err
+			       ;; or 'pri should cause a read of the port to return an
+			       ;; eof-object
+  			       (resume)
+			       #t)))
+  (let ((res
+	 (parameterize ((current-read-waiter read-waiter))
+	   (catch #t
+	     (lambda ()
+	       (proc port))
+	     (lambda args
+	       (g-source-remove id)
+	       (release-port-handle port)
+	       (apply throw args))))))
+    (g-source-remove id)
+    (release-port-handle port)
+    res))
 
-;; This is a convenience procedure for use with a glib main loop,
-;; which will run 'proc' in the default glib main loop whenever the
-;; file descriptor 'fd' is ready for writing, and apply resume
-;; (obtained from a call to a-sync) to the return value of 'proc'.
-;; 'proc' should take two arguments, the first of which will be set by
-;; glib to the g-io-channel object constructed for the watch and the
-;; second of which will be set to the GIOCondition ('out or 'err)
-;; provided by glib which caused the watch to activate.  It is
-;; intended to be called in a waitable procedure invoked by a-sync.
-;; The watch is multi-shot - it is for the user to bring it to an end
-;; at the right time by calling g-source-remove in the waitable
-;; procedure on the id tag returned by this procedure.  Any port for
-;; the file descriptor 'fd' is not referenced for garbage collection
-;; purposes - it must remain valid while the read watch is active.
-;; This procedure is mainly intended as something from which
-;; higher-level asynchronous file operations can be constructed.
+;; This procedure is provided mainly to retain compatibility with the
+;; guile-a-sync library for guile-2.0, because it is trivial to
+;; implement with await-glib-read-suspendable (and is implemented by
+;; await-glib-read-suspendable).
 ;;
-;; The documentation on the a-sync-glib-read-watch procedure comments
-;; about about the difficulties of using GIOChannel file watches with
-;; buffered ports.  The difficulties are not quite so intense with
-;; write watches, but users are likely to get best results by using
-;; unbuffered output ports (say by using the open-file or fdopen
-;; procedure with the '0' mode option or the R6RS
-;; open-file-output-port procedure with a buffer-mode of none, or by
-;; calling setvbuf).
+;; It is intended to be called in a waitable procedure invoked by
+;; a-sync, and reads a line of text from a non-blocking suspendable
+;; port and returns it (without the terminating '\n' character).  See
+;; the documentation on the await-glib-read-suspendable procedure for
+;; further particulars about this procedure.
+(define (await-glib-getline await resume port)
+  (await-read-suspendable! await resume port
+			   (lambda (p)
+			     (read-line p))))
+
+;; 'proc' is a procedure taking a single argument, to which the port
+;; will be passed when func is invoked.  'port' must be a suspendable
+;; non-blocking port.  'proc' will be executed whenever the port is
+;; available to write to, and this procedure will return when 'proc'
+;; returns, as if by a blocking write.  The glib event loop will not
+;; be blocked by this procedure even if only individual characters or
+;; bytes comprising part characters can be written at any one time.
+;; It is intended to be called in a waitable procedure invoked by
+;; a-sync.
 ;;
-;; Because this procedure takes a 'resume' argument derived from the
-;; a-sync procedure, it must (like the a-sync procedure) in practice
-;; be called in the same thread as that in which the default glib main
-;; loop runs.
+;; This procedure must (like the a-sync procedure) be called in the
+;; same thread as that in which the event loop runs.
 ;;
-;; This procedure should not throw an exception unless memory is
-;; exhausted, or guile-glib throws for some other reason.  If 'proc'
-;; throws, say because of port errors, and the exception is not caught
-;; locally, it will propagate out of g-main-loop-run.
-(define (a-sync-glib-write-watch resume fd proc)
-  (glib-add-watch (g-io-channel-unix-new fd)
-		  '(out err)
-		  (lambda (a b)
-		    (resume (proc a b))
-		    #t)))
-			   
+;; Exceptions (say, because of port or conversion errors) will
+;; propagate out of this procedure in the first instance, and if not
+;; caught locally will then propagate out of g-main-loop-run.
+(define (await-glib-write-suspendable await resume port proc)
+  (define (write-waiter p)
+    (await))
+  (define id (glib-add-watch (g-io-channel-unix-new (port->fdes port))
+			     '(out err)
+			     (lambda (ioc status)
+			       ;; accessing 'status' doesn't work.  The wrapper does not
+			       ;; seem to provide any way of extracting GIOCondition
+			       ;; enumeration values which actually works.  However, 'err
+			       ;; or 'pri should cause a read of the port to return an
+			       ;; eof-object
+  			       (resume)
+			       #t)))
+  (let ((res
+	 (parameterize ((current-write-waiter write-waiter))
+	   (catch #t
+	     (lambda ()
+	       (proc port))
+	     (lambda args
+	       (g-source-remove id)
+	       (release-port-handle port)
+	       (apply throw args))))))
+    (g-source-remove id)
+    (release-port-handle port)
+    res))

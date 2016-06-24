@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-SOURCES = monotonic-time.scm coroutines.scm event-loop.scm compose.scm
+SOURCES = monotonic-time.scm coroutines.scm event-loop.scm await-ports.scm compose.scm
 
 moduledir = $(GUILE22_SITEDIR)/a-sync
 module_DATA = $(SOURCES) gnome-glib.scm

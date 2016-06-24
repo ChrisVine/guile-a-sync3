@@ -136,7 +136,7 @@ AC_DEFUN([AC_CHECK_COMPILE_SCHEME],
   ])
   AM_CONDITIONAL([COMPILE_TO_BYTECODE], [test x$compile_scheme = xtrue])
 ])
-  
+
 AC_DEFUN([AC_CHECK_GUILE_SITEDIR],
 [
   if test -z "$PKG_CONFIG"; then

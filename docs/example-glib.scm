@@ -54,11 +54,14 @@
           ;; keyboard)
           (display "Enter a line of text at the keyboard\n")
           (system* "stty" "--file=/dev/tty" "cbreak")
-          (simple-format #t
-                         "The line was: ~A\n"
-                         (await-glib-getline await resume
-					     (open "/dev/tty" O_RDONLY)))
-          (system* "stty" "--file=/dev/tty" "-cbreak")
+	  (let ((keyboard (open "/dev/tty" O_RDONLY)))
+	    (fcntl keyboard F_SETFL (logior O_NONBLOCK
+					    (fcntl keyboard F_GETFL)))
+	    (simple-format #t
+			   "The line was: ~A\n"
+			   (await-glib-getline await resume
+					       keyboard))
+	    (system* "stty" "--file=/dev/tty" "-cbreak"))
 
           ;; launch another asynchronous task, this time in the event loop thread
           (display (await-glib-task await resume
@@ -73,20 +76,23 @@
 (display "\nBeginning timeout\n")
 (compose-a-sync ((ret-timeout (await-glib-timeout 1000 (lambda ()
 							 "Timeout ended\n")))
-	      ;; the return value here can be ignored - this is easier
-	      ;; than starting another compose-a-sync block for
-	      ;; await-task-in-thread!
-	      (ignore1 ((no-await (display ret-timeout))))
-	      (ret-task (await-glib-task-in-thread (lambda ()
-						     (usleep 500000)
-						     (display "In worker thread, work done\n")
-						     "Hello via async\n")))
-	      ;; ditto
-	      (ignore2 ((no-await (display ret-task)
-				  (display "Enter a line of text at the keyboard\n")
-				  (system* "stty" "--file=/dev/tty" "cbreak"))))
-	      (ret-getline (await-glib-getline (open "/dev/tty" O_RDONLY))))
-	     ;; body clauses begin here
+		 ;; the return value here can be ignored - this is easier
+		 ;; than starting another compose-a-sync block for
+		 ;; await-task-in-thread!
+		 (ignore1 ((no-await (display ret-timeout))))
+		 (ret-task (await-glib-task-in-thread (lambda ()
+							(usleep 500000)
+							(display "In worker thread, work done\n")
+							"Hello via async\n")))
+		 (keyboard ((no-await (display ret-task)
+				      (display "Enter a line of text at the keyboard\n")
+				      (system* "stty" "--file=/dev/tty" "cbreak")
+				      (open "/dev/tty" O_RDONLY))))
+		 ;; ditto
+		 (ignore2 ((no-await (fcntl keyboard F_SETFL (logior O_NONBLOCK
+								     (fcntl keyboard F_GETFL))))))
+		 (ret-getline (await-glib-getline keyboard)))
+	   ;; body clauses begin here
 	   ((no-await (simple-format #t
 				     "The line was: ~A\n"
 				     ret-getline)

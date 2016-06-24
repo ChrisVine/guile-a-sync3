@@ -17,8 +17,10 @@
 (use-modules (a-sync coroutines)
 	     (a-sync event-loop)
 	     (a-sync compose)
-	     (ice-9 rdelim) ;; for write-line
-	     (rnrs base))   ;; for assert
+	     (a-sync await-ports)
+	     (ice-9 rdelim)   ;; for write-line
+	     (rnrs base)      ;; for assert
+	     (rnrs io ports)) ;; for get-char and put-char
 
 ;; helpers
 
@@ -87,12 +89,14 @@
 	    (print-result))))
 (event-loop-run! main-loop)
   
-;; Test 5: await-getline! (also tests a-sync-read-watch!)
+;; Test 5: await-getline! (also tests await-read-suspendable!)
 
 (let ()
   (define test-pipe (pipe))
   (define in (car test-pipe))
   (define out (cdr test-pipe))
+  (fcntl in F_SETFL (logior O_NONBLOCK
+                            (fcntl in F_GETFL)))
   (a-sync (lambda (await resume)
 	    (let ((res (await-getline! await resume
 				       main-loop
@@ -103,13 +107,15 @@
   (force-output out)
   (event-loop-run! main-loop))
 
-;; Test 6: await-geteveryline! (also tests a-sync-read-watch!)
+;; Test 6: await-geteveryline! (also tests await-read-suspendable!)
 
 (let ()
   (define test-pipe (pipe))
   (define in (car test-pipe))
   (define out (cdr test-pipe))
   (define count 0)
+  (fcntl in F_SETFL (logior O_NONBLOCK
+                            (fcntl in F_GETFL)))
   (a-sync (lambda (await resume)
 	    (let ((res (await-geteveryline! await resume
 					    main-loop
@@ -129,13 +135,15 @@
   (force-output out)
   (event-loop-run! main-loop))
 
-;; Test 7: await-getsomelines! (also tests a-sync-read-watch!)
+;; Test 7: await-getsomelines! (also tests await-read-suspendable!)
 
 (let ()
   (define test-pipe (pipe))
   (define in (car test-pipe))
   (define out (cdr test-pipe))
   (define count 0)
+  (fcntl in F_SETFL (logior O_NONBLOCK
+                            (fcntl in F_GETFL)))
   (a-sync (lambda (await resume)
 	    (let ((res (await-getsomelines! await resume
 					    main-loop
@@ -166,6 +174,8 @@
   (define in (car test-pipe))
   (define out (cdr test-pipe))
   (define count 0)
+  (fcntl in F_SETFL (logior O_NONBLOCK
+                            (fcntl in F_GETFL)))
   (a-sync (lambda (await resume)
 	    (await-getsomelines! await resume
 				 main-loop
@@ -200,6 +210,8 @@
   (define in (car test-pipe))
   (define out (cdr test-pipe))
   (define count 0)
+  (fcntl in F_SETFL (logior O_NONBLOCK
+                            (fcntl in F_GETFL)))
   (a-sync (lambda (await resume)
 	    (catch #t
 		   (lambda ()
@@ -226,39 +238,25 @@
   (test-result 2 count)
   (print-result))
 
-;; Test 10: a-sync-write-watch!
+;; Test 10: await-write-suspendable!
 
 (let ()
   (define test-pipe (pipe))
   (define in (car test-pipe))
   (define out (cdr test-pipe))
-  (define count 0)
+  (fcntl out F_SETFL (logior O_NONBLOCK
+			     (fcntl out F_GETFL)))
   (a-sync (lambda (await resume)
-	    (a-sync-write-watch! resume out
-				 (lambda (status)
-				   (test-result 'out status)
-				   (if (< count 3)
-				       (begin
-					 (set! count (1+ count))
-					 (write-char #\a out)
-					 (force-output out)
-					 'more)
-				       (begin
-					 (write-char #\x out)
-					 (force-output out)
-					 (event-loop-remove-write-watch! out main-loop)
-					 'done)))
-				 main-loop)
-	    (let loop ((res (await)))
-	      (let ((ch (read-char in)))
-		(if (not (char=? ch #\x))
-		    (begin
-		      (test-result 'more res)
-		      (test-result #\a ch)
-		      (loop (await)))
-		    (test-result 'done res))))
-	    (test-result 3 count)
-	    (print-result)))
+	    (await-write-suspendable! await resume main-loop out 
+				      (lambda (p)
+					(put-char p #\a)
+					(put-char p #\x)
+					(force-output p)))
+ 	    (let* ((ch1 (get-char in))
+		   (ch2 (get-char in)))
+	      (test-result #\a ch1)
+	      (test-result #\x ch2)
+	      (print-result))))
   (event-loop-run! main-loop))
 
 ;; Test 11: compose-a-sync and no-await
@@ -332,12 +330,14 @@
 	    (print-result))))
 (event-loop-run!)
   
-;; Test 16: await-getline! (also tests a-sync-read-watch!)
+;; Test 16: await-getline! (also tests await-read-suspendable!)
 
 (let ()
   (define test-pipe (pipe))
   (define in (car test-pipe))
   (define out (cdr test-pipe))
+  (fcntl in F_SETFL (logior O_NONBLOCK
+                            (fcntl in F_GETFL)))
   (a-sync (lambda (await resume)
 	    (let ((res (await-getline! await resume
 				       in)))
@@ -347,13 +347,15 @@
   (force-output out)
   (event-loop-run!))
 
-;; Test 17: await-geteveryline! (also tests a-sync-read-watch!)
+;; Test 17: await-geteveryline! (also tests await-read-suspendable!)
 
 (let ()
   (define test-pipe (pipe))
   (define in (car test-pipe))
   (define out (cdr test-pipe))
   (define count 0)
+  (fcntl in F_SETFL (logior O_NONBLOCK
+                            (fcntl in F_GETFL)))
   (a-sync (lambda (await resume)
 	    (let ((res (await-geteveryline! await resume
 					    in
@@ -372,13 +374,15 @@
   (force-output out)
   (event-loop-run!))
 
-;; Test 18: await-getsomelines! (also tests a-sync-read-watch!)
+;; Test 18: await-getsomelines! (also tests await-read-suspendable!)
 
 (let ()
   (define test-pipe (pipe))
   (define in (car test-pipe))
   (define out (cdr test-pipe))
   (define count 0)
+  (fcntl in F_SETFL (logior O_NONBLOCK
+                            (fcntl in F_GETFL)))
   (a-sync (lambda (await resume)
 	    (let ((res (await-getsomelines! await resume
 					    in
@@ -408,6 +412,8 @@
   (define in (car test-pipe))
   (define out (cdr test-pipe))
   (define count 0)
+  (fcntl in F_SETFL (logior O_NONBLOCK
+                            (fcntl in F_GETFL)))
   (a-sync (lambda (await resume)
 	    (await-getsomelines! await resume
 				 in
@@ -441,6 +447,8 @@
   (define in (car test-pipe))
   (define out (cdr test-pipe))
   (define count 0)
+  (fcntl in F_SETFL (logior O_NONBLOCK
+                            (fcntl in F_GETFL)))
   (a-sync (lambda (await resume)
 	    (catch #t
 		   (lambda ()
@@ -466,38 +474,25 @@
   (test-result 2 count)
   (print-result))
 
-;; Test 21: a-sync-write-watch!
+;; Test 21: await-write-suspendable!
 
 (let ()
   (define test-pipe (pipe))
   (define in (car test-pipe))
   (define out (cdr test-pipe))
-  (define count 0)
+  (fcntl out F_SETFL (logior O_NONBLOCK
+			     (fcntl out F_GETFL)))
   (a-sync (lambda (await resume)
-	    (a-sync-write-watch! resume out
-				 (lambda (status)
-				   (test-result 'out status)
-				   (if (< count 3)
-				       (begin
-					 (set! count (1+ count))
-					 (write-char #\a out)
-					 (force-output out)
-					 'more)
-				       (begin
-					 (write-char #\x out)
-					 (force-output out)
-					 (event-loop-remove-write-watch! out)
-					 'done))))
-	    (let loop ((res (await)))
-	      (let ((ch (read-char in)))
-		(if (not (char=? ch #\x))
-		    (begin
-		      (test-result 'more res)
-		      (test-result #\a ch)
-		      (loop (await)))
-		    (test-result 'done res))))
-	    (test-result 3 count)
-	    (print-result)))
+	    (await-write-suspendable! await resume out 
+				      (lambda (p)
+					(put-char p #\a)
+					(put-char p #\x)
+					(force-output p)))
+ 	    (let* ((ch1 (get-char in))
+		   (ch2 (get-char in)))
+	      (test-result #\a ch1)
+	      (test-result #\x ch2)
+	      (print-result))))
   (event-loop-run!))
 
 ;; Test 22: compose-a-sync and no-await

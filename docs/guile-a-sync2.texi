@@ -20,6 +20,7 @@ The guile-a-sync library is provided in five modules:
 @menu
 * coroutines::     In module (a-sync coroutines) - provides coroutines for await semantics on asynchronous events
 * event loop::     In module (a-sync event-loop) - provides an event loop for asynchronous events
+* await ports::    In module (a-sync await-ports) - provides procedures for suspendable ports
 * monotonic time:: In module (a-sync monotonic-time) - enables monotonic time to be used for timeouts
 * gnome glib::     In module (a-sync gnome-glib) - provides some convenience await procedures for the glib main loop
 * compose::        In module (a-sync compose) - provides the compose-a-sync macro interface for the a-sync coroutine
@@ -27,6 +28,7 @@ The guile-a-sync library is provided in five modules:
 
 @include coroutines.texi
 @include event-loop.texi
+@include await-ports.texi
 @include monotonic-time.texi
 @include gnome-glib.texi
 @include compose.texi

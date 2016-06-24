@@ -1,4 +1,4 @@
-@node event loop,monotonic time,coroutines,Top
+@node event loop,await ports,coroutines,Top
 
 The (a-sync event-loop) module provides an event loop for asynchronous
 operations.  The event loop does not of itself start any new threads.
@@ -25,13 +25,14 @@ select() system call.  This has two consequences.  First, in linux
 select() applied to sockets can give rise to spurious wake-ups, which
 means that it may be best with sockets to set the socket as
 non-blocking using the guile wrapper for the fcntl() system call in
-order to prevent a blocking read where it is not expected
-(EAGAIN/EWOULDBLOCK is handled correctly by the await-getline!,
-await-geteveryline! and await-getsomelines! procedures from version
-0.5).  Secondly, with select() the file descriptor value of a port
-passed to the watch should not exceed FD_SETSIZE.  Normally, by
-default the maximum soft user limit for open files is the same as
-FD_SETSIZE, and it is best if this situation is retained by user code.
+order to prevent a blocking read where it is not expected.  With
+guile-2.2 this means that with such sockets, suspendable ports should
+generally be used with the await-read-suspendable! procedure in the
+(a-sync await-ports) module.  Secondly, with select() the file
+descriptor value of a port passed to the watch should not exceed
+FD_SETSIZE.  Normally, by default the maximum soft user limit for open
+files is the same as FD_SETSIZE, and it is best if this situation is
+retained by user code.
 
 This modules provides the following procedures:
 
@@ -102,7 +103,10 @@ remain valid while operations are carried out on the descriptor.  If
 indicating whether a read can be made without blocking (but on a
 buffered port, for efficiency purposes each read operation in response
 to this watch should usually exhaust the buffer by calling drain-input
-or by looping on char-ready?).
+or by looping on char-ready?, or the port's ordinary input procedures
+should be used with suspendable ports using the
+await-read-suspendable!  procedure in the (a-sync await-ports)
+module).
 
 This procedure should not throw an exception unless memory is
 exhausted.  If 'proc' throws, say because of port errors, and the
@@ -142,10 +146,13 @@ descriptor is ready for a character, the next write will cause a
 buffer flush, and if the size of the buffer is greater than the number
 of characters that the file can receive without blocking, blocking
 might still occur.  Unless the port will carry out a partial flush in
-such a case, this procedure will therefore generally work best with
-unbuffered ports (say by using the open-file or fdopen procedure with
-the '0' mode option or the R6RS open-file-input-port procedure with a
-buffer-mode of none, or by calling setvbuf).
+such a case, this procedure will therefore generally work best either
+with unbuffered ports (say by using the open-file or fdopen procedure
+with the '0' mode option or the R6RS open-file-input-port procedure
+with a buffer-mode of none, or by calling setvbuf), or the port's
+ordinary output procedures should be used with suspendable ports using
+the await-write-suspendable! procedure in the (a-sync await-ports)
+module.
 
 This procedure should not throw an exception unless memory is
 exhausted.  If 'proc' throws, say because of port errors, and the
@@ -349,341 +356,6 @@ Here is an example of the use of event-timeout!:
 					   "expired")))))
 (event-loop-run!)
 @end example
-@end deffn
-
-@deffn {Scheme Procedure} a-sync-read-watch! resume file proc [loop]
-This is a convenience procedure for use with an event loop, which will
-run 'proc' in the event loop thread whenever 'file' is ready for
-reading, and apply 'resume' (obtained from a call to a-sync) to the
-return value of 'proc'.  'file' can be a port or a file descriptor
-(and if it is a file descriptor, the revealed count is not
-incremented).  'proc' should take a single argument which will be set
-by the event loop to 'in or 'excpt (see the documentation on
-event-loop-add-read-watch! for further details).  It is intended to be
-called in a waitable procedure invoked by a-sync.  The watch is
-multi-shot - it is for the user to bring it to an end at the right
-time by calling event-loop-remove-read-watch! in the waitable
-procedure.  If 'file' is a buffered port, buffering will be taken into
-account in indicating whether a read can be made without blocking (but
-on a buffered port, for efficiency purposes each read operation in
-response to this watch should usually exhaust the buffer by calling
-drain-input or by looping on char-ready?).
-
-This procedure is mainly intended as something from which higher-level
-asynchronous file operations can be constructed, such as the
-await-readline! procedure.  The 'loop' argument is optional: this
-procedure operates on the event loop passed in as an argument, or if
-none is passed (or #f is passed), on the default event loop
-
-Because this procedure takes a 'resume' argument derived from the
-a-sync procedure, it must (like the a-sync procedure) in practice be
-called in the same thread as that in which the event loop runs.
-
-This procedure should not throw an exception unless memory is
-exhausted.  If 'proc' throws, say because of port errors, and the
-exception is not caught locally, it will propagate out of
-event-loop-run!.
-
-As an example of how to use a-sync-read-watch!, here is the
-implementation of await-getline!:
-@example
-(define await-getline!
-   (case-lambda
-    ((await resume port)
-     (await-getline! await resume #f port))
-    ((await resume loop port)
-     (let ()
-       (define chunk-size 128)
-       (define text (make-bytevector chunk-size))
-       (define text-len 0)
-       (define (append-byte! u8)
-	 (when (= text-len (bytevector-length text))
-	   (let ((tmp text))
-	     (set! text (make-bytevector (+ text-len chunk-size)))
-	     (bytevector-copy! tmp 0 text 0 text-len)))
-	 (bytevector-u8-set! text text-len u8)
-	 (set! text-len (1+ text-len)))
-       (define (make-outstring)
-	 (let ((encoding (or (port-encoding port)
-			     (fluid-ref %default-port-encoding)
-			     "ISO-8859-1"))
-	       (conversion-strategy (port-conversion-strategy port))
-	       (out-bv (make-bytevector text-len)))
-	   (bytevector-copy! text 0 out-bv 0 text-len)
-	   (iconv:bytevector->string out-bv encoding conversion-strategy)))
-       (a-sync-read-watch! resume
-			   port
-			   (lambda (status)
-			     (if (eq? status 'excpt)
-				 #f
-				 (let next ()
-				   (let ((u8
-					  (catch 'system-error
-					    (lambda ()
-					      (get-u8 port))
-					    (lambda args
-					      (if (or (= EAGAIN (system-error-errno args))
-						      (and (defined? 'EWOULDBLOCK) 
-							   (= EWOULDBLOCK (system-error-errno args))))
-						  'more
-						  (apply throw args))))))
-				     (cond
-				      ((eq? u8 'more)
-				       'more)
-				      ((eof-object? u8)
-				       (if (= text-len 0)
-					   u8
-					   (make-outstring)))
-				      ((= u8 (char->integer #\return))
-				       (if (char-ready? port)
-					   (next)
-					   'more))
-				      ((= u8 (char->integer #\newline))
-				       (make-outstring))
-				      (else
-				       (append-byte! u8)
-				       (if (char-ready? port)
-					   (next)
-					   'more)))))))
-			   loop))
-     (let next ((res (await)))
-       (if (eq? res 'more)
-	   (next (await))
-	   (begin
-	     (event-loop-remove-read-watch! port loop)
-	     res))))))
-@end example
-@end deffn
-
-@deffn {Scheme Procedure} await-getline! await resume [loop] port
-This is a convenience procedure for use with an event loop, which will
-start a read watch on 'port' for a line of input.  It calls 'await'
-while waiting for input and will return the line of text received
-(without the terminating '\n' character).  The event loop will not be
-blocked by this procedure even if only individual characters are
-available at any one time.  It is intended to be called in a waitable
-procedure invoked by a-sync, and this procedure is implemented using
-a-sync-read-watch!.  If an exceptional condition ('excpt) is
-encountered, #f will be returned.  If an end-of-file object is
-encountered which terminates a line of text, a string containing the
-line of text will be returned (and from version 0.3, if an end-of-file
-object is encountered without any text, the end-of-file object is
-returned rather than an empty string).  The 'loop' argument is
-optional: this procedure operates on the event loop passed in as an
-argument, or if none is passed (or #f is passed), on the default event
-loop.
-
-This procedure must (like the a-sync procedure) be called in the same
-thread as that in which the event loop runs.
-
-Exceptions may propagate out of this procedure if they arise while
-setting up (that is, before the first call to 'await' is made), which
-shouldn't happen unless memory is exhausted.  Subsequent exceptions
-(say, because of port or conversion errors) will propagate out of
-event-loop-run!.
-
-From version 0.6, the bytes comprising the input text will be
-converted to their string representation using the encoding of 'port'
-if a port encoding has been set, or otherwise using the program's
-default port encoding, or if neither has been set using iso-8859-1
-(Latin-1).  Exceptions from conversion errors will, as mentioned,
-propagate out of event-loop-run!.  Conversion errors should not arise
-with iso-8859-1 encoding, although the string may not necessarily have
-the desired meaning for the program concerned if the input encoding is
-in fact different.  From version 0.7, this procedure uses the
-conversion strategy for 'port' (which defaults at program start-up to
-'substitute); version 0.6 instead always used a conversion strategy of
-'error if encountering unconvertible characters).
-
-From version 0.6, this procedure may be used with an end-of-line
-representation of either a line-feed (\n) or a carriage-return and
-line-feed (\r\n) combination, as from version 0.6 any carriage return
-byte will be discarded (this did not occur with earlier versions).
-
-Here is an example of the use of await-getline!:
-@example
-(set-default-event-loop!) ;; if none has yet been set
-(a-sync (lambda (await resume)
-	  (display "Enter a line of text at the keyboard\n")
-	  (simple-format #t
-			 "The line was: ~A\n"
-			 (await-getline! await resume
-					 (open "/dev/tty" O_RDONLY)))))
-(event-loop-run!)
-@end example
-@end deffn
-
-@deffn {Scheme Procedure} await-geteveryline! await resume [loop] port proc
-This is a convenience procedure for use with an event loop, which will
-start a read watch on 'port' for lines of input.  It calls 'await'
-while waiting for input and will apply 'proc' to every complete line
-of text received (without the terminating '\n' character).  'proc'
-should be a procedure taking a string as its only argument.
-
-The event loop will not be blocked by this procedure even if only
-individual characters are available at any one time.  It is intended
-to be called in a waitable procedure invoked by a-sync, and this
-procedure is implemented using a-sync-read-watch!.  Unlike the
-await-getline! procedure, the watch will continue after a line of text
-has been received in order to receive further lines.  The watch will
-not end until end-of-file or an exceptional condition ('excpt) is
-reached.  In the event of that happening, this procedure will end and
-return an end-of-file object or #f respectively.
-
-The 'loop' argument is optional: this procedure operates on the event
-loop passed in as an argument, or if none is passed (or #f is passed),
-on the default event loop.
-
-This procedure must (like the a-sync procedure) be called in the same
-thread as that in which the event loop runs.
-
-Exceptions may propagate out of this procedure if they arise while
-setting up (that is, before the first call to 'await' is made), which
-shouldn't happen unless memory is exhausted.  Subsequent exceptions
-(say, because of port or conversion errors) will propagate out of
-event-loop-run!.
-
-This procedure is available from version 0.3.  From version 0.6, the
-bytes comprising the input text will be converted to their string
-representation using the encoding of 'port' if a port encoding has
-been set, or otherwise using the program's default port encoding, or
-if neither has been set using iso-8859-1 (Latin-1).  Exceptions from
-conversion errors will, as mentioned, propagate out of
-event-loop-run!.  Conversion errors should not arise with iso-8859-1
-encoding, although strings may not necessarily have the desired
-meaning for the program concerned if the input encoding is in fact
-different.  From version 0.7, this procedure uses the conversion
-strategy for 'port' (which defaults at program start-up to
-'substitute); version 0.6 instead always used a conversion strategy of
-'error if encountering unconvertible characters).
-
-From version 0.6, this procedure may be used with an end-of-line
-representation of either a line-feed (\n) or a carriage-return and
-line-feed (\r\n) combination, as from version 0.6 any carriage return
-byte will be discarded (this did not occur with earlier versions).
-
-Here is an example of the use of await-geteveryline! (because the
-keyboard has no end-of-file, use Ctrl-C to exit this code snippet):
-@example
-(set-default-event-loop!) ;; if none has yet been set
-(a-sync (lambda (await resume)
-	  (display "Enter lines of text at the keyboard, ^C to finish\n")
-	  (let ((port (open "/dev/tty" O_RDONLY)))
-	    (await-geteveryline! await resume
-				 port
-				 (lambda (line)
-				   (simple-format #t
-						  "The line was: ~A\n"
-						  line))))))
-(event-loop-run!)
-@end example
-@end deffn
-
-@deffn {Scheme Procedure} await-getsomelines! await resume [loop] port proc
-This is a convenience procedure for use with an event loop, which does
-the same as await-geteveryline!, except that it provides a second
-argument to 'proc', namely an escape continuation which can be invoked
-by 'proc' to cause the procedure to return before end-of-file is
-reached.  Behavior is identical to await-geteveryline! if the
-continuation is not invoked.
-
-This procedure will start a read watch on 'port' for lines of input.
-It calls 'await' while waiting for input and will apply 'proc' to any
-complete line of text received (without the terminating '\n'
-character).  'proc' should be a procedure taking two arguments, a
-string as the first argument containing the line of text read, and an
-escape continuation as its second.
-
-The event loop will not be blocked by this procedure even if only
-individual characters are available at any one time.  It is intended
-to be called in a waitable procedure invoked by a-sync.  This
-procedure is implemented using a-sync-read-watch!.  The watch will not
-end until end-of-file or an exceptional condition ('excpt) is reached,
-which would cause this procedure to end and return an end-of-file
-object or #f respectively, or until the escape continuation is
-invoked, in which case the value passed to the escape continuation
-will be returned.
-
-The 'loop' argument is optional: this procedure operates on the event
-loop passed in as an argument, or if none is passed (or #f is passed),
-on the default event loop.
-
-This procedure must (like the a-sync procedure) be called in the same
-thread as that in which the event loop runs.
-
-Exceptions may propagate out of this procedure if they arise while
-setting up (that is, before the first call to 'await' is made), which
-shouldn't happen unless memory is exhausted.  Subsequent exceptions
-(say, because of port or conversion errors) will propagate out of
-event-loop-run!.
-
-This procedure is available from version 0.4.  From version 0.6, the
-bytes comprising the input text will be converted to their string
-representation using the encoding of 'port' if a port encoding has
-been set, or otherwise using the program's default port encoding, or
-if neither has been set using iso-8859-1 (Latin-1).  Exceptions from
-conversion errors will, as mentioned, propagate out of
-event-loop-run!.  Conversion errors should not arise with iso-8859-1
-encoding, although strings may not necessarily have the desired
-meaning for the program concerned if the input encoding is in fact
-different.  From version 0.7, this procedure uses the conversion
-strategy for 'port' (which defaults at program start-up to
-'substitute); version 0.6 instead always used a conversion strategy of
-'error if encountering unconvertible characters).
-
-From version 0.6, this procedure may be used with an end-of-line
-representation of either a line-feed (\n) or a carriage-return and
-line-feed (\r\n) combination, as from version 0.6 any carriage return
-byte will be discarded (this did not occur with earlier versions).
-
-Here is an example of the use of await-getsomelines!:
-@example
-(set-default-event-loop!) ;; if none has yet been set
-(a-sync (lambda (await resume)
-	  (display "Enter lines of text at the keyboard, enter an empty line to finish\n")
-	  (let ((port (open "/dev/tty" O_RDONLY)))
-	    (await-getsomelines! await resume
-				 port
-				 (lambda (line k)
-                                   (when (string=? line "")
-					 (k #f))
-				   (simple-format #t
-						  "The line was: ~A\n"
-						  line))))))
-(event-loop-run!)
-@end example
-@end deffn
-
-@deffn {Scheme Procedure} a-sync-write-watch! resume file proc [loop]
-This is a convenience procedure for use with an event loop, which will
-run 'proc' in the event loop thread whenever 'file' is ready for
-writing, and apply 'resume' (obtained from a call to a-sync) to the
-return value of 'proc'.  'file' can be a port or a file descriptor
-(and if it is a file descriptor, the revealed count is not
-incremented).  'proc' should take a single argument which will be set
-by the event loop to 'out or 'excpt (see the documentation on
-event-loop-add-write-watch! for further details).  It is intended to
-be called in a waitable procedure invoked by a-sync.  The watch is
-multi-shot - it is for the user to bring it to an end at the right
-time by calling event-loop-remove-write-watch! in the waitable
-procedure.  This procedure is mainly intended as something from which
-higher-level asynchronous file operations can be constructed.  The
-'loop' argument is optional: this procedure operates on the event loop
-passed in as an argument, or if none is passed (or #f is passed), on
-the default event loop
-
-The documentation on the event-loop-add-write-watch! procedure
-explains why this procedure generally works best with an unbuffered
-port.
-
-Because this procedure takes a 'resume' argument derived from the
-a-sync procedure, it must (like the a-sync procedure) in practice be
-called in the same thread as that in which the event loop runs.
-
-This procedure should not throw an exception unless memory is
-exhausted.  If 'proc' throws, say because of port errors, and the
-exception is not caught locally, it will propagate out of
-event-loop-run!.
 @end deffn
 
 The (async event-loop) module also loads the @ref{monotonic
