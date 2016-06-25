@@ -897,7 +897,7 @@ await-glib-write-suspendable and await-glib-getline procedures.  To
 disable suspendable ports again, uninstall-suspendable-ports!  can be
 called, but this means that those procedures can no longer be used while
 suspendable ports are disabled.  In addition, any port using those
-procedures must be made non-blocking using the fcntl as follows:
+procedures must be made non-blocking using fcntl as follows:
 
      (fcntl [port] F_SETFL (logior O_NONBLOCK
                            (fcntl [port] F_GETFL)))
@@ -1244,6 +1244,6 @@ Node: event loop15046
 Node: await ports34748
 Node: monotonic time44917
 Node: gnome glib46353
-Node: compose58539
+Node: compose58535
 
 End Tag Table
