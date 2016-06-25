@@ -655,7 +655,7 @@ using ports' normal input and output procedures with non-blocking ports.
 To disable them again, the uninstall-suspendable-ports!  procedure can
 be called, but this means that these procedures can no longer be used
 while suspendable ports are disabled.  In addition, any port using these
-procedures must be made non-blocking using the fcntl as follows:
+procedures must be made non-blocking using fcntl as follows:
 
      (fcntl [port] F_SETFL (logior O_NONBLOCK
                            (fcntl [port] F_GETFL)))
@@ -1155,12 +1155,14 @@ coroutines. module.
      arguments, and (if the optional 'loop' argument of this macro is
      used) takes the event loop as its third argument, followed by such
      further arguments as it requires.  All of the await-task!,
-     await-task-in-thread!, await-timeout!, await-getline!,
-     await-geteveryline!  and await-getsomelines!  procedures provided
-     by the (a-sync event-loop) module are 'compose-a-sync'-capable.  In
-     addition, to make an ordinary body of code which does not block
-     (and which does not need to invoke a-sync's await procedure) usable
-     by compose-a-sync, the no-await macro can be used to generate a
+     await-task-in-thread!, await-timeout!, await-read-suspendable!,
+     await-write-suspendable!, await-getline!, await-geteveryline!  and
+     await-getsomelines!  procedures provided by the *note (a-sync
+     event-loop): event loop. and *note (a-sync await-ports): await
+     ports. modules are 'compose-a-sync'-capable.  In addition, to make
+     an ordinary body of code which does not block (and which does not
+     need to invoke a-sync's await procedure) usable by compose-a-sync,
+     the no-await macro can be used to generate a
      'compose-a-sync'-capable procedure for it (see below).
 
      Each binding is initialized as if sequentially (although it is done
@@ -1175,23 +1177,32 @@ coroutines. module.
      passed to it.  The compose-a-sync macro will do it for you.
 
           (set-default-event-loop!) ;; if none has yet been set
-          (compose-a-sync ((line (await-getline! (open "/dev/tty" O_RDONLY))))
-          	      ((no-await (simple-format #t
-          					"The line was: ~A\n"
-          					line))))
+          (compose-a-sync ((keyboard ((no-await (display "Enter a line of text at the keyboard\n")
+                                                (open "/dev/tty" O_RDONLY))))
+          		 (ignore ((no-await (fcntl keyboard F_SETFL (logior O_NONBLOCK
+          								    (fcntl keyboard F_GETFL))))))
+                           (ret (await-getline! keyboard)))
+          	   ((no-await (simple-format #t
+          				     "The line was: ~A\n"
+          				     ret))))
           (event-loop-run!)
 
-     The await-glib-task, await-glib-task-in-thread, await-glib-timeout
-     and await-glib-getline procedures in the *note (a-sync gnome-glib):
+     The await-glib-task, await-glib-task-in-thread, await-glib-timeout,
+     await-glib-read-suspendable, await-glib-write-suspendable and
+     await-glib-getline procedures in the *note (a-sync gnome-glib):
      gnome glib. module also meet the 'compose-a-sync'-capable
      requirements.  Here is the same example using those procedures:
 
           (define main-loop (g-main-loop-new #f #f))
-          (compose-a-sync ((line (await-glib-getline (open-file-input-port "/dev/tty" (file-options) (buffer-mode none)))))
-          	      ((no-await (simple-format #t
-          					"The line was: ~A\n"
-          					line)
-          			 (g-main-loop-quit main-loop))))
+          (compose-a-sync ((keyboard ((no-await (display "Enter a line of text at the keyboard\n")
+                                                (open "/dev/tty" O_RDONLY))))
+          		 (ignore ((no-await (fcntl keyboard F_SETFL (logior O_NONBLOCK
+          								    (fcntl keyboard F_GETFL))))))
+                           (ret (await-glib-getline keyboard)))
+          	   ((no-await (simple-format #t
+          				     "The line was: ~A\n"
+          				     ret)
+          		      (g-main-loop-quit main-loop))))
           (g-main-loop-run main-loop)
 
      Each block of code within a compose-a-sync block will run
@@ -1231,8 +1242,8 @@ Node: Top87
 Node: coroutines1203
 Node: event loop15046
 Node: await ports34748
-Node: monotonic time44921
-Node: gnome glib46357
-Node: compose58543
+Node: monotonic time44917
+Node: gnome glib46353
+Node: compose58539
 
 End Tag Table

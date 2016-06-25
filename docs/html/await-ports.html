@@ -63,7 +63,7 @@ ports.
 disable them again, the uninstall-suspendable-ports! procedure can be
 called, but this means that these procedures can no longer be used
 while suspendable ports are disabled.  In addition, any port using
-these procedures must be made non-blocking using the fcntl as follows:
+these procedures must be made non-blocking using fcntl as follows:
 </p>
 <div class="example">
 <pre class="example">(fcntl [port] F_SETFL (logior O_NONBLOCK
