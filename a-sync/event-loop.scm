@@ -15,7 +15,6 @@
 ;; Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 (define-module (a-sync event-loop)
-  #:use-module (a-sync coroutines)     ;; for a-sync
   #:use-module (ice-9 q)               ;; for make-q, etc
   #:use-module (ice-9 match)
   #:use-module (ice-9 threads)         ;; for with-mutex and call-with-new-thread
