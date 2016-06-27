@@ -41,9 +41,6 @@
   #:use-module (gnome glib)            ;; for g-io-channel-* and g-source-*
   #:use-module (gnome gobject)         ;; for gclosure
   #:use-module (oop goops)             ;; for make
-  #:use-module ((ice-9 iconv)          ;; for bytevector->string (guile-2.0 does not provide it in rnrs)
-		#:select (bytevector->string)
-		#:renamer (symbol-prefix-proc 'iconv:))
   #:use-module (ice-9 rdelim)          ;; for read-line
   #:export (await-glib-task-in-thread
 	    await-glib-task
