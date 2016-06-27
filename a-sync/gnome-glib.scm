@@ -42,6 +42,7 @@
   #:use-module (gnome gobject)         ;; for gclosure
   #:use-module (oop goops)             ;; for make
   #:use-module (ice-9 rdelim)          ;; for read-line
+  #:use-module (ice-9 suspendable-ports)
   #:export (await-glib-task-in-thread
 	    await-glib-task
 	    await-glib-timeout
@@ -50,7 +51,6 @@
 	    await-glib-write-suspendable
 	    await-glib-getline))
 
-(use-modules (ice-9 suspendable-ports))
 (install-suspendable-ports!)
 
 ;; This is a convenience procedure which will run 'thunk' in its own

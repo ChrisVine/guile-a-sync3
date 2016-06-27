@@ -17,6 +17,7 @@
 (define-module (a-sync await-ports)
   #:use-module (ice-9 rdelim)          ;; for read-line
   #:use-module (ice-9 control)         ;; for call/ec
+  #:use-module (ice-9 suspendable-ports)
   #:use-module (a-sync event-loop)     ;; for event loop
   #:export (await-read-suspendable!
 	    await-write-suspendable!
@@ -24,7 +25,6 @@
 	    await-geteveryline!
 	    await-getsomelines!))
 
-(use-modules (ice-9 suspendable-ports))
 (install-suspendable-ports!)
 
 ;; 'proc' is a procedure taking a single argument, to which the port
