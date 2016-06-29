@@ -141,8 +141,10 @@ The (a-sync coroutines) module provides the following procedures:
      case where the callback has been removed from the event loop by
      returning false but the waitable procedure still thinks it has a
      call to 'await' to be made.  The *note event-loop: event loop.
-     module has await-task!, await-task-in-thread!, await-timeout!,
-     a-sync-read-watch!, await-getline!  and a-sync-write-watch!
+     module has await-task!, await-task-in-thread!  and await-timeout!
+     convenience procedures, and the *note await-ports: await ports.
+     module has await-read-suspendable!, await-write-suspendable!,
+     await-getline!, await-geteveryline!  and await-getsomelines!
      convenience procedures which will correctly set this up for you
      automatically, and the *note compose: compose. module provides a
      compose-a-sync macro for composition.  If those convenience
@@ -1240,10 +1242,10 @@ coroutines. module.
 Tag Table:
 Node: Top87
 Node: coroutines1203
-Node: event loop15046
-Node: await ports34748
-Node: monotonic time44915
-Node: gnome glib46351
-Node: compose58552
+Node: event loop15186
+Node: await ports34888
+Node: monotonic time45055
+Node: gnome glib46491
+Node: compose58692
 
 End Tag Table
