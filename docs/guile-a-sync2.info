@@ -680,7 +680,7 @@ procedures must be made non-blocking using fcntl as follows:
      implementation - the user procedure 'proc' may get there first and
      deal with it, or it may not.  However exceptional conditions are
      very rare, usually comprising only out-of-band data on a TCP
-     socket, or a pseudoterminal master in packet mode has seen state
+     socket, or a pseudoterminal master in packet mode seeing state
      change in a slave.
 
      The 'loop' argument is optional: this procedure operates on the
@@ -1054,13 +1054,13 @@ procedures must be made non-blocking using fcntl as follows:
      propagate out of this procedure in the first instance, and if not
      caught locally will then propagate out of g-main-loop-run.
 
-     As an example of how to use await-read-suspendable!, here is the
-     implementation of await-getline!:
+     As an example of how to use await-glib-read-suspendable, here is
+     the implementation of await-glib-getline:
 
           (define (await-glib-getline await resume port)
-            (await-read-suspendable! await resume port
-          			   (lambda (p)
-          			     (read-line p))))
+            (await-glib-read-suspendable await resume port
+          			       (lambda (p)
+          				 (read-line p))))
 
  -- Scheme Procedure: await-glib-getline await resume port
      This procedure is provided mainly to retain compatibility with the
@@ -1082,9 +1082,9 @@ procedures must be made non-blocking using fcntl as follows:
           	    (fcntl port F_SETFL (logior O_NONBLOCK
           				(fcntl port F_GETFL)))
           	    (simple-format #t
-          			 "The line was: ~A\n"
-          			 (await-glib-getline await resume
-          					     port)))
+          			   "The line was: ~A\n"
+          			   (await-glib-getline await resume
+          					       port)))
           	  (g-main-loop-quit main-loop)))
           (g-main-loop-run main-loop)
 
@@ -1242,8 +1242,8 @@ Node: Top87
 Node: coroutines1203
 Node: event loop15046
 Node: await ports34748
-Node: monotonic time44917
-Node: gnome glib46353
-Node: compose58535
+Node: monotonic time44915
+Node: gnome glib46351
+Node: compose58552
 
 End Tag Table

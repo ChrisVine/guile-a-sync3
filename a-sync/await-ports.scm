@@ -43,7 +43,7 @@
 ;; 'proc' may get there first and deal with it, or it may not.
 ;; However exceptional conditions are very rare, usually comprising
 ;; only out-of-band data on a TCP socket, or a pseudoterminal master
-;; in packet mode has seen state change in a slave.
+;; in packet mode seeing state change in a slave.
 ;;
 ;; The 'loop' argument is optional: this procedure operates on the
 ;; event loop passed in as an argument, or if none is passed (or #f is

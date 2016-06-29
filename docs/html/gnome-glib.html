@@ -249,14 +249,14 @@ thread as that in which the event loop runs.
 out of this procedure in the first instance, and if not caught locally
 will then propagate out of g-main-loop-run.
 </p>
-<p>As an example of how to use await-read-suspendable!, here is the
-implementation of await-getline!:
+<p>As an example of how to use await-glib-read-suspendable, here is the
+implementation of await-glib-getline:
 </p>
 <div class="example">
 <pre class="example">(define (await-glib-getline await resume port)
-  (await-read-suspendable! await resume port
-			   (lambda (p)
-			     (read-line p))))
+  (await-glib-read-suspendable await resume port
+			       (lambda (p)
+				 (read-line p))))
 </pre></div>
 </dd></dl>
 
@@ -282,9 +282,9 @@ particulars about this procedure.
 	    (fcntl port F_SETFL (logior O_NONBLOCK
 				(fcntl port F_GETFL)))
 	    (simple-format #t
-			 &quot;The line was: ~A\n&quot;
-			 (await-glib-getline await resume
-					     port)))
+			   &quot;The line was: ~A\n&quot;
+			   (await-glib-getline await resume
+					       port)))
 	  (g-main-loop-quit main-loop)))
 (g-main-loop-run main-loop)
 </pre></div>
