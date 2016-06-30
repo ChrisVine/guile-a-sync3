@@ -9,7 +9,7 @@ This includes tasks running on other threads.
 It also provides a coroutines interface (coroutines.scm) which
 provides await semantics on such events, so as to avoid inversion of
 control (aka "callback hell"), and provision for using these in
-conjunction with guile-2.2's suspendable ports.
+conjunction with guile-2.2's suspendable ports (await-ports.scm).
 
 See the documentation mentioned below for further details, and the
 docs/example.scm and docs/example-glib.scm files.
@@ -53,7 +53,7 @@ guile-2.2's 'guile' binary to '/usr/bin/guile22' will suffice for this
 purpose.
 
 The code in the (a-sync gnome-glib) module has not yet been tested, as
-guile-2.2 does not at present support guile gnome.
+guile-2.2 does not at the time of writing support guile gnome.
 
 Documentation
 -------------
