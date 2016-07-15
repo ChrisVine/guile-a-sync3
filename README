@@ -46,12 +46,6 @@ necessary).
 
 After compiling, install with 'make install' as root.
 
-To make it easier to dual install this library with guile-a-sync for
-guile-2.0, the test suite assumes that the 'guile' binary for
-guile-2.2 is called 'guile22'.  Making a symbolic link from
-guile-2.2's 'guile' binary to '/usr/bin/guile22' will suffice for this
-purpose.
-
 The code in the (a-sync gnome-glib) module has not yet been tested, as
 guile-2.2 does not at the time of writing support guile gnome.
 

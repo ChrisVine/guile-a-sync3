@@ -1,5 +1,4 @@
-#!/usr/bin/env guile22
-# FIXME22 - calling up guile22 is a temporary cludge
+#!/usr/bin/env guile
 !#
 
 ;; Copyright (C) 2014 and 2016 Chris Vine
