@@ -82,11 +82,11 @@ non-blocking using the guile wrapper for the fcntl() system call in
 order to prevent a blocking read where it is not expected.  With
 guile-2.2 this means that with such sockets, suspendable ports should
 generally be used with the await-read-suspendable! procedure in the
-(a-sync await-ports) module.  Secondly, with select() the file
-descriptor value of a port passed to the watch should not exceed
-FD_SETSIZE.  Normally, by default the maximum soft user limit for open
-files is the same as FD_SETSIZE, and it is best if this situation is
-retained by user code.
+<a href="await-ports.html#await-ports">(a-sync await-ports)</a> module.  Secondly, with
+select() the file descriptor value of a port passed to the watch
+should not exceed FD_SETSIZE.  Normally, by default the maximum soft
+user limit for open files is the same as FD_SETSIZE, and it is best if
+this situation is retained by user code.
 </p>
 <p>This modules provides the following procedures:
 </p>
@@ -152,7 +152,7 @@ also be passed to event-loop-add-write-watch, and if so and the
 descriptor is also available for writing, the write callback will also
 be called with its argument set to &rsquo;out.  If there is already a read
 watch for the file passed, the old one will be replaced by the new
-one.  If proc returns #f, the read watch will be removed from the
+one.  If &rsquo;proc&rsquo; returns #f, the read watch will be removed from the
 event loop, otherwise the watch will continue.  This is thread safe -
 any thread may add a watch, and the callback will execute in the event
 loop thread.  The file argument can be either a port or a file
@@ -165,8 +165,8 @@ buffered port, for efficiency purposes each read operation in response
 to this watch should usually exhaust the buffer by calling drain-input
 or by looping on char-ready?, or the port&rsquo;s ordinary input procedures
 should be used with suspendable ports using the
-await-read-suspendable!  procedure in the (a-sync await-ports)
-module).
+await-read-suspendable!  procedure in the <a href="await-ports.html#await-ports">(a-sync
+await-ports)</a> module).
 </p>
 <p>This procedure should not throw an exception unless memory is
 exhausted.  If &rsquo;proc&rsquo; throws, say because of port errors, and the
@@ -189,14 +189,14 @@ file argument, and there is an exceptional condition, it is the read
 watch procedure which will be called with &rsquo;excpt rather than the write
 watch procedure, so if that procedure returns #f only the read watch
 will be removed).  If there is already a write watch for the file
-passed, the old one will be replaced by the new one.  If proc returns
-#f, the write watch will be removed from the event loop, otherwise the
-watch will continue.  This is thread safe - any thread may add a
-watch, and the callback will execute in the event loop thread.  The
-file argument can be either a port or a file descriptor.  If &rsquo;file&rsquo; is
-a file descriptor, any port for the descriptor is not referenced for
-garbage collection purposes - it must remain valid while operations
-are carried out on the descriptor.
+passed, the old one will be replaced by the new one.  If &rsquo;proc&rsquo;
+returns #f, the write watch will be removed from the event loop,
+otherwise the watch will continue.  This is thread safe - any thread
+may add a watch, and the callback will execute in the event loop
+thread.  The file argument can be either a port or a file descriptor.
+If &rsquo;file&rsquo; is a file descriptor, any port for the descriptor is not
+referenced for garbage collection purposes - it must remain valid
+while operations are carried out on the descriptor.
 </p>
 <p>If &rsquo;file&rsquo; is a buffered port, buffering will be taken into account in
 indicating whether a write can be made without blocking, either
@@ -212,8 +212,7 @@ with unbuffered ports (say by using the open-file or fdopen procedure
 with the &rsquo;0&rsquo; mode option or the R6RS open-file-input-port procedure
 with a buffer-mode of none, or by calling setvbuf), or the port&rsquo;s
 ordinary output procedures should be used with suspendable ports using
-the await-write-suspendable! procedure in the (a-sync await-ports)
-module.
+the await-write-suspendable! procedure in the <a href="await-ports.html#await-ports">(a-sync await-ports)</a> module.
 </p>
 <p>This procedure should not throw an exception unless memory is
 exhausted.  If &rsquo;proc&rsquo; throws, say because of port errors, and the
