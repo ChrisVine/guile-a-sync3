@@ -361,8 +361,31 @@ retained by user code.
      This returns the default loop set by the set-default-event-loop!
      procedure, or #f if none has been set.
 
- -- Scheme Procedure: make-event-loop
-     This constructs a new event loop object.
+ -- Scheme Procedure: make-event-loop [throttle-threshold throttle
+          delay]
+     This constructs a new event loop object.  From version 0.2, this
+     procedure optionally takes two throttling arguments for
+     backpressure when applying the event-post!  procedure to the event
+     loop.  The 'throttle-threshold' argument specifies the number of
+     unexecuted tasks queued for execution, by virtue of calls to
+     event-post!, at which throttling will first be applied.  Where the
+     threshold is exceeded, throttling proceeds by adding a wait to any
+     thread which calls the event-post!  procedure, equal to the cube of
+     the number of times (if any) by which the number of queued tasks
+     exceeds the threshold multiplied by the value of 'threshold-delay'.
+     The value of 'threshold-delay' should be given in microseconds.
+     Throttling is only applied where the call to event-post!  is made
+     in a thread other than the one in which the event loop runs.
+
+     So if the threshold given is 10000 tasks and the delay given is
+     1000 microseconds, upon 10000 unexecuted tasks accumulating a delay
+     of 1000 microseconds will be appled to callers of event-post!, at
+     20000 unexecuted tasks a delay of 8000 microseconds will be
+     applied, and at 30000 unexecuted tasks a delay of 27000
+     microseconds will be applied, and so on.
+
+     If throttle-threshold and throttle-delay arguments are not provided
+     (or #f is passed for them), then no throttling takes place.
 
  -- Scheme Procedure: event-loop? obj
      This procedure indicates whether 'obj' is an event-loop object
@@ -490,6 +513,11 @@ retained by user code.
      This procedure should not throw an exception unless memory is
      exhausted.  If the 'action' callback throws, and the exception is
      not caught locally, it will propagate out of event-loop-run!.
+
+     Where this procedure is called by other than the event loop thread,
+     throttling may take place if the number of posted callbacks waiting
+     to execute exceeds the threshold set for the event loop - see the
+     documentation on make-event-loop for further details.
 
  -- Scheme Procedure: timeout-post! msecs action [loop]
      The 'loop' (event loop) argument is optional.  This procedure adds
@@ -644,7 +672,7 @@ retained by user code.
           					   "expired")))))
           (event-loop-run!)
 
-   The (async event-loop) module also loads the *note (a-sync
+   The (a-sync event-loop) module also loads the *note (a-sync
 monotonic-time): monotonic time. module.
 
 
@@ -1257,9 +1285,9 @@ Tag Table:
 Node: Top87
 Node: coroutines1200
 Node: event loop15183
-Node: await ports34949
-Node: monotonic time45116
-Node: gnome glib46552
-Node: compose59481
+Node: await ports36657
+Node: monotonic time46824
+Node: gnome glib48260
+Node: compose61189
 
 End Tag Table
