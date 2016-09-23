@@ -50,13 +50,6 @@ After compiling, install with 'make install' as root.
 The code in the (a-sync gnome-glib) module has not yet been tested, as
 guile-2.2 does not at the time of writing support guile gnome.
 
-There is a bug in how guile-2.1.4 deals with compiled code for files
-in a path given by the GUILE_LOAD_PATH environmental variable, which
-means that it is not possible to run the tests with 'make test' using
-the locally compiled code in the source directory.  Instead it is
-necessary to install guile-a-sync2 first and run 'make test' after
-installation.
-
 Documentation
 -------------
 
