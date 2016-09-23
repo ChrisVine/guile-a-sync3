@@ -26,10 +26,9 @@
   ((lambda ()
      (define count 1)
      (lambda ()
-       ;; the current-filename procedure is broken in guile-2.1.4 when
-       ;; looking up a file via the GUILE_LOAD_PATH environmental
-       ;; variable - this is a work-around until it is fixed
-       ;;(simple-format #t "~A: Test ~A OK\n" (basename (current-filename)) count)
+       ;; the current-filename procedure does not work in guile-2.1
+       ;; when looking up a file via the GUILE_LOAD_PATH environmental
+       ;; variable, so state the file name explicitly
        (simple-format #t "~A: Test ~A OK\n" "test-event-loop.scm" count)
        (set! count (1+ count))))))
 
