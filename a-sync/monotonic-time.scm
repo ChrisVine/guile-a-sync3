@@ -18,4 +18,4 @@
 
 ;; this loads and exports the get-time and have-monotonic-time?
 ;; procedures in monotonic_time.c
-(load-extension "libguile-a-sync-0" "init_a_sync_monotonic_time")
+(load-extension "libguile-a-sync2-0" "init_a_sync_monotonic_time")
