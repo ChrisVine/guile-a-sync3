@@ -317,7 +317,8 @@
     (g-source-attach s context)))
 
 ;; 'proc' is a procedure taking a single argument, to which the port
-;; will be passed when func is invoked.  'port' must be a suspendable
+;; will be passed when it is invoked, and is intended to use the
+;; port's normal read procedures.  'port' must be a suspendable
 ;; non-blocking port.  'proc' will be executed whenever there is
 ;; something available to read, and this procedure will return when
 ;; 'proc' returns, as if by a blocking read.  The glib event loop will
@@ -329,9 +330,9 @@
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the event loop runs.
 ;;
-;; Exceptions (say, because of port or conversion errors) will
-;; propagate out of this procedure in the first instance, and if not
-;; caught locally will then propagate out of g-main-loop-run.
+;; Exceptions (say, from 'proc' because of port or conversion errors)
+;; will propagate out of this procedure in the first instance, and if
+;; not caught locally will then propagate out of g-main-loop-run.
 (define (await-glib-read-suspendable await resume port proc)
   (define (read-waiter p)
     (await))
@@ -374,7 +375,8 @@
 			     (read-line p))))
 
 ;; 'proc' is a procedure taking a single argument, to which the port
-;; will be passed when func is invoked.  'port' must be a suspendable
+;; will be passed when it is invoked, and is intended to use the
+;; port's normal write procedures.  'port' must be a suspendable
 ;; non-blocking port.  'proc' will be executed whenever the port is
 ;; available to write to, and this procedure will return when 'proc'
 ;; returns, as if by a blocking write.  The glib event loop will not
@@ -386,9 +388,9 @@
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the event loop runs.
 ;;
-;; Exceptions (say, because of port or conversion errors) will
-;; propagate out of this procedure in the first instance, and if not
-;; caught locally will then propagate out of g-main-loop-run.
+;; Exceptions (say, from 'proc' because of port or conversion errors)
+;; will propagate out of this procedure in the first instance, and if
+;; not caught locally will then propagate out of g-main-loop-run.
 (define (await-glib-write-suspendable await resume port proc)
   (define (write-waiter p)
     (await))
