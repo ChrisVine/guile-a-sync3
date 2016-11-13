@@ -491,6 +491,8 @@ happen unless memory is exhausted or pthread has run out of resources.
 Exceptions arising during execution of the generator, if not caught by
 a handler procedure, will terminate the program.  Exceptions thrown by
 the handler procedure will propagate out of event-loop-run!.
+Exceptions thrown by 'proc', if not caught locally, will also
+propagate out of event-loop-run!.
 
 This procedure is first available in version 0.4 of this library.
 
@@ -558,6 +560,9 @@ setting up, which shouldn't happen unless memory is exhausted or
 pthread has run out of resources.  Exceptions arising during execution
 of the generator, if not caught locally, will propagate out of the
 event-loop-run! procedure called for the 'worker' event loop.
+Exceptions arising during the execution of 'proc', if not caught
+locally, will propagate out of the event-loop-run! procedure called
+for the 'waiter' or default event loop (as the case may be).
 
 This procedure is first available in version 0.4 of this library.
 
@@ -626,7 +631,8 @@ Exceptions may propagate out of this procedure if they arise while
 setting up (that is, before the task starts), which shouldn't happen
 unless memory is exhausted.  Exceptions arising during execution of
 the generator, if not caught locally, will propagate out of
-event-loop-run!.
+await-generator!.  Exceptions thrown by 'proc', if not caught locally,
+will propagate out of event-loop-run!.
 
 This procedure is first available in version 0.4 of this library.
 

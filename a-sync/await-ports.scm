@@ -52,9 +52,9 @@
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the event loop runs.
 ;;
-;; Exceptions (say, because of port or conversion errors) will
-;; propagate out of this procedure in the first instance, and if not
-;; caught locally will then propagate out of event-loop-run!.
+;; Exceptions (say, from 'proc' because of port or conversion errors)
+;; will propagate out of this procedure in the first instance, and if
+;; not caught locally will then propagate out of event-loop-run!.
 (define await-read-suspendable!
   (case-lambda
     ((await resume port proc)

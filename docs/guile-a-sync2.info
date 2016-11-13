@@ -878,7 +878,8 @@ retained by user code.
      of resources.  Exceptions arising during execution of the
      generator, if not caught by a handler procedure, will terminate the
      program.  Exceptions thrown by the handler procedure will propagate
-     out of event-loop-run!.
+     out of event-loop-run!.  Exceptions thrown by 'proc', if not caught
+     locally, will also propagate out of event-loop-run!.
 
      This procedure is first available in version 0.4 of this library.
 
@@ -944,7 +945,10 @@ retained by user code.
      pthread has run out of resources.  Exceptions arising during
      execution of the generator, if not caught locally, will propagate
      out of the event-loop-run!  procedure called for the 'worker' event
-     loop.
+     loop.  Exceptions arising during the execution of 'proc', if not
+     caught locally, will propagate out of the event-loop-run!
+     procedure called for the 'waiter' or default event loop (as the
+     case may be).
 
      This procedure is first available in version 0.4 of this library.
 
@@ -1011,7 +1015,8 @@ retained by user code.
      setting up (that is, before the task starts), which shouldn't
      happen unless memory is exhausted.  Exceptions arising during
      execution of the generator, if not caught locally, will propagate
-     out of event-loop-run!.
+     out of await-generator!.  Exceptions thrown by 'proc', if not
+     caught locally, will propagate out of event-loop-run!.
 
      This procedure is first available in version 0.4 of this library.
 
@@ -1109,9 +1114,9 @@ procedures must be made non-blocking using fcntl as follows:
      This procedure must (like the a-sync procedure) be called in the
      same thread as that in which the event loop runs.
 
-     Exceptions (say, because of port or conversion errors) will
-     propagate out of this procedure in the first instance, and if not
-     caught locally will then propagate out of event-loop-run!.
+     Exceptions (say, from 'proc' because of port or conversion errors)
+     will propagate out of this procedure in the first instance, and if
+     not caught locally will then propagate out of event-loop-run!.
 
      As an example of how to use await-read-suspendable!, here is the
      implementation of await-getline!:
@@ -1431,7 +1436,8 @@ procedures must be made non-blocking using fcntl as follows:
      of resources.  Exceptions arising during execution of the
      generator, if not caught by a handler procedure, will terminate the
      program.  Exceptions thrown by the handler procedure will propagate
-     out of g-main-loop-run.
+     out of g-main-loop-run.  Exceptions thrown by 'proc', if not caught
+     locally, will also propagate out of g-main-loop-run!.
 
      This procedure is first available in version 0.4 of this library.
 
@@ -1480,7 +1486,8 @@ procedures must be made non-blocking using fcntl as follows:
      setting up (that is, before the task starts), which shouldn't
      happen unless memory is exhausted.  Exceptions arising during
      execution of the generator, if not caught locally, will propagate
-     out of g-main-loop-run!.
+     out of await-glib-generator.  Exceptions thrown by 'proc', if not
+     caught locally, will propagate out of g-main-loop-run!.
 
      This procedure is first available in version 0.4 of this library.
 
@@ -1784,9 +1791,9 @@ Tag Table:
 Node: Top87
 Node: coroutines1200
 Node: event loop19028
-Node: await ports55410
-Node: monotonic time65577
-Node: gnome glib67013
-Node: compose85178
+Node: await ports55820
+Node: monotonic time65999
+Node: gnome glib67435
+Node: compose85805
 
 End Tag Table

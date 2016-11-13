@@ -99,9 +99,9 @@ on the default event loop.
 <p>This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the event loop runs.
 </p>
-<p>Exceptions (say, because of port or conversion errors) will propagate
-out of this procedure in the first instance, and if not caught locally
-will then propagate out of event-loop-run!.
+<p>Exceptions (say, from &rsquo;proc&rsquo; because of port or conversion errors)
+will propagate out of this procedure in the first instance, and if not
+caught locally will then propagate out of event-loop-run!.
 </p>
 <p>As an example of how to use await-read-suspendable!, here is the
 implementation of await-getline!:

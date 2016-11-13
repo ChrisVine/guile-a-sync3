@@ -160,7 +160,8 @@
 ;; of resources.  Exceptions arising during execution of the
 ;; generator, if not caught by a handler procedure, will terminate the
 ;; program.  Exceptions thrown by the handler procedure will propagate
-;; out of g-main-loop-run.
+;; out of g-main-loop-run.  Exceptions thrown by 'proc', if not caught
+;; locally, will also propagate out of g-main-loop-run!.
 ;;
 ;; This procedure is first available in version 0.4 of this library.
 (define* (await-glib-generator-in-thread await resume generator proc #:optional handler)
@@ -226,7 +227,8 @@
 ;; setting up (that is, before the task starts), which shouldn't
 ;; happen unless memory is exhausted.  Exceptions arising during
 ;; execution of the generator, if not caught locally, will propagate
-;; out of g-main-loop-run!.
+;; out of await-glib-generator.  Exceptions thrown by 'proc', if not
+;; caught locally, will propagate out of g-main-loop-run!.
 ;;
 ;; This procedure is first available in version 0.4 of this library.
 (define (await-glib-generator await resume generator proc)
