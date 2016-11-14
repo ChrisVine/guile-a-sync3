@@ -858,7 +858,9 @@ retained by user code.
      finished or, if 'handler' is provided, upon the generator throwing
      an exception.  This procedure will return #f if the generator
      completes normally, or 'guile-a-sync-thread-error if the generator
-     throws an exception and 'handler' is run.
+     throws an exception and 'handler' is run (the
+     'guile-a-sync-thread-error symbol is reserved to the implementation
+     and should not be yielded by the generator).
 
      This procedure is intended to be called in a waitable procedure
      invoked by a-sync.  It will normally be necessary to call
@@ -896,7 +898,7 @@ retained by user code.
           					(display val)
           					(newline)))
           	  (event-loop-block! #f)))
-          (event-loop-block! #t) ;; because the task runs in another thread
+          (event-loop-block! #t) ;; because the generator runs in another thread
           (event-loop-run!)
 
  -- Scheme Procedure: await-generator-in-event-loop! await resume
@@ -1088,7 +1090,7 @@ procedures must be made non-blocking using fcntl as follows:
           proc
      This procedure is provided to implement read file watches using
      guile-2.2's suspendable ports.  'proc' is a procedure taking a
-     single argument, to which the port will be passed when func is
+     single argument, to which the port will be passed when it is
      invoked, and is intended to use the port's normal read procedures.
      'port' must be a suspendable non-blocking port.  'proc' will be
      executed whenever there is something available to read, and this
@@ -1236,7 +1238,7 @@ procedures must be made non-blocking using fcntl as follows:
           proc
      This procedure is provided to implement write file watches using
      guile-2.2's suspendable ports.  'proc' is a procedure taking a
-     single argument, to which the port will be passed when func is
+     single argument, to which the port will be passed when it is
      invoked, and is intended to use the port's normal write procedures.
      'port' must be a suspendable non-blocking port.  'proc' will be
      executed whenever the port is available to write to, and this
@@ -1260,9 +1262,9 @@ procedures must be made non-blocking using fcntl as follows:
      This procedure must (like the a-sync procedure) be called in the
      same thread as that in which the event loop runs.
 
-     Exceptions (say, because of port or conversion errors) will
-     propagate out of this procedure in the first instance, and if not
-     caught locally will then propagate out of event-loop-run!.
+     Exceptions (say, from 'proc' because of port or conversion errors)
+     will propagate out of this procedure in the first instance, and if
+     not caught locally will then propagate out of event-loop-run!.
 
 
 File: guile-a-sync2.info,  Node: monotonic time,  Next: gnome glib,  Prev: await ports,  Up: Top
@@ -1422,7 +1424,9 @@ procedures must be made non-blocking using fcntl as follows:
      finished or, if 'handler' is provided, upon the generator throwing
      an exception.  This procedure will return #f if the generator
      completes normally, or 'guile-a-sync-thread-error if the generator
-     throws an exception and 'handler' is run.
+     throws an exception and 'handler' is run (the
+     'guile-a-sync-thread-error symbol is reserved to the implementation
+     and should not be yielded by the generator).
 
      This procedure is intended to be called in a waitable procedure
      invoked by a-sync.  It must (like the a-sync procedure) be called
@@ -1584,7 +1588,8 @@ procedures must be made non-blocking using fcntl as follows:
 
  -- Scheme Procedure: await-glib-read-suspendable await resume port proc
      'proc' is a procedure taking a single argument, to which the port
-     will be passed when func is invoked.  'port' must be a suspendable
+     will be passed when it is invoked, and is intended to use the
+     port's normal read procedures.  'port' must be a suspendable
      non-blocking port.  'proc' will be executed whenever there is
      something available to read, and this procedure will return when
      'proc' returns, as if by a blocking read.  The glib event loop will
@@ -1596,9 +1601,9 @@ procedures must be made non-blocking using fcntl as follows:
      This procedure must (like the a-sync procedure) be called in the
      same thread as that in which the event loop runs.
 
-     Exceptions (say, because of port or conversion errors) will
-     propagate out of this procedure in the first instance, and if not
-     caught locally will then propagate out of g-main-loop-run.
+     Exceptions (say, from 'proc' because of port or conversion errors)
+     will propagate out of this procedure in the first instance, and if
+     not caught locally will then propagate out of g-main-loop-run.
 
      As an example of how to use await-glib-read-suspendable, here is
      the implementation of await-glib-getline:
@@ -1637,7 +1642,8 @@ procedures must be made non-blocking using fcntl as follows:
  -- Scheme Procedure: await-glib-write-suspendable await resume port
           proc
      'proc' is a procedure taking a single argument, to which the port
-     will be passed when func is invoked.  'port' must be a suspendable
+     will be passed when it is invoked, and is intended to use the
+     port's normal write procedures.  'port' must be a suspendable
      non-blocking port.  'proc' will be executed whenever the port is
      available to write to, and this procedure will return when 'proc'
      returns, as if by a blocking write.  The glib event loop will not
@@ -1649,9 +1655,9 @@ procedures must be made non-blocking using fcntl as follows:
      This procedure must (like the a-sync procedure) be called in the
      same thread as that in which the event loop runs.
 
-     Exceptions (say, because of port or conversion errors) will
-     propagate out of this procedure in the first instance, and if not
-     caught locally will then propagate out of g-main-loop-run.
+     Exceptions (say, from 'proc' because of port or conversion errors)
+     will propagate out of this procedure in the first instance, and if
+     not caught locally will then propagate out of g-main-loop-run.
 
 
 File: guile-a-sync2.info,  Node: compose,  Prev: gnome glib,  Up: Top
@@ -1791,9 +1797,9 @@ Tag Table:
 Node: Top87
 Node: coroutines1200
 Node: event loop19028
-Node: await ports55820
-Node: monotonic time65999
-Node: gnome glib67435
-Node: compose85805
+Node: await ports55952
+Node: monotonic time66139
+Node: gnome glib67575
+Node: compose86219
 
 End Tag Table

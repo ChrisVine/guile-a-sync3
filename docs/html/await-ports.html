@@ -74,13 +74,13 @@ these procedures must be made non-blocking using fcntl as follows:
 <dt><a name="index-await_002dread_002dsuspendable_0021"></a>Scheme Procedure: <strong>await-read-suspendable!</strong> <em>await resume [loop] port proc</em></dt>
 <dd><p>This procedure is provided to implement read file watches using
 guile-2.2&rsquo;s suspendable ports.  &rsquo;proc&rsquo; is a procedure taking a single
-argument, to which the port will be passed when func is invoked, and
-is intended to use the port&rsquo;s normal read procedures.  &rsquo;port&rsquo; must be
-a suspendable non-blocking port.  &rsquo;proc&rsquo; will be executed whenever
-there is something available to read, and this procedure will return
-when &rsquo;proc&rsquo; returns, as if by a blocking read.  The event loop will
-not be blocked by this procedure even if only individual characters or
-bytes comprising part characters are available at any one time.  It is
+argument, to which the port will be passed when it is invoked, and is
+intended to use the port&rsquo;s normal read procedures.  &rsquo;port&rsquo; must be a
+suspendable non-blocking port.  &rsquo;proc&rsquo; will be executed whenever there
+is something available to read, and this procedure will return when
+&rsquo;proc&rsquo; returns, as if by a blocking read.  The event loop will not be
+blocked by this procedure even if only individual characters or bytes
+comprising part characters are available at any one time.  It is
 intended to be called in a waitable procedure invoked by a-sync.  If
 an exceptional condition (&rsquo;excpt) is encountered by the
 implementation, #f will be returned by this procedure and the read
@@ -234,9 +234,9 @@ particulars about this procedure.
 <dt><a name="index-await_002dwrite_002dsuspendable_0021"></a>Scheme Procedure: <strong>await-write-suspendable!</strong> <em>await resume [loop] port proc</em></dt>
 <dd><p>This procedure is provided to implement write file watches using
 guile-2.2&rsquo;s suspendable ports.  &rsquo;proc&rsquo; is a procedure taking a single
-argument, to which the port will be passed when func is invoked, and
-is intended to use the port&rsquo;s normal write procedures.  &rsquo;port&rsquo; must be
-a suspendable non-blocking port.  &rsquo;proc&rsquo; will be executed whenever the
+argument, to which the port will be passed when it is invoked, and is
+intended to use the port&rsquo;s normal write procedures.  &rsquo;port&rsquo; must be a
+suspendable non-blocking port.  &rsquo;proc&rsquo; will be executed whenever the
 port is available to write to, and this procedure will return when
 &rsquo;proc&rsquo; returns, as if by a blocking write.  The event loop will not be
 blocked by this procedure even if only individual characters or bytes
@@ -257,9 +257,9 @@ on the default event loop.
 <p>This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the event loop runs.
 </p>
-<p>Exceptions (say, because of port or conversion errors) will propagate
-out of this procedure in the first instance, and if not caught locally
-will then propagate out of event-loop-run!.
+<p>Exceptions (say, from &rsquo;proc&rsquo; because of port or conversion errors)
+will propagate out of this procedure in the first instance, and if not
+caught locally will then propagate out of event-loop-run!.
 </p></dd></dl>
 <hr>
 <div class="header">

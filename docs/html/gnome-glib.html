@@ -191,7 +191,9 @@ using catch).
 finished or, if &rsquo;handler&rsquo; is provided, upon the generator throwing an
 exception.  This procedure will return #f if the generator completes
 normally, or &rsquo;guile-a-sync-thread-error if the generator throws an
-exception and &rsquo;handler&rsquo; is run.
+exception and &rsquo;handler&rsquo; is run (the &rsquo;guile-a-sync-thread-error symbol
+is reserved to the implementation and should not be yielded by the
+generator).
 </p>
 <p>This procedure is intended to be called in a waitable procedure
 invoked by a-sync.  It must (like the a-sync procedure) be called in
@@ -363,20 +365,21 @@ descriptor ready for reading.
 <dl>
 <dt><a name="index-await_002dglib_002dread_002dsuspendable"></a>Scheme Procedure: <strong>await-glib-read-suspendable</strong> <em>await resume port proc</em></dt>
 <dd><p>&rsquo;proc&rsquo; is a procedure taking a single argument, to which the port will
-be passed when func is invoked.  &rsquo;port&rsquo; must be a suspendable
-non-blocking port.  &rsquo;proc&rsquo; will be executed whenever there is
-something available to read, and this procedure will return when
-&rsquo;proc&rsquo; returns, as if by a blocking read.  The glib event loop will
-not be blocked by this procedure even if only individual characters or
-bytes comprising part characters are available at any one time.  It is
-intended to be called in a waitable procedure invoked by a-sync.
+be passed when it is invoked, and is intended to use the port&rsquo;s normal
+read procedures.  &rsquo;port&rsquo; must be a suspendable non-blocking port.
+&rsquo;proc&rsquo; will be executed whenever there is something available to read,
+and this procedure will return when &rsquo;proc&rsquo; returns, as if by a
+blocking read.  The glib event loop will not be blocked by this
+procedure even if only individual characters or bytes comprising part
+characters are available at any one time.  It is intended to be called
+in a waitable procedure invoked by a-sync.
 </p>
 <p>This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the event loop runs.
 </p>
-<p>Exceptions (say, because of port or conversion errors) will propagate
-out of this procedure in the first instance, and if not caught locally
-will then propagate out of g-main-loop-run.
+<p>Exceptions (say, from &rsquo;proc&rsquo; because of port or conversion errors)
+will propagate out of this procedure in the first instance, and if not
+caught locally will then propagate out of g-main-loop-run.
 </p>
 <p>As an example of how to use await-glib-read-suspendable, here is the
 implementation of await-glib-getline:
@@ -422,20 +425,21 @@ particulars about this procedure.
 <dl>
 <dt><a name="index-await_002dglib_002dwrite_002dsuspendable"></a>Scheme Procedure: <strong>await-glib-write-suspendable</strong> <em>await resume port proc</em></dt>
 <dd><p>&rsquo;proc&rsquo; is a procedure taking a single argument, to which the port will
-be passed when func is invoked.  &rsquo;port&rsquo; must be a suspendable
-non-blocking port.  &rsquo;proc&rsquo; will be executed whenever the port is
-available to write to, and this procedure will return when &rsquo;proc&rsquo;
-returns, as if by a blocking write.  The glib event loop will not be
-blocked by this procedure even if only individual characters or bytes
-comprising part characters can be written at any one time.  It is
-intended to be called in a waitable procedure invoked by a-sync.
+be passed when it is invoked, and is intended to use the port&rsquo;s normal
+write procedures.  &rsquo;port&rsquo; must be a suspendable non-blocking port.
+&rsquo;proc&rsquo; will be executed whenever the port is available to write to,
+and this procedure will return when &rsquo;proc&rsquo; returns, as if by a
+blocking write.  The glib event loop will not be blocked by this
+procedure even if only individual characters or bytes comprising part
+characters can be written at any one time.  It is intended to be
+called in a waitable procedure invoked by a-sync.
 </p>
 <p>This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the event loop runs.
 </p>
-<p>Exceptions (say, because of port or conversion errors) will propagate
-out of this procedure in the first instance, and if not caught locally
-will then propagate out of g-main-loop-run.
+<p>Exceptions (say, from &rsquo;proc&rsquo; because of port or conversion errors)
+will propagate out of this procedure in the first instance, and if not
+caught locally will then propagate out of g-main-loop-run.
 </p></dd></dl>
 <hr>
 <div class="header">
