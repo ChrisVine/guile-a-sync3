@@ -47,6 +47,13 @@ necessary).
 
 After compiling, install with 'make install' as root.
 
+By default, the scheme files provided by this library will be
+pre-compiled to guile bytecode and installed with the scheme files in
+guile's object file directory.  If that behaviour is not wanted (say,
+because a unix-like compile environment is not available which is
+acceptable to the compile scripts), then configure with the
+--disable-compile-to-bytecode option.
+
 The code in the (a-sync gnome-glib) module has not yet been tested, as
 guile-2.2 does not at the time of writing support guile gnome.
 

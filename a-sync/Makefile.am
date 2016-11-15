@@ -5,19 +5,23 @@ SOURCES = monotonic-time.scm coroutines.scm event-loop.scm await-ports.scm compo
 moduledir = $(GUILE22_SITEDIR)/a-sync
 module_DATA = $(SOURCES) gnome-glib.scm
 
-# FIXME22 - prior compilation to bytecode requires a more final
-# guile-2.2 release
-#if COMPILE_TO_BYTECODE
-#GOBJECTS = $(SOURCES:%.scm=%.go)
+if COMPILE_TO_BYTECODE
+GOBJECTS = $(SOURCES:%.scm=%.go)
 
-#CLEANFILES = $(GOBJECTS)
+gobjectsdir = $(GUILE22_OBJDIR)/a-sync
+gobjects_DATA = $(GOBJECTS)
 
-#SUFFIXES = .scm .go
+CLEANFILES = $(GOBJECTS)
 
-#.scm.go:
-#	$(top_builddir)/a-sync/a-sync-compile.sh "$@" "$<"
+SUFFIXES = .scm .go
 
-#module_DATA += $(GOBJECTS)
-#endif
+.scm.go:
+	$(top_builddir)/a-sync/a-sync-compile.sh "$@" "$<"
+
+# make sure that timestamps on object files are after that of source
+# files
+install-data-hook:
+	for files in $(GOBJECTS); do touch -c $(gobjectsdir)/$$files; done
+endif
 
 EXTRA_DIST = $(SOURCES) gnome-glib.scm a-sync-compile.sh
