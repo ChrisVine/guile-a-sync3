@@ -16,9 +16,11 @@ event loop for guile-2.2, and coroutines to enable an event loop
 with 'await' semantics to deal with inversion of control -- otherwise
 known as ``callback hell''.
 
-The documentation for the guile-a-sync2 library comprises seven pages:
 @menu
+General overview
 * overview::       General overview of the operation of the library
+
+Modules
 * coroutines::     (a-sync coroutines) module - provides coroutines for await semantics on asynchronous events
 * event loop::     (a-sync event-loop) module - provides an event loop for asynchronous events
 * await ports::    (a-sync await-ports) module - provides procedures for suspendable ports
