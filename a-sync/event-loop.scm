@@ -551,9 +551,9 @@
 ;; blocking might still occur.  Unless the port will carry out a
 ;; partial flush in such a case, this procedure will therefore
 ;; generally work best with unbuffered ports (say by using the
-;; open-file or fdopen procedure with the '0' mode option or the R6RS
-;; open-file-input-port procedure with a buffer-mode of none, or by
-;; calling setvbuf).
+;; open-file, fdopen or duplicate-port procedure with the '0' mode
+;; option or the R6RS open-file-input-port procedure with a
+;; buffer-mode of none, or by calling setvbuf).
 ;;
 ;; This procedure should not throw an exception unless memory is
 ;; exhausted.  If 'proc' throws, say because of port errors, and the

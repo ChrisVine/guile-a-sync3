@@ -90,7 +90,8 @@ will be encountered by the implementation - the user procedure &rsquo;proc&rsquo
 may get there first and deal with it, or it may not.  However
 exceptional conditions are very rare, usually comprising only
 out-of-band data on a TCP socket, or a pseudoterminal master in packet
-mode seeing state change in a slave.
+mode seeing state change in a slave.  In the absence of an exceptional
+condition, the value returned by &rsquo;proc&rsquo; will be returned.
 </p>
 <p>The &rsquo;loop&rsquo; argument is optional: this procedure operates on the event
 loop passed in as an argument, or if none is passed (or #f is passed),
@@ -248,7 +249,9 @@ operations to be performed by &rsquo;proc&rsquo; will be abandonned; there is
 however no guarantee that any exceptional condition that does arise
 will be encountered by the implementation - the user procedure &rsquo;proc&rsquo;
 may get there first and deal with it, or it may not.  However
-exceptional conditions on write ports cannot normally occur.
+exceptional conditions on write ports cannot normally occur.  In the
+absence of an exceptional condition, the value returned by &rsquo;proc&rsquo; will
+be returned.
 </p>
 <p>The &rsquo;loop&rsquo; argument is optional: this procedure operates on the event
 loop passed in as an argument, or if none is passed (or #f is passed),
@@ -260,6 +263,52 @@ thread as that in which the event loop runs.
 <p>Exceptions (say, from &rsquo;proc&rsquo; because of port or conversion errors)
 will propagate out of this procedure in the first instance, and if not
 caught locally will then propagate out of event-loop-run!.
+</p>
+<p>As an example of how to use await-write-suspendable!, here is the
+implementation of await-put-string!:
+</p>
+<div class="example">
+<pre class="example">(define await-put-string!
+  (case-lambda
+    ((await resume port text) (await-put-string! await resume #f port text))
+    ((await resume loop port text)
+     (await-write-suspendable! await resume loop port
+			       (lambda (p)
+				 (put-string p text)
+				 ;; enforce a flush when the current
+				 ;; write-waiter is still in operation
+				 (force-output p)
+				 #t)))))
+</pre></div>
+</dd></dl>
+
+<dl>
+<dt><a name="index-await_002dput_002dstring_0021"></a>Scheme Procedure: <strong>await-put-string!</strong> <em>await resume [loop] port text</em></dt>
+<dd><p>This procedure is provided mainly to retain compatibility with the
+guile-a-sync library for guile-2.0, because it is trivial to implement
+with await-write-suspendable! (and is implemented by
+await-write-suspendable!).
+</p>
+<p>It is intended to be called in a waitable procedure invoked by a-sync,
+and will write a string to the port.  The &rsquo;loop&rsquo; argument is optional:
+this procedure operates on the event loop passed in as an argument, or
+if none is passed (or #f is passed), on the default event loop.  If an
+exceptional condition (&rsquo;excpt) is encountered by the implementation,
+#f will be returned by this procedure and the write operations to be
+performed by &rsquo;proc&rsquo; will be abandonned, otherwise #t will be returned.
+However exceptional conditions on write ports cannot normally occur.
+</p>
+<p>If CR-LF line endings are to be written when outputting the string,
+the &rsquo;\r&rsquo; character (as well as the &rsquo;\n&rsquo; character) must be embedded in
+the string.
+</p>
+<p>See the documentation on the await-write-suspendable! procedure for
+further particulars about this procedure.
+</p>
+<p>This procedure is first available in version 0.5 of this library.
+</p>
+<p>An example of the use of this procedure can be found in the
+example-socket.scm file in the docs directory.
 </p></dd></dl>
 <hr>
 <div class="header">

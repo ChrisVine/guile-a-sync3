@@ -35,7 +35,8 @@ will be encountered by the implementation - the user procedure 'proc'
 may get there first and deal with it, or it may not.  However
 exceptional conditions are very rare, usually comprising only
 out-of-band data on a TCP socket, or a pseudoterminal master in packet
-mode seeing state change in a slave.
+mode seeing state change in a slave.  In the absence of an exceptional
+condition, the value returned by 'proc' will be returned.
 
 The 'loop' argument is optional: this procedure operates on the event
 loop passed in as an argument, or if none is passed (or #f is passed),
@@ -189,7 +190,9 @@ operations to be performed by 'proc' will be abandonned; there is
 however no guarantee that any exceptional condition that does arise
 will be encountered by the implementation - the user procedure 'proc'
 may get there first and deal with it, or it may not.  However
-exceptional conditions on write ports cannot normally occur.
+exceptional conditions on write ports cannot normally occur.  In the
+absence of an exceptional condition, the value returned by 'proc' will
+be returned.
 
 The 'loop' argument is optional: this procedure operates on the event
 loop passed in as an argument, or if none is passed (or #f is passed),
@@ -201,4 +204,49 @@ thread as that in which the event loop runs.
 Exceptions (say, from 'proc' because of port or conversion errors)
 will propagate out of this procedure in the first instance, and if not
 caught locally will then propagate out of event-loop-run!.
+
+As an example of how to use await-write-suspendable!, here is the
+implementation of await-put-string!:
+
+@example
+(define await-put-string!
+  (case-lambda
+    ((await resume port text) (await-put-string! await resume #f port text))
+    ((await resume loop port text)
+     (await-write-suspendable! await resume loop port
+			       (lambda (p)
+				 (put-string p text)
+				 ;; enforce a flush when the current
+				 ;; write-waiter is still in operation
+				 (force-output p)
+				 #t)))))
+@end example
+@end deffn
+
+@deffn {Scheme Procedure} await-put-string! await resume [loop] port text
+This procedure is provided mainly to retain compatibility with the
+guile-a-sync library for guile-2.0, because it is trivial to implement
+with await-write-suspendable! (and is implemented by
+await-write-suspendable!).
+
+It is intended to be called in a waitable procedure invoked by a-sync,
+and will write a string to the port.  The 'loop' argument is optional:
+this procedure operates on the event loop passed in as an argument, or
+if none is passed (or #f is passed), on the default event loop.  If an
+exceptional condition ('excpt) is encountered by the implementation,
+#f will be returned by this procedure and the write operations to be
+performed by 'proc' will be abandonned, otherwise #t will be returned.
+However exceptional conditions on write ports cannot normally occur.
+
+If CR-LF line endings are to be written when outputting the string,
+the '\r' character (as well as the '\n' character) must be embedded in
+the string.
+
+See the documentation on the await-write-suspendable! procedure for
+further particulars about this procedure.
+
+This procedure is first available in version 0.5 of this library.
+
+An example of the use of this procedure can be found in the
+example-socket.scm file in the docs directory.
 @end deffn

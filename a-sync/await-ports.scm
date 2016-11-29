@@ -16,6 +16,7 @@
 
 (define-module (a-sync await-ports)
   #:use-module (ice-9 rdelim)          ;; for read-line
+  #:use-module (ice-9 textual-ports)   ;; for put-string
   #:use-module (ice-9 control)         ;; for call/ec
   #:use-module (ice-9 suspendable-ports)
   #:use-module (a-sync event-loop)     ;; for event loop
@@ -23,7 +24,8 @@
 	    await-write-suspendable!
 	    await-getline!
 	    await-geteveryline!
-	    await-getsomelines!))
+	    await-getsomelines!
+	    await-put-string!))
 
 (install-suspendable-ports!)
 
@@ -44,7 +46,9 @@
 ;; 'proc' may get there first and deal with it, or it may not.
 ;; However exceptional conditions are very rare, usually comprising
 ;; only out-of-band data on a TCP socket, or a pseudoterminal master
-;; in packet mode seeing state change in a slave.
+;; in packet mode seeing state change in a slave.  In the absence of
+;; an exceptional condition, the value returned by 'proc' will be
+;; returned.
 ;;
 ;; The 'loop' argument is optional: this procedure operates on the
 ;; event loop passed in as an argument, or if none is passed (or #f is
@@ -193,7 +197,8 @@
 ;; will be encountered by the implementation - the user procedure
 ;; 'proc' may get there first and deal with it, or it may not.
 ;; However exceptional conditions on write ports cannot normally
-;; occur.
+;; occur.  In the absence of an exceptional condition, the value
+;; returned by 'proc' will be returned.
 ;;
 ;; The 'loop' argument is optional: this procedure operates on the
 ;; event loop passed in as an argument, or if none is passed (or #f is
@@ -234,3 +239,38 @@
 			(apply throw args))))))))
        (event-loop-remove-write-watch! port loop)
        res))))
+
+;; This procedure is provided mainly to retain compatibility with the
+;; guile-a-sync library for guile-2.0, because it is trivial to
+;; implement with await-write-suspendable! (and is implemented by
+;; await-write-suspendable!).
+;;
+;; It is intended to be called in a waitable procedure invoked by
+;; a-sync, and will write a string to the port.  The 'loop' argument
+;; is optional: this procedure operates on the event loop passed in as
+;; an argument, or if none is passed (or #f is passed), on the default
+;; event loop.  If an exceptional condition ('excpt) is encountered by
+;; the implementation, #f will be returned by this procedure and the
+;; write operations to be performed by 'proc' will be abandonned,
+;; otherwise #t will be returned.  However exceptional conditions on
+;; write ports cannot normally occur.
+;;
+;; If CR-LF line endings are to be written when outputting the string,
+;; the '\r' character (as well as the '\n' character) must be embedded
+;; in the string.
+;;
+;; See the documentation on the await-write-suspendable! procedure for
+;; further particulars about this procedure.
+;;
+;; This procedure is first available in version 0.5 of this library.
+(define await-put-string!
+  (case-lambda
+    ((await resume port text) (await-put-string! await resume #f port text))
+    ((await resume loop port text)
+     (await-write-suspendable! await resume loop port
+			       (lambda (p)
+				 (put-string p text)
+				 ;; enforce a flush when the current
+				 ;; write-waiter is still in operation
+				 (force-output p)
+				 #t)))))

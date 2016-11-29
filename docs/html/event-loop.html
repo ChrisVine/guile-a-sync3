@@ -236,11 +236,12 @@ buffer flush, and if the size of the buffer is greater than the number
 of characters that the file can receive without blocking, blocking
 might still occur.  Unless the port will carry out a partial flush in
 such a case, this procedure will therefore generally work best either
-with unbuffered ports (say by using the open-file or fdopen procedure
-with the &rsquo;0&rsquo; mode option or the R6RS open-file-input-port procedure
-with a buffer-mode of none, or by calling setvbuf), or the port&rsquo;s
-ordinary output procedures should be used with suspendable ports using
-the await-write-suspendable! procedure in the <a href="await-ports.html#await-ports">(a-sync await-ports)</a> module.
+with unbuffered ports (say by using the open-file, fdopen or
+duplicate-port procedure with the &rsquo;0&rsquo; mode option or the R6RS
+open-file-input-port procedure with a buffer-mode of none, or by
+calling setvbuf), or the port&rsquo;s ordinary output procedures should be
+used with suspendable ports using the await-write-suspendable!
+procedure in the <a href="await-ports.html#await-ports">(a-sync await-ports)</a> module.
 </p>
 <p>This procedure should not throw an exception unless memory is
 exhausted.  If &rsquo;proc&rsquo; throws, say because of port errors, and the
