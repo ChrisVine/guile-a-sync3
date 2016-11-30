@@ -121,11 +121,13 @@ timeout repetitions).  That way, there can never be a case where the
 callback has been removed from the event loop by returning false but
 the waitable procedure still thinks it has a call to 'await' to be
 made.  The @ref{event loop,,event-loop} module has await-task!,
-await-task-in-thread!, await-task-in-event-loop! and await-timeout!
-convenience procedures, and the @ref{await ports,,await-ports} module
-has await-read-suspendable!, await-write-suspendable!, await-getline!,
-await-geteveryline! and await-getsomelines! convenience procedures
-which will correctly set this up for you automatically, and the
+await-task-in-thread!, await-task-in-event-loop!, await-generator!,
+await-generator-in-thread!, await-generator-in-event-loop! and
+await-timeout! convenience procedures, and the @ref{await
+ports,,await-ports} module has await-read-suspendable!,
+await-write-suspendable!, await-getline!, await-geteveryline!,
+await-getsomelines! and await-put-string! convenience procedures which
+will correctly set this up for you automatically, and the
 @ref{compose,,compose} module provides a compose-a-sync macro for
 composition.  If those convenience procedures are used, exceptions
 should always be handled locally in the waitable procedure (and if the

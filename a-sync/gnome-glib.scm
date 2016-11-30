@@ -42,6 +42,7 @@
   #:use-module (gnome gobject)         ;; for gclosure
   #:use-module (oop goops)             ;; for make
   #:use-module (ice-9 rdelim)          ;; for read-line
+  #:use-module (ice-9 textual-ports)   ;; for put-string
   #:use-module (ice-9 suspendable-ports)
   #:use-module (a-sync coroutines)     ;; for make-iterator
   #:export (await-glib-task-in-thread
@@ -52,7 +53,8 @@
 	    glib-add-watch
 	    await-glib-read-suspendable
 	    await-glib-write-suspendable
-	    await-glib-getline))
+	    await-glib-getline
+	    await-glib-put-string))
 
 (install-suspendable-ports!)
 
@@ -324,11 +326,11 @@
 ;; port's normal read procedures.  'port' must be a suspendable
 ;; non-blocking port.  'proc' will be executed whenever there is
 ;; something available to read, and this procedure will return when
-;; 'proc' returns, as if by a blocking read.  The glib event loop will
-;; not be blocked by this procedure even if only individual characters
-;; or bytes comprising part characters are available at any one time.
-;; It is intended to be called in a waitable procedure invoked by
-;; a-sync.
+;; 'proc' returns, as if by a blocking read, with the value returned
+;; by 'proc'.  The glib event loop will not be blocked by this
+;; procedure even if only individual characters or bytes comprising
+;; part characters are available at any one time.  It is intended to
+;; be called in a waitable procedure invoked by a-sync.
 ;;
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the event loop runs.
@@ -373,20 +375,20 @@
 ;; the documentation on the await-glib-read-suspendable procedure for
 ;; further particulars about this procedure.
 (define (await-glib-getline await resume port)
-  (await-read-suspendable! await resume port
-			   (lambda (p)
-			     (read-line p))))
+  (await-glib-read-suspendable await resume port
+			       (lambda (p)
+				 (read-line p))))
 
 ;; 'proc' is a procedure taking a single argument, to which the port
 ;; will be passed when it is invoked, and is intended to use the
 ;; port's normal write procedures.  'port' must be a suspendable
 ;; non-blocking port.  'proc' will be executed whenever the port is
 ;; available to write to, and this procedure will return when 'proc'
-;; returns, as if by a blocking write.  The glib event loop will not
-;; be blocked by this procedure even if only individual characters or
-;; bytes comprising part characters can be written at any one time.
-;; It is intended to be called in a waitable procedure invoked by
-;; a-sync.
+;; returns, as if by a blocking write, with the value returned by
+;; 'proc'.  The glib event loop will not be blocked by this procedure
+;; even if only individual characters or bytes comprising part
+;; characters can be written at any one time.  It is intended to be
+;; called in a waitable procedure invoked by a-sync.
 ;;
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the event loop runs.
@@ -419,3 +421,27 @@
     (g-source-remove id)
     (release-port-handle port)
     res))
+
+;; This procedure is provided mainly to retain compatibility with the
+;; guile-a-sync library for guile-2.0, because it is trivial to
+;; implement with await-glib-write-suspendable (and is implemented by
+;; await-glib-write-suspendable).
+;;
+;; It is intended to be called in a waitable procedure invoked by
+;; a-sync, and will write a string to the port.
+;;
+;; If CR-LF line endings are to be written when outputting the string,
+;; the '\r' character (as well as the '\n' character) must be embedded
+;; in the string.
+;;
+;; See the documentation on the await-glib-write-suspendable procedure
+;; for further particulars about this procedure.
+;;
+;; This procedure is first available in version 0.5 of this library.
+(define (await-glib-put-string await resume port text)
+  (await-glib-write-suspendable await resume port
+				(lambda (p)
+				  (put-string p text)
+				  ;; enforce a flush when the current
+				  ;; write-waiter is still in operation
+				  (force-output p))))

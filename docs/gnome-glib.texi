@@ -308,10 +308,11 @@ be passed when it is invoked, and is intended to use the port's normal
 read procedures.  'port' must be a suspendable non-blocking port.
 'proc' will be executed whenever there is something available to read,
 and this procedure will return when 'proc' returns, as if by a
-blocking read.  The glib event loop will not be blocked by this
-procedure even if only individual characters or bytes comprising part
-characters are available at any one time.  It is intended to be called
-in a waitable procedure invoked by a-sync.
+blocking read, with the value returned by 'proc'.  The glib event loop
+will not be blocked by this procedure even if only individual
+characters or bytes comprising part characters are available at any
+one time.  It is intended to be called in a waitable procedure invoked
+by a-sync.
 
 This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the event loop runs.
@@ -366,10 +367,11 @@ be passed when it is invoked, and is intended to use the port's normal
 write procedures.  'port' must be a suspendable non-blocking port.
 'proc' will be executed whenever the port is available to write to,
 and this procedure will return when 'proc' returns, as if by a
-blocking write.  The glib event loop will not be blocked by this
-procedure even if only individual characters or bytes comprising part
-characters can be written at any one time.  It is intended to be
-called in a waitable procedure invoked by a-sync.
+blocking write, with the value returned by 'proc'.  The glib event
+loop will not be blocked by this procedure even if only individual
+characters or bytes comprising part characters can be written at any
+one time.  It is intended to be called in a waitable procedure invoked
+by a-sync.
 
 This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the event loop runs.
@@ -377,4 +379,36 @@ thread as that in which the event loop runs.
 Exceptions (say, from 'proc' because of port or conversion errors)
 will propagate out of this procedure in the first instance, and if not
 caught locally will then propagate out of g-main-loop-run.
+
+As an example of how to use await-glib-write-suspendable, here is the
+implementation of await-glib-put-string:
+
+@example
+(define (await-glib-put-string await resume port text)
+  (await-glib-write-suspendable await resume port
+				(lambda (p)
+				  (put-string p text)
+				  ;; enforce a flush when the current
+				  ;; write-waiter is still in operation
+				  (force-output p))))
+@end example
+@end deffn
+
+@deffn {Scheme Procedure} await-glib-put-string await resume port text
+This procedure is provided mainly to retain compatibility with the
+guile-a-sync library for guile-2.0, because it is trivial to implement
+with await-glib-write-suspendable (and is implemented by
+await-glib-write-suspendable).
+
+It is intended to be called in a waitable procedure invoked by a-sync,
+and will write a string to the port.
+
+If CR-LF line endings are to be written when outputting the string,
+the '\r' character (as well as the '\n' character) must be embedded in
+the string.
+
+See the documentation on the await-glib-write-suspendable procedure
+for further particulars about this procedure.
+
+This procedure is first available in version 0.5 of this library.
 @end deffn
