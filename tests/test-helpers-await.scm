@@ -18,9 +18,8 @@
 	     (a-sync event-loop)
 	     (a-sync compose)
 	     (a-sync await-ports)
-	     (ice-9 rdelim)   ;; for write-line
-	     (rnrs base)      ;; for assert
-	     (rnrs io ports)) ;; for get-char and put-char
+	     (ice-9 rdelim)   ;; for write-line and read-string
+	     (rnrs base))      ;; for assert
 
 ;; helpers
 
@@ -367,26 +366,31 @@
   (test-result 2 count)
   (print-result))
 
-;; Test 15: await-write-suspendable!
+;; Test 15: await-put-string! (also tests await-write-suspendable!)
 
 (let ()
   (define test-pipe (pipe))
   (define in (car test-pipe))
   (define out (cdr test-pipe))
+  (define res #f)
   (fcntl out F_SETFL (logior O_NONBLOCK
 			     (fcntl out F_GETFL)))
   (a-sync (lambda (await resume)
-	    (await-write-suspendable! await resume main-loop out 
-				      (lambda (p)
-					(put-char p #\a)
-					(put-char p #\x)
-					(force-output p)))
- 	    (let* ((ch1 (get-char in))
-		   (ch2 (get-char in)))
-	      (test-result #\a ch1)
-	      (test-result #\x ch2)
-	      (print-result))))
-  (event-loop-run! main-loop))
+	    (a-sync (lambda (await resume)
+		      (set! res (await-task-in-thread! await resume main-loop
+						       (lambda ()
+							 (read-string in))))
+		      (event-loop-block! #f main-loop)))
+	    (await-put-string! await resume main-loop out (string #\a #\b #\c))
+	    (close-port out)))
+  (event-loop-block! #t main-loop)
+  (event-loop-run! main-loop)
+  (test-result (string-length res) 3)
+  (test-result (string-ref res 0) #\a)
+  (test-result (string-ref res 1) #\b)
+  (test-result (string-ref res 2) #\c)
+  (close-port in)
+  (print-result))
 
 ;; Test 16: compose-a-sync and no-await
 
@@ -765,26 +769,31 @@
   (test-result 2 count)
   (print-result))
 
-;; Test 33: await-write-suspendable!
+;; Test 33: await-put-string! (also tests await-write-suspendable!)
 
 (let ()
   (define test-pipe (pipe))
   (define in (car test-pipe))
   (define out (cdr test-pipe))
+  (define res #f)
   (fcntl out F_SETFL (logior O_NONBLOCK
 			     (fcntl out F_GETFL)))
   (a-sync (lambda (await resume)
-	    (await-write-suspendable! await resume out 
-				      (lambda (p)
-					(put-char p #\a)
-					(put-char p #\x)
-					(force-output p)))
- 	    (let* ((ch1 (get-char in))
-		   (ch2 (get-char in)))
-	      (test-result #\a ch1)
-	      (test-result #\x ch2)
-	      (print-result))))
-  (event-loop-run!))
+	    (a-sync (lambda (await resume)
+		      (set! res (await-task-in-thread! await resume
+						       (lambda ()
+							 (read-string in))))
+		      (event-loop-block! #f)))
+	    (await-put-string! await resume out (string #\a #\b #\c))
+	    (close-port out)))
+  (event-loop-block! #t)
+  (event-loop-run!)
+  (test-result (string-length res) 3)
+  (test-result (string-ref res 0) #\a)
+  (test-result (string-ref res 1) #\b)
+  (test-result (string-ref res 2) #\c)
+  (close-port in)
+  (print-result))
 
 ;; Test 34: compose-a-sync and no-await
 
