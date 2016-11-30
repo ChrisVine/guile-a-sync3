@@ -604,9 +604,7 @@ retained by user code.
      await-ports): await ports. module).
 
      This procedure should not throw an exception unless memory is
-     exhausted.  If 'proc' throws, say because of port errors, and the
-     exception is not caught locally, it will propagate out of
-     event-loop-run!.
+     exhausted.
 
  -- Scheme Procedure: event-loop-add-write-watch! file proc [loop]
      The 'loop' (event loop) argument is optional.  This procedure will
@@ -651,9 +649,7 @@ retained by user code.
      await-ports): await ports. module.
 
      This procedure should not throw an exception unless memory is
-     exhausted.  If 'proc' throws, say because of port errors, and the
-     exception is not caught locally, it will propagate out of
-     event-loop-run!.
+     exhausted.
 
  -- Scheme Procedure: event-loop-remove-read-watch! file [loop]
      The 'loop' (event loop) argument is optional.  This procedure will
@@ -1946,9 +1942,9 @@ Node: Top87
 Node: overview1220
 Node: coroutines4159
 Node: event loop22205
-Node: await ports59149
-Node: monotonic time71531
-Node: gnome glib72967
-Node: compose92932
+Node: await ports58869
+Node: monotonic time71251
+Node: gnome glib72687
+Node: compose92652
 
 End Tag Table

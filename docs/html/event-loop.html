@@ -197,9 +197,7 @@ await-read-suspendable!  procedure in the <a href="await-ports.html#await-ports"
 await-ports)</a> module).
 </p>
 <p>This procedure should not throw an exception unless memory is
-exhausted.  If &rsquo;proc&rsquo; throws, say because of port errors, and the
-exception is not caught locally, it will propagate out of
-event-loop-run!.
+exhausted.
 </p></dd></dl>
 
 <dl>
@@ -244,9 +242,7 @@ used with suspendable ports using the await-write-suspendable!
 procedure in the <a href="await-ports.html#await-ports">(a-sync await-ports)</a> module.
 </p>
 <p>This procedure should not throw an exception unless memory is
-exhausted.  If &rsquo;proc&rsquo; throws, say because of port errors, and the
-exception is not caught locally, it will propagate out of
-event-loop-run!.
+exhausted.
 </p></dd></dl>
 
 <dl>
