@@ -255,6 +255,9 @@
 ;; otherwise #t will be returned.  However exceptional conditions on
 ;; write ports cannot normally occur.
 ;;
+;; The port will be flushed by this procedure upon conclusion of the
+;; writing of the string.
+;;
 ;; If CR-LF line endings are to be written when outputting the string,
 ;; the '\r' character (as well as the '\n' character) must be embedded
 ;; in the string.

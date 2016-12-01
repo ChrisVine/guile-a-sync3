@@ -298,6 +298,9 @@ exceptional condition (&rsquo;excpt) is encountered by the implementation,
 performed by &rsquo;proc&rsquo; will be abandonned, otherwise #t will be returned.
 However exceptional conditions on write ports cannot normally occur.
 </p>
+<p>The port will be flushed by this procedure upon conclusion of the
+writing of the string.
+</p>
 <p>If CR-LF line endings are to be written when outputting the string,
 the &rsquo;\r&rsquo; character (as well as the &rsquo;\n&rsquo; character) must be embedded in
 the string.
