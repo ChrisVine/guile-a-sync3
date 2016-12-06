@@ -81,6 +81,11 @@
      ;; make socket non-blocking
      (fcntl sockport F_SETFL (logior O_NONBLOCK
 				     (fcntl sockport F_GETFL)))
+     ;; socket ports are unbuffered by default, so make the socket
+     ;; buffered (as this is a socket, with no file position pointer,
+     ;; keeping port buffers synchronized is not an issue, and
+     ;; await-put-string! flushes the buffer for us when sending)
+     (setvbuf sockport 'block)
      (send-get-request-async await resume check-ip "/" sockport)
      (call-with-values
 	 (lambda ()
