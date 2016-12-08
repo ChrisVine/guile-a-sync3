@@ -18,8 +18,9 @@
 	     (a-sync event-loop)
 	     (a-sync compose)
 	     (a-sync await-ports)
+	     (ice-9 threads)  ;; for call-with-new-thread
 	     (ice-9 rdelim)   ;; for write-line and read-string
-	     (rnrs base))      ;; for assert
+	     (rnrs base))     ;; for assert
 
 ;; helpers
 

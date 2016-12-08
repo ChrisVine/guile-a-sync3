@@ -15,7 +15,8 @@
 ;; Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 (use-modules (a-sync event-loop)
-	     (rnrs base))   ;; for assert
+	     (ice-9 threads)  ;; for call-with-new-thread
+	     (rnrs base))     ;; for assert
 
 ;; helpers
 
