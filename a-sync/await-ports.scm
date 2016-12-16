@@ -17,14 +17,20 @@
 (define-module (a-sync await-ports)
   #:use-module (ice-9 rdelim)          ;; for read-line
   #:use-module (ice-9 textual-ports)   ;; for put-string
+  #:use-module (ice-9 binary-ports)    ;; for get-u8
   #:use-module (ice-9 control)         ;; for call/ec
   #:use-module (ice-9 suspendable-ports)
   #:use-module (a-sync event-loop)     ;; for event loop
+  #:use-module (rnrs bytevectors)      ;; for bytevectors
   #:export (await-read-suspendable!
 	    await-write-suspendable!
 	    await-getline!
 	    await-geteveryline!
 	    await-getsomelines!
+	    await-getblock!
+	    await-geteveryblock!
+	    await-getsomeblocks!
+	    await-put-bytevector!
 	    await-put-string!))
 
 (install-suspendable-ports!)
@@ -181,6 +187,160 @@
 					   (proc line k)
 					   (next (read-line p))))))))))))
 
+;; This procedure is provided mainly to retain compatibility with the
+;; guile-a-sync library for guile-2.0, because it is trivial to
+;; implement this kind of functionality with await-read-suspendable!
+;; (and is implemented by await-read-suspendable!).
+;;
+;; It is intended to be called in a waitable procedure invoked by
+;; a-sync, and reads a block of data, such as a binary record, of size
+;; 'size' from a non-blocking suspendable port 'port'.  This procedure
+;; and will return a pair, normally comprising as its car a bytevector
+;; of length 'size' containing the data, and as its cdr the number of
+;; bytes received and placed in the bytevector (which will be the same
+;; as 'size' unless an end-of-file object was encountered part way
+;; through receiving the data).  If an exceptional condition ('excpt)
+;; is encountered, a pair comprising (#f . #f) will be returned.  If
+;; an end-of-file object is encountered without any bytes of data, a
+;; pair with eof-object as car and #f as cdr will be returned.
+;;
+;; The 'loop' argument is optional: this procedure operates on the
+;; event loop passed in as an argument, or if none is passed (or #f is
+;; passed), on the default event loop.
+;;
+;; See the documentation on the await-read-suspendable!  procedure for
+;; further particulars about this procedure.
+;;
+;; This procedure is first available in version 0.6 of this library.
+(define await-getblock!
+  (case-lambda
+    ((await resume port size)
+     (await-getblock! await resume #f port size))
+    ((await resume loop port size)
+     ;; we cannot use get-bytevector-n! because it is not async-safe
+     ;; in suspendable ports, so build the bytevector by hand
+     (define bv (make-bytevector size))
+     (define index 0)
+     (await-read-suspendable! await resume loop port
+			      (lambda (p)
+				(let next ((u8 (get-u8 p)))
+				  (if (eof-object? u8)
+				      (if (= index 0)
+					  (cons u8 #f)
+					  (cons bv index))
+				      (begin
+					(bytevector-u8-set! bv index u8)
+					(set! index (1+ index))
+					(if (= index size)
+					    (cons bv size)
+					    (next (get-u8 p)))))))))))
+
+;; This procedure is provided mainly to retain compatibility with the
+;; guile-a-sync library for guile-2.0, because it is trivial to
+;; implement this kind of functionality with await-read-suspendable!
+;; (and is implemented by await-read-suspendable!).
+;;
+;; It is intended to be called in a waitable procedure invoked by
+;; a-sync, and and will apply 'proc' to any block of data received,
+;; such as a binary record.  'proc' should be a procedure taking two
+;; arguments, first a bytevector of length 'size' containing the block
+;; of data read and second the size of the block of data placed in the
+;; bytevector.  The value passed as the size of the block of data
+;; placed in the bytevector will always be the same as 'size' unless
+;; end-of-file has been encountered after receiving only a partial
+;; block of data.  The watch will not end until end-of-file or an
+;; exceptional condition ('excpt) is reached.  In the event of that
+;; happening, this procedure will end and return an end-of-file object
+;; or #f respectively.
+;;
+;; The 'loop' argument is optional: this procedure operates on the
+;; event loop passed in as an argument, or if none is passed (or #f is
+;; passed), on the default event loop.
+;;
+;; See the documentation on the await-read-suspendable!  procedure for
+;; further particulars about this procedure.
+;;
+;; This procedure is first available in version 0.6 of this library.
+(define await-geteveryblock!
+  (case-lambda
+    ((await resume port size proc) (await-geteveryblock! await resume #f port size proc))
+    ((await resume loop port size proc)
+     ;; we cannot use get-bytevector-n! because it is not async-safe
+     ;; in suspendable ports, so build the bytevector by hand
+     (define bv (make-bytevector size))
+     (define index 0)
+     (await-read-suspendable! await resume loop port
+			      (lambda (p)
+				(let next ((u8 (get-u8 p)))
+				  (if (eof-object? u8)
+				      (begin
+					(when (> index 0)
+					  (proc bv index))
+					u8)
+				      (begin
+					(bytevector-u8-set! bv index u8)
+					(set! index (1+ index))
+					(when (= index size)
+					  (set! index 0)
+					  (proc bv size))
+					(next (get-u8 p))))))))))
+
+;; This procedure is intended to be called in a waitable procedure
+;; invoked by a-sync, and does the same as await-geteveryblock!,
+;; except that it provides a third argument to 'proc', namely an
+;; escape continuation which can be invoked by 'proc' to cause the
+;; procedure to return before end-of-file is reached.  Behavior is
+;; identical to await-geteveryblock! if the continuation is not
+;; invoked.
+;;
+;; This procedure will apply 'proc' to any block of data received,
+;; such as a binary record.  'proc' should be a procedure taking three
+;; arguments, first a bytevector of length 'size' containing the block
+;; of data read, second the size of the block of data placed in the
+;; bytevector and third an escape continuation.  The value passed as
+;; the size of the block of data placed in the bytevector will always
+;; be the same as 'size' unless end-of-file has been encountered after
+;; receiving only a partial block of data.  The watch will not end
+;; until end-of-file or an exceptional condition ('excpt) is reached,
+;; which would cause this procedure to end and return an end-of-file
+;; object or #f respectively, or until the escape continuation is
+;; invoked, in which case the value passed to the escape continuation
+;; will be returned.
+;;
+;; The 'loop' argument is optional: this procedure operates on the
+;; event loop passed in as an argument, or if none is passed (or #f is
+;; passed), on the default event loop.
+;;
+;; See the documentation on the await-read-suspendable!  procedure for
+;; further particulars about this procedure.
+;;
+;; This procedure is first available in version 0.6 of this library.
+(define await-getsomeblocks!
+  (case-lambda
+    ((await resume port size proc) (await-getsomeblocks! await resume #f port size proc))
+    ((await resume loop port size proc)
+     ;; we cannot use get-bytevector-n! because it is not async-safe
+     ;; in suspendable ports, so build the bytevector by hand
+     (define bv (make-bytevector size))
+     (define index 0)
+     (await-read-suspendable! await resume loop port
+			      (lambda (p)
+				(call/ec
+				 (lambda (k)
+				   (let next ((u8 (get-u8 p)))
+				     (if (eof-object? u8)
+					 (begin
+					   (when (> index 0)
+					     (proc bv index k))
+					   u8)
+					 (begin
+					   (bytevector-u8-set! bv index u8)
+					   (set! index (1+ index))
+					   (when (= index size)
+					     (set! index 0)
+					     (proc bv size k))
+					   (next (get-u8 p))))))))))))
+
 ;; 'proc' is a procedure taking a single argument, to which the port
 ;; will be passed when it is invoked, and is intended to use the
 ;; port's normal write procedures.  'port' must be a suspendable
@@ -246,14 +406,48 @@
 ;; await-write-suspendable!).
 ;;
 ;; It is intended to be called in a waitable procedure invoked by
-;; a-sync, and will write a string to the port.  The 'loop' argument
-;; is optional: this procedure operates on the event loop passed in as
-;; an argument, or if none is passed (or #f is passed), on the default
-;; event loop.  If an exceptional condition ('excpt) is encountered by
-;; the implementation, #f will be returned by this procedure and the
-;; write operations to be performed by 'proc' will be abandonned,
-;; otherwise #t will be returned.  However exceptional conditions on
-;; write ports cannot normally occur.
+;; a-sync, and will write the contents of bytevector 'bv' to 'port'.
+;; The 'loop' argument is optional: this procedure operates on the
+;; event loop passed in as an argument, or if none is passed (or #f is
+;; passed), on the default event loop.  If an exceptional condition
+;; ('excpt) is encountered by the implementation, #f will be returned
+;; by this procedure and the write operations to be performed by
+;; 'proc' will be abandonned, otherwise #t will be returned.  However
+;; exceptional conditions on write ports cannot normally occur.
+;;
+;; The port will be flushed by this procedure upon conclusion of the
+;; writing of the string.
+;;
+;; See the documentation on the await-write-suspendable! procedure for
+;; further particulars about this procedure.
+;;
+;; This procedure is first available in version 0.6 of this library.
+(define await-put-bytevector!
+  (case-lambda
+    ((await resume port bv) (await-put-bytevector! await resume #f port bv))
+    ((await resume loop port bv)
+     (await-write-suspendable! await resume loop port
+			       (lambda (p)
+				 (put-bytevector p bv)
+				 ;; enforce a flush when the current
+				 ;; write-waiter is still in operation
+				 (force-output p)
+				 #t)))))
+
+;; This procedure is provided mainly to retain compatibility with the
+;; guile-a-sync library for guile-2.0, because it is trivial to
+;; implement with await-write-suspendable! (and is implemented by
+;; await-write-suspendable!).
+;;
+;; It is intended to be called in a waitable procedure invoked by
+;; a-sync, and will write the string 'text' to 'port'.  The 'loop'
+;; argument is optional: this procedure operates on the event loop
+;; passed in as an argument, or if none is passed (or #f is passed),
+;; on the default event loop.  If an exceptional condition ('excpt) is
+;; encountered by the implementation, #f will be returned by this
+;; procedure and the write operations to be performed by 'proc' will
+;; be abandonned, otherwise #t will be returned.  However exceptional
+;; conditions on write ports cannot normally occur.
 ;;
 ;; The port will be flushed by this procedure upon conclusion of the
 ;; writing of the string.
