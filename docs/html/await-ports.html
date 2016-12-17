@@ -59,6 +59,17 @@ guile-2.2&rsquo;s suspendable ports with event loops, and a convenient way
 of using ports&rsquo; normal input and output procedures with non-blocking
 ports.
 </p>
+<p>For this purpose, the &rsquo;normal input and output&rsquo; procedures which may
+be used with await-read-suspendable! and await-write-suspendable!
+cover most but not all i/o procedures.  Thus, the following are safe
+to use with non-blocking suspendable ports: read-char, get-char,
+peek-char, lookahead-char, read-line, get-line, get-u8, lookahead-u8,
+get-bytevector-n, get-string-all, put-char, put-u8, put-string,
+put-bytevector, force-output and flush-output-port.  Some others are
+not at present safe to use with suspendable ports, including
+get-bytevector-n!, get-bytevector-some, get-string-n, read, write and
+display.
+</p>
 <p>Including this module will automatically enable suspendable ports.  To
 disable them again, the uninstall-suspendable-ports! procedure can be
 called, but this means that these procedures can no longer be used
@@ -279,6 +290,11 @@ watch will not end until end-of-file or an exceptional condition
 (&rsquo;excpt) is reached.  In the event of that happening, this procedure
 will end and return an end-of-file object or #f respectively.
 </p>
+<p>For efficiency reasons, this procedure passes its internal bytevector
+buffer to &rsquo;proc&rsquo; as proc&rsquo;s first argument and, when &rsquo;proc&rsquo; returns,
+re-uses it.  Therefore, if &rsquo;proc&rsquo; stores its first argument for use
+after &rsquo;proc&rsquo; has returned, it should store it by copying it.
+</p>
 <p>The &rsquo;loop&rsquo; argument is optional: this procedure operates on the event
 loop passed in as an argument, or if none is passed (or #f is passed),
 on the default event loop.
@@ -310,6 +326,11 @@ end-of-file or an exceptional condition (&rsquo;excpt) is reached, which
 would cause this procedure to end and return an end-of-file object or
 #f respectively, or until the escape continuation is invoked, in which
 case the value passed to the escape continuation will be returned.
+</p>
+<p>For efficiency reasons, this procedure passes its internal bytevector
+buffer to &rsquo;proc&rsquo; as proc&rsquo;s first argument and, when &rsquo;proc&rsquo; returns,
+re-uses it.  Therefore, if &rsquo;proc&rsquo; stores its first argument for use
+after &rsquo;proc&rsquo; has returned, it should store it by copying it.
 </p>
 <p>The &rsquo;loop&rsquo; argument is optional: this procedure operates on the event
 loop passed in as an argument, or if none is passed (or #f is passed),

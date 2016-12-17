@@ -35,6 +35,17 @@
 
 (install-suspendable-ports!)
 
+;; NOTE: The procedures which may be used with await-read-suspendable!
+;; and await-write-suspendable! cover most but not all i/o procedures.
+;; Thus, the following are safe to use with non-blocking suspendable
+;; ports: read-char, get-char, peek-char, lookahead-char, read-line,
+;; get-line, get-u8, lookahead-u8, get-bytevector-n, get-string-all,
+;; put-char, put-u8, put-string, put-bytevector, force-output and
+;; flush-output-port.  Some others are not at present safe to use with
+;; suspendable ports, including get-bytevector-n!,
+;; get-bytevector-some, get-string-n, read, write and display.
+
+
 ;; 'proc' is a procedure taking a single argument, to which the port
 ;; will be passed when it is invoked, and is intended to use the
 ;; port's normal read procedures.  'port' must be a suspendable
@@ -252,6 +263,12 @@
 ;; happening, this procedure will end and return an end-of-file object
 ;; or #f respectively.
 ;;
+;; For efficiency reasons, this procedure passes its internal
+;; bytevector buffer to 'proc' as proc's first argument and, when
+;; 'proc' returns, re-uses it.  Therefore, if 'proc' stores its first
+;; argument for use after 'proc' has returned, it should store it by
+;; copying it.
+;;
 ;; The 'loop' argument is optional: this procedure operates on the
 ;; event loop passed in as an argument, or if none is passed (or #f is
 ;; passed), on the default event loop.
@@ -305,6 +322,12 @@
 ;; object or #f respectively, or until the escape continuation is
 ;; invoked, in which case the value passed to the escape continuation
 ;; will be returned.
+;;
+;; For efficiency reasons, this procedure passes its internal
+;; bytevector buffer to 'proc' as proc's first argument and, when
+;; 'proc' returns, re-uses it.  Therefore, if 'proc' stores its first
+;; argument for use after 'proc' has returned, it should store it by
+;; copying it.
 ;;
 ;; The 'loop' argument is optional: this procedure operates on the
 ;; event loop passed in as an argument, or if none is passed (or #f is
