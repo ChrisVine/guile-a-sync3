@@ -379,6 +379,43 @@
 			       (lambda (p)
 				 (read-line p))))
 
+;; This procedure is provided mainly to retain compatibility with the
+;; guile-a-sync library for guile-2.0, because an implementation is
+;; trivial to implement with await-glib-read-suspendable (and is
+;; implemented by await-glib-read-suspendable).
+;;
+;; It is intended to be called in a waitable procedure invoked by
+;; a-sync, and reads a block of data, such as a binary record, of size
+;; 'size' from a non-blocking suspendable port 'port'.  This procedure
+;; and will return a pair, normally comprising as its car a bytevector
+;; of length 'size' containing the data, and as its cdr the number of
+;; bytes received and placed in the bytevector (which will be the same
+;; as 'size' unless an end-of-file object was encountered part way
+;; through receiving the data).  If an end-of-file object is
+;; encountered without any bytes of data, a pair with eof-object as
+;; car and #f as cdr will be returned.
+;;
+;; See the documentation on the await-glib-read-suspendable procedure
+;; for further particulars about this procedure.
+;;
+;; This procedure is first available in version 0.6 of this library.
+(define (await-glib-getblock await resume port size)
+  (define bv (make-bytevector size))
+  (define index 0)
+  (await-glib-read-suspendable await resume port
+			       (lambda (p)
+				 (let next ((u8 (get-u8 p)))
+				   (if (eof-object? u8)
+				       (if (= index 0)
+					   (cons u8 #f)
+					   (cons bv index))
+				       (begin
+					 (bytevector-u8-set! bv index u8)
+					 (set! index (1+ index))
+					 (if (= index size)
+					     (cons bv size)
+					     (next (get-u8 p)))))))))
+
 ;; 'proc' is a procedure taking a single argument, to which the port
 ;; will be passed when it is invoked, and is intended to use the
 ;; port's normal write procedures.  'port' must be a suspendable
@@ -421,6 +458,26 @@
     (g-source-remove id)
     (release-port-handle port)
     res))
+
+;; This procedure is provided mainly to retain compatibility with the
+;; guile-a-sync library for guile-2.0, because it is trivial to
+;; implement with await-glib-write-suspendable (and is implemented by
+;; await-glib-write-suspendable).
+;;
+;; It is intended to be called in a waitable procedure invoked by
+;; a-sync, and will write a bytevector to the port.
+;;
+;; See the documentation on the await-glib-write-suspendable procedure
+;; for further particulars about this procedure.
+;;
+;; This procedure is first available in version 0.6 of this library.
+(define (await-glib-put-bytevector await resume port bv)
+  (await-glib-write-suspendable await resume port
+				(lambda (p)
+				  (put-bytevector p bv)
+				  ;; enforce a flush when the current
+				  ;; write-waiter is still in operation
+				  (force-output p))))
 
 ;; This procedure is provided mainly to retain compatibility with the
 ;; guile-a-sync library for guile-2.0, because it is trivial to

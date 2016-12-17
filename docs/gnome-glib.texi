@@ -361,6 +361,29 @@ Here is an example of the use of await-glib-getline:
 @end example
 @end deffn
 
+@deffn {Scheme Procedure} await-glib-getblock await resume port size
+This procedure is provided mainly to retain compatibility with the
+guile-a-sync library for guile-2.0, because an implementation is
+trivial to implement with await-glib-read-suspendable (and is
+implemented by await-glib-read-suspendable).
+
+It is intended to be called in a waitable procedure invoked by a-sync,
+and reads a block of data, such as a binary record, of size 'size'
+from a non-blocking suspendable port 'port'.  This procedure and will
+return a pair, normally comprising as its car a bytevector of length
+'size' containing the data, and as its cdr the number of bytes
+received and placed in the bytevector (which will be the same as
+'size' unless an end-of-file object was encountered part way through
+receiving the data).  If an end-of-file object is encountered without
+any bytes of data, a pair with eof-object as car and #f as cdr will be
+returned.
+
+See the documentation on the await-glib-read-suspendable procedure for
+further particulars about this procedure.
+
+This procedure is first available in version 0.6 of this library.
+@end deffn
+
 @deffn {Scheme Procedure} await-glib-write-suspendable await resume port proc
 'proc' is a procedure taking a single argument, to which the port will
 be passed when it is invoked, and is intended to use the port's normal
@@ -392,6 +415,21 @@ implementation of await-glib-put-string:
 				  ;; write-waiter is still in operation
 				  (force-output p))))
 @end example
+@end deffn
+
+@deffn {Scheme Procedure} await-glib-put-bytevector await resume port bv
+This procedure is provided mainly to retain compatibility with the
+guile-a-sync library for guile-2.0, because it is trivial to implement
+with await-glib-write-suspendable (and is implemented by
+await-glib-write-suspendable).
+
+It is intended to be called in a waitable procedure invoked by a-sync,
+and will write a bytevector to the port.
+
+See the documentation on the await-glib-write-suspendable procedure
+for further particulars about this procedure.
+
+This procedure is first available in version 0.6 of this library.
 @end deffn
 
 @deffn {Scheme Procedure} await-glib-put-string await resume port text

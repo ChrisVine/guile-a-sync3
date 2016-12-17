@@ -424,6 +424,30 @@ particulars about this procedure.
 </dd></dl>
 
 <dl>
+<dt><a name="index-await_002dglib_002dgetblock"></a>Scheme Procedure: <strong>await-glib-getblock</strong> <em>await resume port size</em></dt>
+<dd><p>This procedure is provided mainly to retain compatibility with the
+guile-a-sync library for guile-2.0, because an implementation is
+trivial to implement with await-glib-read-suspendable (and is
+implemented by await-glib-read-suspendable).
+</p>
+<p>It is intended to be called in a waitable procedure invoked by a-sync,
+and reads a block of data, such as a binary record, of size &rsquo;size&rsquo;
+from a non-blocking suspendable port &rsquo;port&rsquo;.  This procedure and will
+return a pair, normally comprising as its car a bytevector of length
+&rsquo;size&rsquo; containing the data, and as its cdr the number of bytes
+received and placed in the bytevector (which will be the same as
+&rsquo;size&rsquo; unless an end-of-file object was encountered part way through
+receiving the data).  If an end-of-file object is encountered without
+any bytes of data, a pair with eof-object as car and #f as cdr will be
+returned.
+</p>
+<p>See the documentation on the await-glib-read-suspendable procedure for
+further particulars about this procedure.
+</p>
+<p>This procedure is first available in version 0.6 of this library.
+</p></dd></dl>
+
+<dl>
 <dt><a name="index-await_002dglib_002dwrite_002dsuspendable"></a>Scheme Procedure: <strong>await-glib-write-suspendable</strong> <em>await resume port proc</em></dt>
 <dd><p>&rsquo;proc&rsquo; is a procedure taking a single argument, to which the port will
 be passed when it is invoked, and is intended to use the port&rsquo;s normal
@@ -456,6 +480,22 @@ implementation of await-glib-put-string:
 				  (force-output p))))
 </pre></div>
 </dd></dl>
+
+<dl>
+<dt><a name="index-await_002dglib_002dput_002dbytevector"></a>Scheme Procedure: <strong>await-glib-put-bytevector</strong> <em>await resume port bv</em></dt>
+<dd><p>This procedure is provided mainly to retain compatibility with the
+guile-a-sync library for guile-2.0, because it is trivial to implement
+with await-glib-write-suspendable (and is implemented by
+await-glib-write-suspendable).
+</p>
+<p>It is intended to be called in a waitable procedure invoked by a-sync,
+and will write a bytevector to the port.
+</p>
+<p>See the documentation on the await-glib-write-suspendable procedure
+for further particulars about this procedure.
+</p>
+<p>This procedure is first available in version 0.6 of this library.
+</p></dd></dl>
 
 <dl>
 <dt><a name="index-await_002dglib_002dput_002dstring"></a>Scheme Procedure: <strong>await-glib-put-string</strong> <em>await resume port text</em></dt>
