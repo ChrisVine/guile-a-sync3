@@ -182,17 +182,18 @@ await-task-in-thread!, await-task-in-event-loop!, await-generator!,
 await-generator-in-thread!, await-generator-in-event-loop! and
 await-timeout! convenience procedures, and the <a href="await-ports.html#await-ports">await-ports</a> module has await-read-suspendable!,
 await-write-suspendable!, await-getline!, await-geteveryline!,
-await-getsomelines! and await-put-string! convenience procedures which
-will correctly set this up for you automatically, and the
-<a href="compose.html#compose">compose</a> module provides a compose-a-sync macro for
-composition.  If those convenience procedures are used, exceptions
-should always be handled locally in the waitable procedure (and if the
-callback might throw, in the callback also) if it is undesirable that
-uncaught exceptions propagate out of event-loop-run!.  In the case of
-await-task-in-thread!, that procedure also takes an optional handler
-argument which will handle any exceptions thrown by the task:
-otherwise the task thread throwing would terminate the program if not
-caught within the task.
+await-getsomelines!, await-getblock!, await-geteveryblock!,
+await-getsomeblocks!, await-put-bytevector! and await-put-string!
+convenience procedures which will correctly set this up for you
+automatically, and the <a href="compose.html#compose">compose</a> module provides a
+compose-a-sync macro for composition.  If those convenience procedures
+are used, exceptions should always be handled locally in the waitable
+procedure (and if the callback might throw, in the callback also) if
+it is undesirable that uncaught exceptions propagate out of
+event-loop-run!.  In the case of await-task-in-thread!, that procedure
+also takes an optional handler argument which will handle any
+exceptions thrown by the task: otherwise the task thread throwing
+would terminate the program if not caught within the task.
 </p>
 <p>There can be as many calls to &rsquo;await&rsquo; and asynchronous callbacks in
 any one waitable procedure as wanted, to enable composition of

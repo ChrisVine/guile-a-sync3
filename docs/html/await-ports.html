@@ -133,9 +133,9 @@ argument is optional: this procedure operates on the event loop passed
 in as an argument, or if none is passed (or #f is passed), on the
 default event loop.  If an exceptional condition (&rsquo;excpt) is
 encountered by the implementation, #f will be returned by this
-procedure and the read operations to be performed by &rsquo;proc&rsquo; will be
-abandonned.  See the documentation on the await-read-suspendable!
-procedure for further particulars about this procedure.
+procedure and the read operation will be abandonned.  See the
+documentation on the await-read-suspendable! procedure for further
+particulars about this procedure.
 </p>
 <p>Here is an example of the use of await-getline!:
 </p><div class="example">
@@ -254,7 +254,7 @@ with eof-object as car and #f as cdr will be returned.
 loop passed in as an argument, or if none is passed (or #f is passed),
 on the default event loop.
 </p>
-<p>See the documentation on the await-read-suspendable!  procedure for
+<p>See the documentation on the await-read-suspendable! procedure for
 further particulars about this procedure.
 </p>
 <p>This procedure is first available in version 0.6 of this library.
@@ -283,7 +283,7 @@ will end and return an end-of-file object or #f respectively.
 loop passed in as an argument, or if none is passed (or #f is passed),
 on the default event loop.
 </p>
-<p>See the documentation on the await-read-suspendable!  procedure for
+<p>See the documentation on the await-read-suspendable! procedure for
 further particulars about this procedure.
 </p>
 <p>This procedure is first available in version 0.6 of this library.
@@ -315,7 +315,7 @@ case the value passed to the escape continuation will be returned.
 loop passed in as an argument, or if none is passed (or #f is passed),
 on the default event loop.
 </p>
-<p>See the documentation on the await-read-suspendable!  procedure for
+<p>See the documentation on the await-read-suspendable! procedure for
 further particulars about this procedure.
 </p>
 <p>This procedure is first available in version 0.6 of this library.
@@ -385,9 +385,9 @@ argument is optional: this procedure operates on the event loop passed
 in as an argument, or if none is passed (or #f is passed), on the
 default event loop.  If an exceptional condition (&rsquo;excpt) is
 encountered by the implementation, #f will be returned by this
-procedure and the write operations to be performed by &rsquo;proc&rsquo; will be
-abandonned, otherwise #t will be returned.  However exceptional
-conditions on write ports cannot normally occur.
+procedure and the write operation will be abandonned, otherwise #t
+will be returned.  However exceptional conditions on write ports
+cannot normally occur.
 </p>
 <p>The port will be flushed by this procedure upon conclusion of the
 writing of the string.
@@ -411,9 +411,8 @@ optional: this procedure operates on the event loop passed in as an
 argument, or if none is passed (or #f is passed), on the default event
 loop.  If an exceptional condition (&rsquo;excpt) is encountered by the
 implementation, #f will be returned by this procedure and the write
-operations to be performed by &rsquo;proc&rsquo; will be abandonned, otherwise #t
-will be returned.  However exceptional conditions on write ports
-cannot normally occur.
+operation will be abandonned, otherwise #t will be returned.  However
+exceptional conditions on write ports cannot normally occur.
 </p>
 <p>The port will be flushed by this procedure upon conclusion of the
 writing of the string.

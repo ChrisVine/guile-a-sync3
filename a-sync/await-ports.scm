@@ -108,10 +108,9 @@
 ;; loop passed in as an argument, or if none is passed (or #f is
 ;; passed), on the default event loop.  If an exceptional condition
 ;; ('excpt) is encountered by the implementation, #f will be returned
-;; by this procedure and the read operations to be performed by 'proc'
-;; will be abandonned.  See the documentation on the
-;; await-read-suspendable!  procedure for further particulars about
-;; this procedure.
+;; by this procedure and the read operation will be abandonned.  See
+;; the documentation on the await-read-suspendable!  procedure for
+;; further particulars about this procedure.
 (define await-getline!
   (case-lambda
     ((await resume port)
@@ -208,7 +207,7 @@
 ;; event loop passed in as an argument, or if none is passed (or #f is
 ;; passed), on the default event loop.
 ;;
-;; See the documentation on the await-read-suspendable!  procedure for
+;; See the documentation on the await-read-suspendable! procedure for
 ;; further particulars about this procedure.
 ;;
 ;; This procedure is first available in version 0.6 of this library.
@@ -257,7 +256,7 @@
 ;; event loop passed in as an argument, or if none is passed (or #f is
 ;; passed), on the default event loop.
 ;;
-;; See the documentation on the await-read-suspendable!  procedure for
+;; See the documentation on the await-read-suspendable! procedure for
 ;; further particulars about this procedure.
 ;;
 ;; This procedure is first available in version 0.6 of this library.
@@ -311,7 +310,7 @@
 ;; event loop passed in as an argument, or if none is passed (or #f is
 ;; passed), on the default event loop.
 ;;
-;; See the documentation on the await-read-suspendable!  procedure for
+;; See the documentation on the await-read-suspendable! procedure for
 ;; further particulars about this procedure.
 ;;
 ;; This procedure is first available in version 0.6 of this library.
@@ -411,9 +410,9 @@
 ;; event loop passed in as an argument, or if none is passed (or #f is
 ;; passed), on the default event loop.  If an exceptional condition
 ;; ('excpt) is encountered by the implementation, #f will be returned
-;; by this procedure and the write operations to be performed by
-;; 'proc' will be abandonned, otherwise #t will be returned.  However
-;; exceptional conditions on write ports cannot normally occur.
+;; by this procedure and the write operation will be abandonned,
+;; otherwise #t will be returned.  However exceptional conditions on
+;; write ports cannot normally occur.
 ;;
 ;; The port will be flushed by this procedure upon conclusion of the
 ;; writing of the string.
@@ -445,9 +444,9 @@
 ;; passed in as an argument, or if none is passed (or #f is passed),
 ;; on the default event loop.  If an exceptional condition ('excpt) is
 ;; encountered by the implementation, #f will be returned by this
-;; procedure and the write operations to be performed by 'proc' will
-;; be abandonned, otherwise #t will be returned.  However exceptional
-;; conditions on write ports cannot normally occur.
+;; procedure and the write operation will be abandonned, otherwise #t
+;; will be returned.  However exceptional conditions on write ports
+;; cannot normally occur.
 ;;
 ;; The port will be flushed by this procedure upon conclusion of the
 ;; writing of the string.
