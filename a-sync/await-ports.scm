@@ -40,10 +40,11 @@
 ;; Thus, the following are safe to use with non-blocking suspendable
 ;; ports: read-char, get-char, peek-char, lookahead-char, read-line,
 ;; get-line, get-u8, lookahead-u8, get-bytevector-n, get-string-all,
-;; put-char, put-u8, put-string, put-bytevector, force-output and
-;; flush-output-port.  Some others are not at present safe to use with
-;; suspendable ports, including get-bytevector-n!,
-;; get-bytevector-some, get-string-n, read, write and display.
+;; write-char, put-char, put-u8, put-string, put-bytevector, newline,
+;; force-output and flush-output-port.  Some others are not at present
+;; safe to use with suspendable ports, including get-bytevector-n!,
+;; get-bytevector-some, get-bytevector-all, get-string-n, read, write
+;; and display.
 
 
 ;; 'proc' is a procedure taking a single argument, to which the port

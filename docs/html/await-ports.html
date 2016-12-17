@@ -64,11 +64,11 @@ be used with await-read-suspendable! and await-write-suspendable!
 cover most but not all i/o procedures.  Thus, the following are safe
 to use with non-blocking suspendable ports: read-char, get-char,
 peek-char, lookahead-char, read-line, get-line, get-u8, lookahead-u8,
-get-bytevector-n, get-string-all, put-char, put-u8, put-string,
-put-bytevector, force-output and flush-output-port.  Some others are
-not at present safe to use with suspendable ports, including
-get-bytevector-n!, get-bytevector-some, get-string-n, read, write and
-display.
+get-bytevector-n, get-string-all, write-char, put-char, put-u8,
+put-string, put-bytevector, newline, force-output and
+flush-output-port.  Some others are not at present safe to use with
+suspendable ports, including get-bytevector-n!, get-bytevector-some,
+get-bytevector-all, get-string-n, read, write and display.
 </p>
 <p>Including this module will automatically enable suspendable ports.  To
 disable them again, the uninstall-suspendable-ports! procedure can be

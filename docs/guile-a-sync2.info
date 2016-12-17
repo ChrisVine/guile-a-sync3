@@ -1171,11 +1171,11 @@ be used with await-read-suspendable!  and await-write-suspendable!
 cover most but not all i/o procedures.  Thus, the following are safe to
 use with non-blocking suspendable ports: read-char, get-char, peek-char,
 lookahead-char, read-line, get-line, get-u8, lookahead-u8,
-get-bytevector-n, get-string-all, put-char, put-u8, put-string,
-put-bytevector, force-output and flush-output-port.  Some others are not
-at present safe to use with suspendable ports, including
-get-bytevector-n!, get-bytevector-some, get-string-n, read, write and
-display.
+get-bytevector-n, get-string-all, write-char, put-char, put-u8,
+put-string, put-bytevector, newline, force-output and flush-output-port.
+Some others are not at present safe to use with suspendable ports,
+including get-bytevector-n!, get-bytevector-some, get-bytevector-all,
+get-string-n, read, write and display.
 
    Including this module will automatically enable suspendable ports.
 To disable them again, the uninstall-suspendable-ports!  procedure can
@@ -2139,8 +2139,8 @@ Node: overview1220
 Node: coroutines4159
 Node: event loop22298
 Node: await ports60122
-Node: monotonic time79748
-Node: gnome glib81184
-Node: compose102982
+Node: monotonic time79788
+Node: gnome glib81224
+Node: compose103022
 
 End Tag Table
