@@ -450,6 +450,53 @@ further particulars about this procedure.
 <p>An example of the use of this procedure can be found in the
 example-socket.scm file in the docs directory.
 </p></dd></dl>
+
+<dl>
+<dt><a name="index-await_002daccept_0021"></a>Scheme Procedure: <strong>await-accept!</strong> <em>await resume [loop] sock</em></dt>
+<dd><p>This procedure is provided mainly to retain compatibility with the
+guile-a-sync library for guile-2.0, because it is trivial to implement
+with await-read-suspendable! (and is implemented by
+await-read-suspendable!).
+</p>
+<p>This procedure will start a watch on listening socket &rsquo;sock&rsquo; for a
+connection.  &rsquo;sock&rsquo; must be a non-blocking socket port.  This
+procedure wraps the guile &rsquo;accept&rsquo; procedure and therefore returns a
+pair, comprising as car a connection socket, and as cdr a socket
+address object containing particulars of the address of the remote
+connection.  This procedure is intended to be called in a waitable
+procedure invoked by a-sync.
+</p>
+<p>See the documentation on the await-write-suspendable! procedure for
+further particulars about this procedure.
+</p>
+<p>This procedure is first available in version 0.7 of this library.
+</p></dd></dl>
+
+<dl>
+<dt><a name="index-await_002dconnect_0021"></a>Scheme Procedure: <strong>await-connect!</strong> <em>await resume [loop] sock . args</em></dt>
+<dd><p>This procedure is provided mainly to retain compatibility with the
+guile-a-sync library for guile-2.0, because it is trivial to implement
+with await-write-suspendable! (and is implemented by
+await-write-suspendable!).
+</p>
+<p>This procedure will connect socket &rsquo;sock&rsquo; to a remote host.
+Particulars of the remote host are given by &rsquo;args&rsquo; which are the
+arguments (other than the &rsquo;sock&rsquo;) taken by guile&rsquo;s &rsquo;connect&rsquo;
+procedure, which this procedure wraps.  &rsquo;sock&rsquo; must be a non-blocking
+socket port.  This procedure is intended to be called in a waitable
+procedure invoked by a-sync.
+</p>
+<p>There are cases where it will not be helpful to use this procedure.
+Where a connection request is immediately followed by a write to the
+remote server (say, a get request), the call to &rsquo;connect&rsquo; and to
+&rsquo;put-string&rsquo; can be combined in a single procedure passed to
+await-write-suspendable!.
+</p>
+<p>See the documentation on the await-write-suspendable! procedure for
+further particulars about this procedure.
+</p>
+<p>This procedure is first available in version 0.7 of this library.
+</p></dd></dl>
 <hr>
 <div class="header">
 <p>

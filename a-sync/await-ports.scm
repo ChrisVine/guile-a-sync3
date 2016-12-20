@@ -31,7 +31,9 @@
 	    await-geteveryblock!
 	    await-getsomeblocks!
 	    await-put-bytevector!
-	    await-put-string!))
+	    await-put-string!
+	    await-accept!
+	    await-connect!))
 
 (install-suspendable-ports!)
 
@@ -41,7 +43,8 @@
 ;; ports: read-char, get-char, peek-char, lookahead-char, read-line,
 ;; get-line, get-u8, lookahead-u8, get-bytevector-n, get-string-all,
 ;; write-char, put-char, put-u8, put-string, put-bytevector, newline,
-;; force-output and flush-output-port.  Some others are not at present
+;; force-output and flush-output-port.  For sockets, the accept and
+;; connect procedures are also safe.  Some others are not at present
 ;; safe to use with suspendable ports, including get-bytevector-n!,
 ;; get-bytevector-some, get-bytevector-all, get-string-n, read, write
 ;; and display.
@@ -494,3 +497,69 @@
 				 ;; write-waiter is still in operation
 				 (force-output p)
 				 #t)))))
+
+;; This procedure is provided mainly to retain compatibility with the
+;; guile-a-sync library for guile-2.0, because it is trivial to
+;; implement with await-read-suspendable! (and is implemented by
+;; await-read-suspendable!).
+;;
+;; This procedure will start a watch on listening socket 'sock' for a
+;; connection.  'sock' must be a non-blocking socket port.  This
+;; procedure wraps the guile 'accept' procedure and therefore returns
+;; a pair, comprising as car a connection socket, and as cdr a socket
+;; address object containing particulars of the address of the remote
+;; connection.  The 'loop' argument is optional: this procedure
+;; operates on the event loop passed in as an argument, or if none is
+;; passed (or #f is passed), on the default event loop.  This
+;; procedure is intended to be called in a waitable procedure invoked
+;; by a-sync.
+;;
+;; See the documentation on the await-write-suspendable! procedure for
+;; further particulars about this procedure.
+;;
+;; This procedure is first available in version 0.7 of this library.
+(define await-accept!
+  (case-lambda
+    ((await resume sock)
+     (await-accept! await resume #f sock))
+    ((await resume loop sock)
+     (await-read-suspendable! await resume loop sock
+			      (lambda (s)
+				(accept s))))))
+
+;; This procedure is provided mainly to retain compatibility with the
+;; guile-a-sync library for guile-2.0, because it is trivial to
+;; implement with await-write-suspendable! (and is implemented by
+;; await-write-suspendable!).
+;;
+;; This procedure will connect socket 'sock' to a remote host.
+;; Particulars of the remote host are given by 'args' which are the
+;; arguments (other than the 'sock') taken by guile's 'connect'
+;; procedure, which this procedure wraps.  'sock' must be a
+;; non-blocking socket port.  The 'loop' argument is optional: this
+;; procedure operates on the event loop passed in as an argument, or
+;; if none is passed (or #f is passed), on the default event loop.
+;; This procedure is intended to be called in a waitable procedure
+;; invoked by a-sync.
+;;
+;; There are cases where it will not be helpful to use this procedure.
+;; Where a connection request is immediately followed by a write to
+;; the remote server (say, a get request), the call to 'connect' and
+;; to 'put-string' can be combined in a single procedure passed to
+;; await-write-suspendable!.
+;;
+;; See the documentation on the await-write-suspendable! procedure for
+;; further particulars about this procedure.
+;;
+;; This procedure is first available in version 0.7 of this library.
+(define (await-connect! await resume next . rest)
+  (if (event-loop? next)
+      (apply await-connect-impl! await resume next rest)
+      (apply await-connect-impl! await resume #f next rest)))
+
+(define (await-connect-impl! await resume loop sock . rest)
+  (await-write-suspendable! await resume loop sock
+			    (lambda (s)
+			      (apply connect s rest)
+			      #t)))
+

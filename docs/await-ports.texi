@@ -386,3 +386,52 @@ This procedure is first available in version 0.5 of this library.
 An example of the use of this procedure can be found in the
 example-socket.scm file in the docs directory.
 @end deffn
+
+@deffn {Scheme Procedure} await-accept! await resume [loop] sock
+This procedure is provided mainly to retain compatibility with the
+guile-a-sync library for guile-2.0, because it is trivial to implement
+with await-read-suspendable! (and is implemented by
+await-read-suspendable!).
+
+This procedure will start a watch on listening socket 'sock' for a
+connection.  'sock' must be a non-blocking socket port.  This
+procedure wraps the guile 'accept' procedure and therefore returns a
+pair, comprising as car a connection socket, and as cdr a socket
+address object containing particulars of the address of the remote
+connection.  The 'loop' argument is optional: this procedure operates
+on the event loop passed in as an argument, or if none is passed (or
+#f is passed), on the default event loop.  This procedure is intended
+to be called in a waitable procedure invoked by a-sync.
+
+See the documentation on the await-write-suspendable! procedure for
+further particulars about this procedure.
+
+This procedure is first available in version 0.7 of this library.
+@end deffn
+
+@deffn {Scheme Procedure} await-connect! await resume [loop] sock . args
+This procedure is provided mainly to retain compatibility with the
+guile-a-sync library for guile-2.0, because it is trivial to implement
+with await-write-suspendable! (and is implemented by
+await-write-suspendable!).
+
+This procedure will connect socket 'sock' to a remote host.
+Particulars of the remote host are given by 'args' which are the
+arguments (other than the 'sock') taken by guile's 'connect'
+procedure, which this procedure wraps.  'sock' must be a non-blocking
+socket port.  The 'loop' argument is optional: this procedure operates
+on the event loop passed in as an argument, or if none is passed (or
+#f is passed), on the default event loop.  This procedure is intended
+to be called in a waitable procedure invoked by a-sync.
+
+There are cases where it will not be helpful to use this procedure.
+Where a connection request is immediately followed by a write to the
+remote server (say, a get request), the call to 'connect' and to
+'put-string' can be combined in a single procedure passed to
+await-write-suspendable!.
+
+See the documentation on the await-write-suspendable! procedure for
+further particulars about this procedure.
+
+This procedure is first available in version 0.7 of this library.
+@end deffn
