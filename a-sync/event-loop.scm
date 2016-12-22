@@ -42,6 +42,7 @@
 	    await-task!
 	    await-task-in-thread!
 	    await-task-in-event-loop!
+	    await-yield!
 	    await-generator!
 	    await-generator-in-thread!
 	    await-generator-in-event-loop!
@@ -811,15 +812,16 @@
 ;; #f is provided as the 'loop' argument (pattern matching is used to
 ;; detect the type of the third argument).  This procedure calls
 ;; 'await' and will return the thunk's return value.  It is intended
-;; to be called in a waitable procedure invoked by a-sync.  It will
-;; normally be necessary to call event-loop-block! before invoking
-;; this procedure.  If the optional 'handler' argument is provided,
-;; then that handler will be run in the event loop thread if 'thunk'
-;; throws and the return value of the handler would become the return
-;; value of this procedure; otherwise the program will terminate if an
-;; unhandled exception propagates out of 'thunk'.  'handler' should
-;; take the same arguments as a guile catch handler (this is
-;; implemented using catch).
+;; to be called within a waitable procedure invoked by a-sync (which
+;; supplies the 'await' and 'resume' arguments).  It will normally be
+;; necessary to call event-loop-block! before invoking this procedure.
+;; If the optional 'handler' argument is provided, then that handler
+;; will be run in the event loop thread if 'thunk' throws and the
+;; return value of the handler would become the return value of this
+;; procedure; otherwise the program will terminate if an unhandled
+;; exception propagates out of 'thunk'.  'handler' should take the
+;; same arguments as a guile catch handler (this is implemented using
+;; catch).
 ;;
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the event loop runs, where the result
@@ -890,9 +892,10 @@
 ;; 'waiter' argument, or to the default event loop if no 'waiter'
 ;; argument is provided or if #f is provided as the 'waiter' argument,
 ;; and will comprise this procedure's return value.  This procedure is
-;; intended to be called in a waitable procedure invoked by a-sync.
-;; It will normally be necessary to call event-loop-block! on 'waiter'
-;; (or on the default event loop) before invoking this procedure.
+;; intended to be called within a waitable procedure invoked by a-sync
+;; (which supplies the 'await' and 'resume' arguments).  It will
+;; normally be necessary to call event-loop-block! on 'waiter' (or on
+;; the default event loop) before invoking this procedure.
 ;;
 ;; This procedure calls 'await' and must (like the a-sync procedure)
 ;; be called in the same thread as that in which the 'waiter' or
@@ -944,14 +947,16 @@
 ;; event loop specified by the 'loop' argument, or in the default
 ;; event loop if no 'loop' argument is provided or #f is provided as
 ;; the 'loop' argument.  This procedure calls 'await' and will return
-;; the thunk's return value.  It is intended to be called in a
-;; waitable procedure invoked by a-sync.  It is the single-threaded
-;; corollary of await-task-in-thread!.  This means that (unlike with
+;; the thunk's return value.  It is intended to be called within a
+;; waitable procedure invoked by a-sync (which supplies the 'await'
+;; and 'resume' arguments).  It is the single-threaded corollary of
+;; await-task-in-thread!.  This means that (unlike with
 ;; await-task-in-thread!) while 'thunk' is running other events in the
 ;; event loop will not make progress, so blocking calls should not be
 ;; made in 'thunk'.  This procedure can be useful for the purpose of
 ;; implementing co-operative multi-tasking, say by composing tasks
-;; with compose-a-sync (see compose.scm).
+;; with compose-a-sync (see compose.scm).  For that purpose however,
+;; event-yield! may often be more convenient.
 ;;
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the event loop runs.
@@ -976,6 +981,50 @@
     ((await resume loop thunk)
      (event-post! (lambda ()
 		    (resume (thunk)))
+		  loop)
+     (await))))
+
+;; This is a convenience procedure whose signature is:
+;;
+;;   (await-yield! await resume [loop])
+;;
+;; This procedure will surrender execution to the relevant event loop,
+;; so that code in other a-sync or compose-a-sync blocks can run.  The
+;; remainder of the code after the call to await-yield! in the current
+;; a-sync or compose-a-sync block will execute on the next iteration
+;; through the loop.  It is intended to be called within a waitable
+;; procedure invoked by a-sync (which supplies the 'await' and
+;; 'resume' arguments).  It's effect is similar to calling await-task!
+;; with a task comprising the code appearing after the yield.
+;;
+;; This procedure must (like the a-sync procedure) be called in the
+;; same thread as that in which the relevant event loop runs: for this
+;; purpose "the relevant event loop" is the event loop given by the
+;; 'loop' argument, or if no 'loop' argument is provided or #f is
+;; provided as the 'loop' argument, then the default event loop.
+;;
+;; This procedure calls event-post! in the event loop concerned.  This
+;; is done in the same thread as that in which the event loop runs so
+;; it cannot of itself be throttled.  However it may contribute to the
+;; number of accumulated unexecuted tasks in the event loop and
+;; therefore contribute to the throttling of other threads by the
+;; loop.  See the documentation on the make-event-loop procedure for
+;; further information about that.
+;;
+;; Exceptions may propagate out of this procedure if they arise while
+;; setting up (that is, before the task starts), which shouldn't
+;; happen unless memory is exhausted.  Exceptions arising in code
+;; appearing after the call to this procedure in the a-sync or
+;; compose-a-sync block will propagate out of event-loop-run!.
+;;
+;; This procedure is first available in version 0.7 of this library.
+(define await-yield!
+  (case-lambda
+    ((await resume)
+     (await-yield! await resume #f))
+    ((await resume loop)
+     (event-post! (lambda ()
+		    (resume))
 		  loop)
      (await))))
 
@@ -1010,8 +1059,9 @@
 ;; 'guile-a-sync-thread-error symbol is reserved to the implementation
 ;; and should not be yielded by the generator).
 ;;
-;; This procedure is intended to be called in a waitable procedure
-;; invoked by a-sync.  It will normally be necessary to call
+;; This procedure is intended to be called within a waitable procedure
+;; invoked by a-sync (which supplies the 'await' and 'resume'
+;; arguments).  It will normally be necessary to call
 ;; event-loop-block! before invoking this procedure.
 ;;
 ;; This procedure must (like the a-sync procedure) be called in the
@@ -1100,8 +1150,9 @@
 ;; argument.  'proc' should be a procedure taking a single argument,
 ;; namely the value yielded by the generator.
 ;;
-;; This procedure is intended to be called in a waitable procedure
-;; invoked by a-sync.  It will normally be necessary to call
+;; This procedure is intended to be called within a waitable procedure
+;; invoked by a-sync (which supplies the 'await' and 'resume'
+;; arguments).  It will normally be necessary to call
 ;; event-loop-block! on 'waiter' (or on the default event loop) before
 ;; invoking this procedure.
 ;;
@@ -1176,8 +1227,9 @@
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the event loop runs.
 ;;
-;; This procedure is intended to be called in a waitable procedure
-;; invoked by a-sync.  It is the single-threaded corollary of
+;; This procedure is intended to be called within a waitable procedure
+;; invoked by a-sync (which supplies the 'await' and 'resume'
+;; arguments).  It is the single-threaded corollary of
 ;; await-generator-in-thread!.  This means that (unlike with
 ;; await-generator-in-thread!) while 'generator' is running other
 ;; events in the event loop will not make progress, so blocking calls
@@ -1224,8 +1276,9 @@
 ;;
 ;; This procedure will run 'thunk' in the event loop thread when the
 ;; timeout expires.  It calls 'await' and will return the thunk's
-;; return value.  It is intended to be called in a waitable procedure
-;; invoked by a-sync.  The timeout is single shot only - as soon as
+;; return value.  It is intended to be called within a waitable
+;; procedure invoked by a-sync (which supplies the 'await' and
+;; 'resume' arguments).  The timeout is single shot only - as soon as
 ;; 'thunk' has run once and completed, the timeout will be removed
 ;; from the event loop.  The 'loop' argument is optional: this
 ;; procedure operates on the event loop passed in as an argument, or

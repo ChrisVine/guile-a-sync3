@@ -386,9 +386,10 @@ specified by the &rsquo;loop&rsquo; argument when &rsquo;thunk&rsquo; has finish
 default event loop if no &rsquo;loop&rsquo; argument is provided or if #f is
 provided as the &rsquo;loop&rsquo; argument (pattern matching is used to detect
 the type of the third argument).  This procedure calls &rsquo;await&rsquo; and
-will return the thunk&rsquo;s return value.  It is intended to be called in
-a waitable procedure invoked by a-sync.  It will normally be necessary
-to call event-loop-block! before invoking this procedure.  If the
+will return the thunk&rsquo;s return value.  It is intended to be called
+within a waitable procedure invoked by a-sync (which supplies the
+&rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments).  It will normally be necessary to
+call event-loop-block! before invoking this procedure.  If the
 optional &rsquo;handler&rsquo; argument is provided, then that handler will be run
 in the event loop thread if &rsquo;thunk&rsquo; throws and the return value of the
 handler would become the return value of this procedure; otherwise the
@@ -436,8 +437,9 @@ will then be posted to the event loop specified by the &rsquo;waiter&rsquo;
 argument, or to the default event loop if no &rsquo;waiter&rsquo; argument is
 provided or if #f is provided as the &rsquo;waiter&rsquo; argument, and will
 comprise this procedure&rsquo;s return value.  This procedure is intended to
-be called in a waitable procedure invoked by a-sync.  It will normally
-be necessary to call event-loop-block! on &rsquo;waiter&rsquo; (or on the default
+be called within a waitable procedure invoked by a-sync (which
+supplies the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments).  It will normally be
+necessary to call event-loop-block! on &rsquo;waiter&rsquo; (or on the default
 event loop) before invoking this procedure.
 </p>
 <p>This procedure calls &rsquo;await&rsquo; and must (like the a-sync procedure) be
@@ -497,14 +499,15 @@ use with an event loop, which will run &rsquo;thunk&rsquo; in the event loop
 specified by the &rsquo;loop&rsquo; argument, or in the default event loop if no
 &rsquo;loop&rsquo; argument is provided or #f is provided as the &rsquo;loop&rsquo; argument.
 This procedure calls &rsquo;await&rsquo; and will return the thunk&rsquo;s return value.
-It is intended to be called in a waitable procedure invoked by a-sync.
-It is the single-threaded corollary of await-task-in-thread!.  This
-means that (unlike with await-task-in-thread!) while &rsquo;thunk&rsquo; is
-running other events in the event loop will not make progress, so
-blocking calls should not be made in &rsquo;thunk&rsquo;.  This procedure can be
-useful for the purpose of implementing co-operative multi-tasking, say
-by composing tasks with compose-a-sync (see the <a href="compose.html#compose">compose</a>
-module).
+It is intended to be called within a waitable procedure invoked by
+a-sync (which supplies the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments).  It is the
+single-threaded corollary of await-task-in-thread!.  This means that
+(unlike with await-task-in-thread!) while &rsquo;thunk&rsquo; is running other
+events in the event loop will not make progress, so blocking calls
+should not be made in &rsquo;thunk&rsquo;.  This procedure can be useful for the
+purpose of implementing co-operative multi-tasking, say by composing
+tasks with compose-a-sync (see the <a href="compose.html#compose">compose</a> module).
+For that purpose however, event-yield! may often be more convenient.
 </p>
 <p>This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the event loop runs.
@@ -531,6 +534,51 @@ event-loop-run!.
 			 (await-task! await resume
 				      (lambda ()
 					(+ 1 1))))))
+(event-loop-run!)
+</pre></div>
+</dd></dl>
+
+<dl>
+<dt><a name="index-await_002dyield_0021"></a>Scheme Procedure: <strong>await-yield!</strong> <em>await resume [loop]</em></dt>
+<dd><p>This is a convenience procedure which will surrender execution to the
+relevant event loop, so that code in other a-sync or compose-a-sync
+blocks can run.  The remainder of the code after the call to
+await-yield! in the current a-sync or compose-a-sync block will
+execute on the next iteration through the loop.  It is intended to be
+called within a waitable procedure invoked by a-sync (which supplies
+the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments).  It&rsquo;s effect is similar to
+calling await-task!  with a task comprising the code appearing after
+the yield.
+</p>
+<p>This procedure must (like the a-sync procedure) be called in the same
+thread as that in which the relevant event loop runs: for this purpose
+&quot;the relevant event loop&quot; is the event loop given by the &rsquo;loop&rsquo;
+argument, or if no &rsquo;loop&rsquo; argument is provided or #f is provided as
+the &rsquo;loop&rsquo; argument, then the default event loop.
+</p>
+<p>This procedure calls event-post! in the event loop concerned.  This is
+done in the same thread as that in which the event loop runs so it
+cannot of itself be throttled.  However it may contribute to the
+number of accumulated unexecuted tasks in the event loop and therefore
+contribute to the throttling of other threads by the loop.  See the
+documentation on the make-event-loop procedure for further information
+about that.
+</p>
+<p>Exceptions may propagate out of this procedure if they arise while
+setting up (that is, before the task starts), which shouldn&rsquo;t happen
+unless memory is exhausted.  Exceptions arising in code appearing
+after the call to this procedure in the a-sync or compose-a-sync block
+will propagate out of event-loop-run!.
+</p>
+<p>This procedure is first available in version 0.7 of this library.
+</p>
+<p>Here is an example of the use of await-yield!:
+</p><div class="example">
+<pre class="example">(set-default-event-loop!) ;; if none has yet been set
+(a-sync (lambda (await resume)
+	  (display &quot;In first iteration through event loop\n&quot;)
+	  (await-yield! await resume)
+	  (display &quot;In next iteration through event loop\n&quot;)))
 (event-loop-run!)
 </pre></div>
 </dd></dl>
@@ -563,9 +611,10 @@ exception and &rsquo;handler&rsquo; is run (the &rsquo;guile-a-sync-thread-error
 is reserved to the implementation and should not be yielded by the
 generator).
 </p>
-<p>This procedure is intended to be called in a waitable procedure
-invoked by a-sync.  It will normally be necessary to call
-event-loop-block! before invoking this procedure.
+<p>This procedure is intended to be called within a waitable procedure
+invoked by a-sync (which supplies the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments).
+It will normally be necessary to call event-loop-block! before
+invoking this procedure.
 </p>
 <p>This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the event loop runs.  As mentioned above, the
@@ -620,10 +669,10 @@ argument is provided or if #f is provided as the &rsquo;waiter&rsquo; argument.
 &rsquo;proc&rsquo; should be a procedure taking a single argument, namely the
 value yielded by the generator.
 </p>
-<p>This procedure is intended to be called in a waitable procedure
-invoked by a-sync.  It will normally be necessary to call
-event-loop-block! on &rsquo;waiter&rsquo; (or on the default event loop) before
-invoking this procedure.
+<p>This procedure is intended to be called within a waitable procedure
+invoked by a-sync (which supplies the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments).
+It will normally be necessary to call event-loop-block! on &rsquo;waiter&rsquo;
+(or on the default event loop) before invoking this procedure.
 </p>
 <p>This procedure calls &rsquo;await&rsquo; and will return when the generator has
 finished.  It must (like the a-sync procedure) be called in the same
@@ -701,15 +750,15 @@ multi-plexed with other events.
 <p>This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the event loop runs.
 </p>
-<p>This procedure is intended to be called in a waitable procedure
-invoked by a-sync.  It is the single-threaded corollary of
-await-generator-in-thread!.  This means that (unlike with
-await-generator-in-thread!) while &rsquo;generator&rsquo; is running other
-events in the event loop will not make progress, so blocking calls
-(other than to the yield procedure) should not be made in &rsquo;generator&rsquo;.
-This procedure can be useful for the purpose of implementing
-co-operative multi-tasking, say by composing tasks with
-compose-a-sync (see compose.scm).
+<p>This procedure is intended to be called within a waitable procedure
+invoked by a-sync (which supplies the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments).
+It is the single-threaded corollary of await-generator-in-thread!.
+This means that (unlike with await-generator-in-thread!) while
+&rsquo;generator&rsquo; is running other events in the event loop will not make
+progress, so blocking calls (other than to the yield procedure) should
+not be made in &rsquo;generator&rsquo;.  This procedure can be useful for the
+purpose of implementing co-operative multi-tasking, say by composing
+tasks with compose-a-sync (see compose.scm).
 </p>
 <p>This procedure calls event-post! in the event loop concerned.  This is
 done in the same thread as that in which the event loop runs so it
@@ -750,12 +799,13 @@ will propagate out of event-loop-run!.
 <dd><p>This is a convenience procedure for use with an event loop, which will
 run &rsquo;thunk&rsquo; in the event loop thread when the timeout expires.  This
 procedure calls &rsquo;await&rsquo; and will return the thunk&rsquo;s return value.  It
-is intended to be called in a waitable procedure invoked by a-sync.
-The timeout is single shot only - as soon as &rsquo;thunk&rsquo; has run once and
-completed, the timeout will be removed from the event loop.  The
-&rsquo;loop&rsquo; argument is optional: this procedure operates on the event loop
-passed in as an argument, or if none is passed (or #f is passed), on
-the default event loop.
+is intended to be called within a waitable procedure invoked by a-sync
+(which supplies the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments).  The timeout is
+single shot only - as soon as &rsquo;thunk&rsquo; has run once and completed, the
+timeout will be removed from the event loop.  The &rsquo;loop&rsquo; argument is
+optional: this procedure operates on the event loop passed in as an
+argument, or if none is passed (or #f is passed), on the default event
+loop.
 </p>
 <p>This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the event loop runs.

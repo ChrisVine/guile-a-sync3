@@ -58,8 +58,9 @@
 ;; 'proc' returns, as if by a blocking read.  The event loop will not
 ;; be blocked by this procedure even if only individual characters or
 ;; bytes comprising part characters are available at any one time.  It
-;; is intended to be called in a waitable procedure invoked by a-sync.
-;; If an exceptional condition ('excpt) is encountered by the
+;; is intended to be called within a waitable procedure invoked by
+;; a-sync (which supplies the 'await' and 'resume' arguments).  If an
+;; exceptional condition ('excpt) is encountered by the
 ;; implementation, #f will be returned by this procedure and the read
 ;; operations to be performed by 'proc' will be abandonned; there is
 ;; however no guarantee that any exceptional condition that does arise
@@ -116,16 +117,17 @@
 ;; implement with await-read-suspendable! (and is implemented by
 ;; await-read-suspendable!).
 ;;
-;; It is intended to be called in a waitable procedure invoked by
-;; a-sync, and reads a line of text from a non-blocking suspendable
-;; port and returns it (without the terminating '\n' character).  The
-;; 'loop' argument is optional: this procedure operates on the event
-;; loop passed in as an argument, or if none is passed (or #f is
-;; passed), on the default event loop.  If an exceptional condition
-;; ('excpt) is encountered by the implementation, #f will be returned
-;; by this procedure and the read operation will be abandonned.  See
-;; the documentation on the await-read-suspendable!  procedure for
-;; further particulars about this procedure.
+;; It is intended to be called within a waitable procedure invoked by
+;; a-sync (which supplies the 'await' and 'resume' arguments), and
+;; reads a line of text from a non-blocking suspendable port and
+;; returns it (without the terminating '\n' character).  The 'loop'
+;; argument is optional: this procedure operates on the event loop
+;; passed in as an argument, or if none is passed (or #f is passed),
+;; on the default event loop.  If an exceptional condition ('excpt) is
+;; encountered by the implementation, #f will be returned by this
+;; procedure and the read operation will be abandonned.  See the
+;; documentation on the await-read-suspendable!  procedure for further
+;; particulars about this procedure.
 (define await-getline!
   (case-lambda
     ((await resume port)
@@ -140,17 +142,17 @@
 ;; implement with await-read-suspendable! (and is implemented by
 ;; await-read-suspendable!).
 ;;
-;; It is intended to be called in a waitable procedure invoked by
-;; a-sync, and will apply 'proc' to every complete line of text
-;; received (without the terminating '\n' character).  The watch will
-;; not end until end-of-file or an exceptional condition ('excpt) is
-;; reached.  In the event of that happening, this procedure will end
-;; and return an end-of-file object or #f respectively.  The 'loop'
-;; argument is optional: this procedure operates on the event loop
-;; passed in as an argument, or if none is passed (or #f is passed),
-;; on the default event loop.  See the documentation on the
-;; await-read-suspendable! procedure for further particulars about
-;; this procedure.
+;; It is intended to be called within a waitable procedure invoked by
+;; a-sync (which supplies the 'await' and 'resume' arguments), and
+;; will apply 'proc' to every complete line of text received (without
+;; the terminating '\n' character).  The watch will not end until
+;; end-of-file or an exceptional condition ('excpt) is reached.  In
+;; the event of that happening, this procedure will end and return an
+;; end-of-file object or #f respectively.  The 'loop' argument is
+;; optional: this procedure operates on the event loop passed in as an
+;; argument, or if none is passed (or #f is passed), on the default
+;; event loop.  See the documentation on the await-read-suspendable!
+;; procedure for further particulars about this procedure.
 (define await-geteveryline!
   (case-lambda
     ((await resume port proc)
@@ -166,11 +168,12 @@
 					(proc line)
 					(next (read-line p))))))))))
 
-;; This procedure is intended to be called in a waitable procedure
-;; invoked by a-sync, and does the same as await-geteveryline!, except
-;; that it provides a second argument to 'proc', namely an escape
-;; continuation which can be invoked by 'proc' to cause the procedure to
-;; return before end-of-file is reached.  Behavior is identical to
+;; This procedure is intended to be called within a waitable procedure
+;; invoked by a-sync (which supplies the 'await' and 'resume'
+;; arguments), and does the same as await-geteveryline!, except that
+;; it provides a second argument to 'proc', namely an escape
+;; continuation which can be invoked by 'proc' to cause the procedure
+;; to return before end-of-file is reached.  Behavior is identical to
 ;; await-geteveryline! if the continuation is not invoked.
 ;;
 ;; This procedure will apply 'proc' to every complete line of text
@@ -206,11 +209,12 @@
 ;; implement this kind of functionality with await-read-suspendable!
 ;; (and is implemented by await-read-suspendable!).
 ;;
-;; It is intended to be called in a waitable procedure invoked by
-;; a-sync, and reads a block of data, such as a binary record, of size
-;; 'size' from a non-blocking suspendable port 'port'.  This procedure
-;; and will return a pair, normally comprising as its car a bytevector
-;; of length 'size' containing the data, and as its cdr the number of
+;; It is intended to be called within a waitable procedure invoked by
+;; a-sync (which supplies the 'await' and 'resume' arguments), and
+;; reads a block of data, such as a binary record, of size 'size' from
+;; a non-blocking suspendable port 'port'.  This procedure and will
+;; return a pair, normally comprising as its car a bytevector of
+;; length 'size' containing the data, and as its cdr the number of
 ;; bytes received and placed in the bytevector (which will be the same
 ;; as 'size' unless an end-of-file object was encountered part way
 ;; through receiving the data).  If an exceptional condition ('excpt)
@@ -254,18 +258,19 @@
 ;; implement this kind of functionality with await-read-suspendable!
 ;; (and is implemented by await-read-suspendable!).
 ;;
-;; It is intended to be called in a waitable procedure invoked by
-;; a-sync, and and will apply 'proc' to any block of data received,
-;; such as a binary record.  'proc' should be a procedure taking two
-;; arguments, first a bytevector of length 'size' containing the block
-;; of data read and second the size of the block of data placed in the
-;; bytevector.  The value passed as the size of the block of data
-;; placed in the bytevector will always be the same as 'size' unless
-;; end-of-file has been encountered after receiving only a partial
-;; block of data.  The watch will not end until end-of-file or an
-;; exceptional condition ('excpt) is reached.  In the event of that
-;; happening, this procedure will end and return an end-of-file object
-;; or #f respectively.
+;; It is intended to be called within a waitable procedure invoked by
+;; a-sync (which supplies the 'await' and 'resume' arguments), and
+;; will apply 'proc' to any block of data received, such as a binary
+;; record.  'proc' should be a procedure taking two arguments, first a
+;; bytevector of length 'size' containing the block of data read and
+;; second the size of the block of data placed in the bytevector.  The
+;; value passed as the size of the block of data placed in the
+;; bytevector will always be the same as 'size' unless end-of-file has
+;; been encountered after receiving only a partial block of data.  The
+;; watch will not end until end-of-file or an exceptional condition
+;; ('excpt) is reached.  In the event of that happening, this
+;; procedure will end and return an end-of-file object or #f
+;; respectively.
 ;;
 ;; For efficiency reasons, this procedure passes its internal
 ;; bytevector buffer to 'proc' as proc's first argument and, when
@@ -305,13 +310,13 @@
 					  (proc bv size))
 					(next (get-u8 p))))))))))
 
-;; This procedure is intended to be called in a waitable procedure
-;; invoked by a-sync, and does the same as await-geteveryblock!,
-;; except that it provides a third argument to 'proc', namely an
-;; escape continuation which can be invoked by 'proc' to cause the
-;; procedure to return before end-of-file is reached.  Behavior is
-;; identical to await-geteveryblock! if the continuation is not
-;; invoked.
+;; This procedure is intended to be called within a waitable procedure
+;; invoked by a-sync (which supplies the 'await' and 'resume'
+;; arguments), and does the same as await-geteveryblock!, except that
+;; it provides a third argument to 'proc', namely an escape
+;; continuation which can be invoked by 'proc' to cause the procedure
+;; to return before end-of-file is reached.  Behavior is identical to
+;; await-geteveryblock! if the continuation is not invoked.
 ;;
 ;; This procedure will apply 'proc' to any block of data received,
 ;; such as a binary record.  'proc' should be a procedure taking three
@@ -375,8 +380,9 @@
 ;; returns, as if by a blocking write.  The event loop will not be
 ;; blocked by this procedure even if only individual characters or
 ;; bytes comprising part characters can be written at any one time.
-;; It is intended to be called in a waitable procedure invoked by
-;; a-sync.  If an exceptional condition ('excpt) is encountered by the
+;; It is intended to be called within a waitable procedure invoked by
+;; a-sync (which supplies the 'await' and 'resume' arguments).  If an
+;; exceptional condition ('excpt) is encountered by the
 ;; implementation, #f will be returned by this procedure and the write
 ;; operations to be performed by 'proc' will be abandonned; there is
 ;; however no guarantee that any exceptional condition that does arise
@@ -431,15 +437,16 @@
 ;; implement with await-write-suspendable! (and is implemented by
 ;; await-write-suspendable!).
 ;;
-;; It is intended to be called in a waitable procedure invoked by
-;; a-sync, and will write the contents of bytevector 'bv' to 'port'.
-;; The 'loop' argument is optional: this procedure operates on the
-;; event loop passed in as an argument, or if none is passed (or #f is
-;; passed), on the default event loop.  If an exceptional condition
-;; ('excpt) is encountered by the implementation, #f will be returned
-;; by this procedure and the write operation will be abandonned,
-;; otherwise #t will be returned.  However exceptional conditions on
-;; write ports cannot normally occur.
+;; It is intended to be called within a waitable procedure invoked by
+;; a-sync (which supplies the 'await' and 'resume' arguments), and
+;; will write the contents of bytevector 'bv' to 'port'.  The 'loop'
+;; argument is optional: this procedure operates on the event loop
+;; passed in as an argument, or if none is passed (or #f is passed),
+;; on the default event loop.  If an exceptional condition ('excpt) is
+;; encountered by the implementation, #f will be returned by this
+;; procedure and the write operation will be abandonned, otherwise #t
+;; will be returned.  However exceptional conditions on write ports
+;; cannot normally occur.
 ;;
 ;; The port will be flushed by this procedure upon conclusion of the
 ;; writing of the string.
@@ -465,15 +472,16 @@
 ;; implement with await-write-suspendable! (and is implemented by
 ;; await-write-suspendable!).
 ;;
-;; It is intended to be called in a waitable procedure invoked by
-;; a-sync, and will write the string 'text' to 'port'.  The 'loop'
-;; argument is optional: this procedure operates on the event loop
-;; passed in as an argument, or if none is passed (or #f is passed),
-;; on the default event loop.  If an exceptional condition ('excpt) is
-;; encountered by the implementation, #f will be returned by this
-;; procedure and the write operation will be abandonned, otherwise #t
-;; will be returned.  However exceptional conditions on write ports
-;; cannot normally occur.
+;; It is intended to be called within a waitable procedure invoked by
+;; a-sync (which supplies the 'await' and 'resume' arguments), and
+;; will write the string 'text' to 'port'.  The 'loop' argument is
+;; optional: this procedure operates on the event loop passed in as an
+;; argument, or if none is passed (or #f is passed), on the default
+;; event loop.  If an exceptional condition ('excpt) is encountered by
+;; the implementation, #f will be returned by this procedure and the
+;; write operation will be abandonned, otherwise #t will be returned.
+;; However exceptional conditions on write ports cannot normally
+;; occur.
 ;;
 ;; The port will be flushed by this procedure upon conclusion of the
 ;; writing of the string.
@@ -511,8 +519,9 @@
 ;; connection.  The 'loop' argument is optional: this procedure
 ;; operates on the event loop passed in as an argument, or if none is
 ;; passed (or #f is passed), on the default event loop.  This
-;; procedure is intended to be called in a waitable procedure invoked
-;; by a-sync.
+;; procedure is intended to be called within a waitable procedure
+;; invoked by a-sync (which supplies the 'await' and 'resume'
+;; arguments).
 ;;
 ;; See the documentation on the await-write-suspendable! procedure for
 ;; further particulars about this procedure.
@@ -534,13 +543,13 @@
 ;;
 ;; This procedure will connect socket 'sock' to a remote host.
 ;; Particulars of the remote host are given by 'args' which are the
-;; arguments (other than the 'sock') taken by guile's 'connect'
-;; procedure, which this procedure wraps.  'sock' must be a
-;; non-blocking socket port.  The 'loop' argument is optional: this
-;; procedure operates on the event loop passed in as an argument, or
-;; if none is passed (or #f is passed), on the default event loop.
-;; This procedure is intended to be called in a waitable procedure
-;; invoked by a-sync.
+;; arguments (other than 'sock') taken by guile's 'connect' procedure,
+;; which this procedure wraps.  'sock' must be a non-blocking socket
+;; port.  The 'loop' argument is optional: this procedure operates on
+;; the event loop passed in as an argument, or if none is passed (or
+;; #f is passed), on the default event loop.  This procedure is
+;; intended to be called in a waitable procedure invoked by a-sync
+;; (which supplies the 'await' and 'resume' arguments).
 ;;
 ;; There are cases where it will not be helpful to use this procedure.
 ;; Where a connection request is immediately followed by a write to

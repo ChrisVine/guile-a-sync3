@@ -92,17 +92,18 @@ is something available to read, and this procedure will return when
 &rsquo;proc&rsquo; returns, as if by a blocking read.  The event loop will not be
 blocked by this procedure even if only individual characters or bytes
 comprising part characters are available at any one time.  It is
-intended to be called in a waitable procedure invoked by a-sync.  If
-an exceptional condition (&rsquo;excpt) is encountered by the
-implementation, #f will be returned by this procedure and the read
-operations to be performed by &rsquo;proc&rsquo; will be abandonned; there is
-however no guarantee that any exceptional condition that does arise
-will be encountered by the implementation - the user procedure &rsquo;proc&rsquo;
-may get there first and deal with it, or it may not.  However
-exceptional conditions are very rare, usually comprising only
-out-of-band data on a TCP socket, or a pseudoterminal master in packet
-mode seeing state change in a slave.  In the absence of an exceptional
-condition, the value returned by &rsquo;proc&rsquo; will be returned.
+intended to be called within a waitable procedure invoked by a-sync
+(which supplies the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments).  If an
+exceptional condition (&rsquo;excpt) is encountered by the implementation,
+#f will be returned by this procedure and the read operations to be
+performed by &rsquo;proc&rsquo; will be abandonned; there is however no guarantee
+that any exceptional condition that does arise will be encountered by
+the implementation - the user procedure &rsquo;proc&rsquo; may get there first and
+deal with it, or it may not.  However exceptional conditions are very
+rare, usually comprising only out-of-band data on a TCP socket, or a
+pseudoterminal master in packet mode seeing state change in a slave.
+In the absence of an exceptional condition, the value returned by
+&rsquo;proc&rsquo; will be returned.
 </p>
 <p>The &rsquo;loop&rsquo; argument is optional: this procedure operates on the event
 loop passed in as an argument, or if none is passed (or #f is passed),
@@ -137,16 +138,17 @@ guile-a-sync library for guile-2.0, because it is trivial to implement
 with await-read-suspendable! (and is implemented by
 await-read-suspendable!).
 </p>
-<p>It is intended to be called in a waitable procedure invoked by a-sync,
-and reads a line of text from a non-blocking suspendable port and
-returns it (without the terminating &rsquo;\n&rsquo; character).  The &rsquo;loop&rsquo;
-argument is optional: this procedure operates on the event loop passed
-in as an argument, or if none is passed (or #f is passed), on the
-default event loop.  If an exceptional condition (&rsquo;excpt) is
-encountered by the implementation, #f will be returned by this
-procedure and the read operation will be abandonned.  See the
-documentation on the await-read-suspendable! procedure for further
-particulars about this procedure.
+<p>It is intended to be called within a waitable procedure invoked by
+a-sync (which supplies the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments), and reads
+a line of text from a non-blocking suspendable port and returns it
+(without the terminating &rsquo;\n&rsquo; character).  The &rsquo;loop&rsquo; argument is
+optional: this procedure operates on the event loop passed in as an
+argument, or if none is passed (or #f is passed), on the default event
+loop.  If an exceptional condition (&rsquo;excpt) is encountered by the
+implementation, #f will be returned by this procedure and the read
+operation will be abandonned.  See the documentation on the
+await-read-suspendable! procedure for further particulars about this
+procedure.
 </p>
 <p>Here is an example of the use of await-getline!:
 </p><div class="example">
@@ -171,16 +173,17 @@ guile-a-sync library for guile-2.0, because it is trivial to implement
 with await-read-suspendable! (and is implemented by
 await-read-suspendable!).
 </p>
-<p>It is intended to be called in a waitable procedure invoked by a-sync,
-and will apply &rsquo;proc&rsquo; to every complete line of text received (without
-the terminating &rsquo;\n&rsquo; character).  The watch will not end until
-end-of-file or an exceptional condition (&rsquo;excpt) is reached.  In the
-event of that happening, this procedure will end and return an
-end-of-file object or #f respectively.  The &rsquo;loop&rsquo; argument is
-optional: this procedure operates on the event loop passed in as an
-argument, or if none is passed (or #f is passed), on the default event
-loop.  See the documentation on the await-read-suspendable! procedure
-for further particulars about this procedure.
+<p>It is intended to be called within a waitable procedure invoked by
+a-sync (which supplies the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments), and will
+apply &rsquo;proc&rsquo; to every complete line of text received (without the
+terminating &rsquo;\n&rsquo; character).  The watch will not end until end-of-file
+or an exceptional condition (&rsquo;excpt) is reached.  In the event of that
+happening, this procedure will end and return an end-of-file object or
+#f respectively.  The &rsquo;loop&rsquo; argument is optional: this procedure
+operates on the event loop passed in as an argument, or if none is
+passed (or #f is passed), on the default event loop.  See the
+documentation on the await-read-suspendable! procedure for further
+particulars about this procedure.
 </p>
 <p>Here is an example of the use of await-geteveryline! (because the
 keyboard has no end-of-file, use Ctrl-C to exit this code snippet):
@@ -203,12 +206,13 @@ keyboard has no end-of-file, use Ctrl-C to exit this code snippet):
 
 <dl>
 <dt><a name="index-await_002dgetsomelines_0021"></a>Scheme Procedure: <strong>await-getsomelines!</strong> <em>await resume [loop] port proc</em></dt>
-<dd><p>This procedure is intended to be called in a waitable procedure
-invoked by a-sync, and does the same as await-geteveryline!, except
-that it provides a second argument to &rsquo;proc&rsquo;, namely an escape
-continuation which can be invoked by &rsquo;proc&rsquo; to cause the procedure to
-return before end-of-file is reached.  Behavior is identical to
-await-geteveryline! if the continuation is not invoked.
+<dd><p>This procedure is intended to be called within a waitable procedure
+invoked by a-sync (which supplies the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments),
+and does the same as await-geteveryline!, except that it provides a
+second argument to &rsquo;proc&rsquo;, namely an escape continuation which can be
+invoked by &rsquo;proc&rsquo; to cause the procedure to return before end-of-file
+is reached.  Behavior is identical to await-geteveryline! if the
+continuation is not invoked.
 </p>
 <p>This procedure will apply &rsquo;proc&rsquo; to every complete line of text
 received (without the terminating &rsquo;\n&rsquo; character).  The watch will not
@@ -249,17 +253,18 @@ guile-a-sync library for guile-2.0, because it is trivial to implement
 this kind of functionality with await-read-suspendable!  (and is
 implemented by await-read-suspendable!).
 </p>
-<p>It is intended to be called in a waitable procedure invoked by a-sync,
-and reads a block of data, such as a binary record, of size &rsquo;size&rsquo;
-from a non-blocking suspendable port &rsquo;port&rsquo;.  This procedure and will
-return a pair, normally comprising as its car a bytevector of length
-&rsquo;size&rsquo; containing the data, and as its cdr the number of bytes
-received and placed in the bytevector (which will be the same as
-&rsquo;size&rsquo; unless an end-of-file object was encountered part way through
-receiving the data).  If an exceptional condition (&rsquo;excpt) is
-encountered, a pair comprising (#f . #f) will be returned.  If an
-end-of-file object is encountered without any bytes of data, a pair
-with eof-object as car and #f as cdr will be returned.
+<p>It is intended to be called within a waitable procedure invoked by
+a-sync (which supplies the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments), and reads
+a block of data, such as a binary record, of size &rsquo;size&rsquo; from a
+non-blocking suspendable port &rsquo;port&rsquo;.  This procedure and will return
+a pair, normally comprising as its car a bytevector of length &rsquo;size&rsquo;
+containing the data, and as its cdr the number of bytes received and
+placed in the bytevector (which will be the same as &rsquo;size&rsquo; unless an
+end-of-file object was encountered part way through receiving the
+data).  If an exceptional condition (&rsquo;excpt) is encountered, a pair
+comprising (#f . #f) will be returned.  If an end-of-file object is
+encountered without any bytes of data, a pair with eof-object as car
+and #f as cdr will be returned.
 </p>
 <p>The &rsquo;loop&rsquo; argument is optional: this procedure operates on the event
 loop passed in as an argument, or if none is passed (or #f is passed),
@@ -278,17 +283,18 @@ guile-a-sync library for guile-2.0, because it is trivial to implement
 this kind of functionality with await-read-suspendable! (and is
 implemented by await-read-suspendable!).
 </p>
-<p>It is intended to be called in a waitable procedure invoked by a-sync,
-and and will apply &rsquo;proc&rsquo; to any block of data received, such as a
-binary record.  &rsquo;proc&rsquo; should be a procedure taking two arguments,
-first a bytevector of length &rsquo;size&rsquo; containing the block of data read
-and second the size of the block of data placed in the bytevector.
-The value passed as the size of the block of data placed in the
-bytevector will always be the same as &rsquo;size&rsquo; unless end-of-file has
-been encountered after receiving only a partial block of data.  The
-watch will not end until end-of-file or an exceptional condition
-(&rsquo;excpt) is reached.  In the event of that happening, this procedure
-will end and return an end-of-file object or #f respectively.
+<p>It is intended to be called within a waitable procedure invoked by
+a-sync (which supplies the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments), and will
+apply &rsquo;proc&rsquo; to any block of data received, such as a binary record.
+&rsquo;proc&rsquo; should be a procedure taking two arguments, first a bytevector
+of length &rsquo;size&rsquo; containing the block of data read and second the size
+of the block of data placed in the bytevector.  The value passed as
+the size of the block of data placed in the bytevector will always be
+the same as &rsquo;size&rsquo; unless end-of-file has been encountered after
+receiving only a partial block of data.  The watch will not end until
+end-of-file or an exceptional condition (&rsquo;excpt) is reached.  In the
+event of that happening, this procedure will end and return an
+end-of-file object or #f respectively.
 </p>
 <p>For efficiency reasons, this procedure passes its internal bytevector
 buffer to &rsquo;proc&rsquo; as proc&rsquo;s first argument and, when &rsquo;proc&rsquo; returns,
@@ -307,12 +313,13 @@ further particulars about this procedure.
 
 <dl>
 <dt><a name="index-await_002dgetsomeblocks_0021"></a>Scheme Procedure: <strong>await-getsomeblocks!</strong> <em>await resume [loop] port size proc</em></dt>
-<dd><p>This procedure is intended to be called in a waitable procedure
-invoked by a-sync, and does the same as await-geteveryblock!, except
-that it provides a third argument to &rsquo;proc&rsquo;, namely an escape
-continuation which can be invoked by &rsquo;proc&rsquo; to cause the procedure to
-return before end-of-file is reached.  Behavior is identical to
-await-geteveryblock! if the continuation is not invoked.
+<dd><p>This procedure is intended to be called within a waitable procedure
+invoked by a-sync (which supplies the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments),
+and does the same as await-geteveryblock!, except that it provides a
+third argument to &rsquo;proc&rsquo;, namely an escape continuation which can be
+invoked by &rsquo;proc&rsquo; to cause the procedure to return before end-of-file
+is reached.  Behavior is identical to await-geteveryblock! if the
+continuation is not invoked.
 </p>
 <p>This procedure will apply &rsquo;proc&rsquo; to any block of data received, such
 as a binary record.  &rsquo;proc&rsquo; should be a procedure taking three
@@ -353,16 +360,16 @@ port is available to write to, and this procedure will return when
 &rsquo;proc&rsquo; returns, as if by a blocking write.  The event loop will not be
 blocked by this procedure even if only individual characters or bytes
 comprising part characters can be written at any one time.  It is
-intended to be called in a waitable procedure invoked by a-sync.  If
-an exceptional condition (&rsquo;excpt) is encountered by the
-implementation, #f will be returned by this procedure and the write
-operations to be performed by &rsquo;proc&rsquo; will be abandonned; there is
-however no guarantee that any exceptional condition that does arise
-will be encountered by the implementation - the user procedure &rsquo;proc&rsquo;
-may get there first and deal with it, or it may not.  However
-exceptional conditions on write ports cannot normally occur.  In the
-absence of an exceptional condition, the value returned by &rsquo;proc&rsquo; will
-be returned.
+intended to be called within a waitable procedure invoked by a-sync
+(which supplies the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments).  If an
+exceptional condition (&rsquo;excpt) is encountered by the implementation,
+#f will be returned by this procedure and the write operations to be
+performed by &rsquo;proc&rsquo; will be abandonned; there is however no guarantee
+that any exceptional condition that does arise will be encountered by
+the implementation - the user procedure &rsquo;proc&rsquo; may get there first and
+deal with it, or it may not.  However exceptional conditions on write
+ports cannot normally occur.  In the absence of an exceptional
+condition, the value returned by &rsquo;proc&rsquo; will be returned.
 </p>
 <p>The &rsquo;loop&rsquo; argument is optional: this procedure operates on the event
 loop passed in as an argument, or if none is passed (or #f is passed),
@@ -400,15 +407,15 @@ guile-a-sync library for guile-2.0, because it is trivial to implement
 with await-write-suspendable! (and is implemented by
 await-write-suspendable!).
 </p>
-<p>It is intended to be called in a waitable procedure invoked by a-sync,
-and will write the contents of bytevector &rsquo;bv&rsquo; to &rsquo;port&rsquo;.  The &rsquo;loop&rsquo;
-argument is optional: this procedure operates on the event loop passed
-in as an argument, or if none is passed (or #f is passed), on the
-default event loop.  If an exceptional condition (&rsquo;excpt) is
-encountered by the implementation, #f will be returned by this
-procedure and the write operation will be abandonned, otherwise #t
-will be returned.  However exceptional conditions on write ports
-cannot normally occur.
+<p>It is intended to be called within a waitable procedure invoked by
+a-sync (which supplies the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments), and will
+write the contents of bytevector &rsquo;bv&rsquo; to &rsquo;port&rsquo;.  The &rsquo;loop&rsquo; argument
+is optional: this procedure operates on the event loop passed in as an
+argument, or if none is passed (or #f is passed), on the default event
+loop.  If an exceptional condition (&rsquo;excpt) is encountered by the
+implementation, #f will be returned by this procedure and the write
+operation will be abandonned, otherwise #t will be returned.  However
+exceptional conditions on write ports cannot normally occur.
 </p>
 <p>The port will be flushed by this procedure upon conclusion of the
 writing of the string.
@@ -426,14 +433,15 @@ guile-a-sync library for guile-2.0, because it is trivial to implement
 with await-write-suspendable! (and is implemented by
 await-write-suspendable!).
 </p>
-<p>It is intended to be called in a waitable procedure invoked by a-sync,
-and will write the string &rsquo;text&rsquo; to &rsquo;port&rsquo;.  The &rsquo;loop&rsquo; argument is
-optional: this procedure operates on the event loop passed in as an
-argument, or if none is passed (or #f is passed), on the default event
-loop.  If an exceptional condition (&rsquo;excpt) is encountered by the
-implementation, #f will be returned by this procedure and the write
-operation will be abandonned, otherwise #t will be returned.  However
-exceptional conditions on write ports cannot normally occur.
+<p>It is intended to be called within a waitable procedure invoked by
+a-sync (which supplies the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments), and will
+write the string &rsquo;text&rsquo; to &rsquo;port&rsquo;.  The &rsquo;loop&rsquo; argument is optional:
+this procedure operates on the event loop passed in as an argument, or
+if none is passed (or #f is passed), on the default event loop.  If an
+exceptional condition (&rsquo;excpt) is encountered by the implementation,
+#f will be returned by this procedure and the write operation will be
+abandonned, otherwise #t will be returned.  However exceptional
+conditions on write ports cannot normally occur.
 </p>
 <p>The port will be flushed by this procedure upon conclusion of the
 writing of the string.
@@ -463,8 +471,11 @@ connection.  &rsquo;sock&rsquo; must be a non-blocking socket port.  This
 procedure wraps the guile &rsquo;accept&rsquo; procedure and therefore returns a
 pair, comprising as car a connection socket, and as cdr a socket
 address object containing particulars of the address of the remote
-connection.  This procedure is intended to be called in a waitable
-procedure invoked by a-sync.
+connection.  The &rsquo;loop&rsquo; argument is optional: this procedure operates
+on the event loop passed in as an argument, or if none is passed (or
+#f is passed), on the default event loop.  This procedure is intended
+to be called within a waitable procedure invoked by a-sync (which
+supplies the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments).
 </p>
 <p>See the documentation on the await-write-suspendable! procedure for
 further particulars about this procedure.
@@ -481,10 +492,13 @@ await-write-suspendable!).
 </p>
 <p>This procedure will connect socket &rsquo;sock&rsquo; to a remote host.
 Particulars of the remote host are given by &rsquo;args&rsquo; which are the
-arguments (other than the &rsquo;sock&rsquo;) taken by guile&rsquo;s &rsquo;connect&rsquo;
-procedure, which this procedure wraps.  &rsquo;sock&rsquo; must be a non-blocking
-socket port.  This procedure is intended to be called in a waitable
-procedure invoked by a-sync.
+arguments (other than &rsquo;sock&rsquo;) taken by guile&rsquo;s &rsquo;connect&rsquo; procedure,
+which this procedure wraps.  &rsquo;sock&rsquo; must be a non-blocking socket
+port.  The &rsquo;loop&rsquo; argument is optional: this procedure operates on the
+event loop passed in as an argument, or if none is passed (or #f is
+passed), on the default event loop.  This procedure is intended to be
+called within a waitable procedure invoked by a-sync (which supplies
+the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments).
 </p>
 <p>There are cases where it will not be helpful to use this procedure.
 Where a connection request is immediately followed by a write to the
