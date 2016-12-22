@@ -62,17 +62,17 @@
 ;; further arguments as it requires.  All of the await-task!,
 ;; await-task-in-thread!, await-task-in-event-loop!, await-yield!,
 ;; await-generator!, await-generator-in-thread!,
-;; await-generator-in-event-loop!, await-timeout!,
+;; await-generator-in-event-loop!, await-timeout!, await-sleep!,
 ;; await-read-suspendable!, await-write-suspendable!, await-getline!,
 ;; await-geteveryline!, await-getsomelines!, await-getblock!,
-;; await-geteveryblock!, await-getsomeblocks!, await-put-bytevector!
-;; and await-put-string! procedures provided by the (a-sync
-;; event-loop) and (a-sync await-ports) modules are
-;; 'compose-a-sync'-capable.  In addition, to make an ordinary body of
-;; code which does not block (and which does not need to invoke
-;; a-sync's await procedure) usable by compose-a-sync, the no-await
-;; macro can be used to generate a 'compose-a-sync'-capable procedure
-;; for it (see below).
+;; await-geteveryblock!, await-getsomeblocks!, await-put-bytevector!,
+;; await-put-string!, await-accept! and await-connect! procedures
+;; provided by the (a-sync event-loop) and (a-sync await-ports)
+;; modules are 'compose-a-sync'-capable.  In addition, to make an
+;; ordinary body of code which does not block (and which does not need
+;; to invoke a-sync's await procedure) usable by compose-a-sync, the
+;; no-await macro can be used to generate a 'compose-a-sync'-capable
+;; procedure for it (see below).
 ;;
 ;; The await-glib-task, await-glib-task-in-thread,
 ;; await-glib-generator, await-glib-generator-in-thread,
