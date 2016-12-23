@@ -151,8 +151,14 @@
 ;; end-of-file object or #f respectively.  The 'loop' argument is
 ;; optional: this procedure operates on the event loop passed in as an
 ;; argument, or if none is passed (or #f is passed), on the default
-;; event loop.  See the documentation on the await-read-suspendable!
-;; procedure for further particulars about this procedure.
+;; event loop.
+;;
+;; When 'proc' executes, this procedure will have released 'await' and
+;; 'resume', so they may be used by 'proc' to initiate other
+;; asynchronous operations sequentially.
+;;
+;; See the documentation on the await-read-suspendable!  procedure for
+;; further particulars about this procedure.
 (define await-geteveryline!
   (case-lambda
     ((await resume port proc)
@@ -185,8 +191,14 @@
 ;; escape continuation will be returned.  The 'loop' argument is
 ;; optional: this procedure operates on the event loop passed in as an
 ;; argument, or if none is passed (or #f is passed), on the default
-;; event loop.  See the documentation on the await-read-suspendable!
-;; procedure for further particulars about this procedure.
+;; event loop.
+;;
+;; When 'proc' executes, this procedure will have released 'await' and
+;; 'resume', so they may be used by 'proc' to initiate other
+;; asynchronous operations sequentially.
+;;
+;; See the documentation on the await-read-suspendable!  procedure for
+;; further particulars about this procedure.
 (define await-getsomelines!
   (case-lambda
     ((await resume port proc)
@@ -282,7 +294,11 @@
 ;; event loop passed in as an argument, or if none is passed (or #f is
 ;; passed), on the default event loop.
 ;;
-;; See the documentation on the await-read-suspendable! procedure for
+;; When 'proc' executes, this procedure will have released 'await' and
+;; 'resume', so they may be used by 'proc' to initiate other
+;; asynchronous operations sequentially.
+;;
+;; See the documentation on the await-read-suspendable!  procedure for
 ;; further particulars about this procedure.
 ;;
 ;; This procedure is first available in version 0.6 of this library.
@@ -341,6 +357,10 @@
 ;; The 'loop' argument is optional: this procedure operates on the
 ;; event loop passed in as an argument, or if none is passed (or #f is
 ;; passed), on the default event loop.
+;;
+;; When 'proc' executes, this procedure will have released 'await' and
+;; 'resume', so they may be used by 'proc' to initiate other
+;; asynchronous operations sequentially.
 ;;
 ;; See the documentation on the await-read-suspendable! procedure for
 ;; further particulars about this procedure.

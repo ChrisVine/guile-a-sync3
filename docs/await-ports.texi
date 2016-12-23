@@ -124,9 +124,14 @@ or an exceptional condition ('excpt) is reached.  In the event of that
 happening, this procedure will end and return an end-of-file object or
 #f respectively.  The 'loop' argument is optional: this procedure
 operates on the event loop passed in as an argument, or if none is
-passed (or #f is passed), on the default event loop.  See the
-documentation on the await-read-suspendable! procedure for further
-particulars about this procedure.
+passed (or #f is passed), on the default event loop.
+
+When 'proc' executes, this procedure will have released 'await' and
+'resume', so they may be used by 'proc' to initiate other asynchronous
+operations sequentially.
+
+See the documentation on the await-read-suspendable! procedure for
+further particulars about this procedure.
 
 Here is an example of the use of await-geteveryline! (because the
 keyboard has no end-of-file, use Ctrl-C to exit this code snippet):
@@ -164,9 +169,14 @@ object or #f respectively, or until the escape continuation is
 invoked, in which case the value passed to the escape continuation
 will be returned.  The 'loop' argument is optional: this procedure
 operates on the event loop passed in as an argument, or if none is
-passed (or #f is passed), on the default event loop.  See the
-documentation on the await-read-suspendable! procedure for further
-particulars about this procedure.
+passed (or #f is passed), on the default event loop.
+
+When 'proc' executes, this procedure will have released 'await' and
+'resume', so they may be used by 'proc' to initiate other asynchronous
+operations sequentially.
+
+See the documentation on the await-read-suspendable! procedure for
+further particulars about this procedure.
 
 Here is an example of the use of await-getsomelines!:
 @example
@@ -245,6 +255,10 @@ The 'loop' argument is optional: this procedure operates on the event
 loop passed in as an argument, or if none is passed (or #f is passed),
 on the default event loop.
 
+When 'proc' executes, this procedure will have released 'await' and
+'resume', so they may be used by 'proc' to initiate other asynchronous
+operations sequentially.
+
 See the documentation on the await-read-suspendable! procedure for
 further particulars about this procedure.
 
@@ -281,6 +295,10 @@ after 'proc' has returned, it should store it by copying it.
 The 'loop' argument is optional: this procedure operates on the event
 loop passed in as an argument, or if none is passed (or #f is passed),
 on the default event loop.
+
+When 'proc' executes, this procedure will have released 'await' and
+'resume', so they may be used by 'proc' to initiate other asynchronous
+operations sequentially.
 
 See the documentation on the await-read-suspendable! procedure for
 further particulars about this procedure.
