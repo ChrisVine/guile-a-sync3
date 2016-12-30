@@ -379,6 +379,27 @@ See the documentation on the await-write-suspendable! procedure for
 further particulars about this procedure.
 
 This procedure is first available in version 0.6 of this library.
+
+As mentioned in relation to the await-write-suspendable! procedure,
+write exceptions will propagate out of this procedure in the first
+instance, and if not caught locally (say by placing a catch block
+immediately around this procedure) will then propagate out of
+event-loop-run!.  So one way of testing for EPIPE is as follows:
+@example
+(set-default-event-loop!) ;; if none has yet been set
+(a-sync (lambda (await resume)
+	  (catch 'system-error
+		 (lambda ()
+		   (await-put-bytevector! await resume port bv))
+		 (lambda args
+		   (if (= (system-error-errno args) EPIPE)
+		       (begin
+			 ... do something to cater for EPIPE ...)
+		       (begin
+			 ;; possibly rethrow the exception
+			 (apply throw args)))))))
+(event-loop-run!)
+@end example
 @end deffn
 
 @deffn {Scheme Procedure} await-put-string! await resume [loop] port text
@@ -409,7 +430,28 @@ further particulars about this procedure.
 
 This procedure is first available in version 0.5 of this library.
 
-An example of the use of this procedure can be found in the
+As mentioned in relation to the await-write-suspendable! procedure,
+write exceptions will propagate out of this procedure in the first
+instance, and if not caught locally (say by placing a catch block
+immediately around this procedure) will then propagate out of
+event-loop-run!.  So one way of testing for EPIPE is as follows:
+@example
+(set-default-event-loop!) ;; if none has yet been set
+(a-sync (lambda (await resume)
+	  (catch 'system-error
+		 (lambda ()
+		   (await-put-string! await resume port "test"))
+		 (lambda args
+		   (if (= (system-error-errno args) EPIPE)
+		       (begin
+			 ... do something to cater for EPIPE ...)
+		       (begin
+			 ;; possibly rethrow the exception
+			 (apply throw args)))))))
+(event-loop-run!)
+@end example
+
+An example of the use of this procedure can also be found in the
 example-socket.scm file in the docs directory.
 @end deffn
 
