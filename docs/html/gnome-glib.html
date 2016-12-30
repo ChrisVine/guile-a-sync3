@@ -586,7 +586,29 @@ and will write a bytevector to the port.
 for further particulars about this procedure.
 </p>
 <p>This procedure is first available in version 0.6 of this library.
-</p></dd></dl>
+</p>
+<p>As mentioned in relation to the await-glib-write-suspendable
+procedure, write exceptions will propagate out of this procedure in
+the first instance, and if not caught locally (say by placing a catch
+block immediately around this procedure) will then propagate out of
+g-main-loop-run.  So one way of testing for EPIPE is as follows:
+</p><div class="example">
+<pre class="example">(define main-loop (g-main-loop-new #f #f))
+(a-sync (lambda (await resume)
+	  (catch 'system-error
+		 (lambda ()
+		   (await-glib-put-bytevector await resume port bv))
+		 (lambda args
+		   (if (= (system-error-errno args) EPIPE)
+		       (begin
+			 ... do something to cater for EPIPE ...)
+		       (begin
+			 ;; possibly rethrow the exception
+			 (apply throw args)))))
+	  (g-main-loop-quit main-loop)))
+(g-main-loop-run main-loop)
+</pre></div>
+</dd></dl>
 
 <dl>
 <dt><a name="index-await_002dglib_002dput_002dstring"></a>Scheme Procedure: <strong>await-glib-put-string</strong> <em>await resume port text</em></dt>
@@ -606,7 +628,29 @@ the string.
 for further particulars about this procedure.
 </p>
 <p>This procedure is first available in version 0.5 of this library.
-</p></dd></dl>
+</p>
+<p>As mentioned in relation to the await-glib-write-suspendable
+procedure, write exceptions will propagate out of this procedure in
+the first instance, and if not caught locally (say by placing a catch
+block immediately around this procedure) will then propagate out of
+g-main-loop-run.  So one way of testing for EPIPE is as follows:
+</p><div class="example">
+<pre class="example">(define main-loop (g-main-loop-new #f #f))
+(a-sync (lambda (await resume)
+	  (catch 'system-error
+		 (lambda ()
+		   (await-glib-put-string await resume port &quot;test&quot;))
+		 (lambda args
+		   (if (= (system-error-errno args) EPIPE)
+		       (begin
+			 ... do something to cater for EPIPE ...)
+		       (begin
+			 ;; possibly rethrow the exception
+			 (apply throw args)))))
+	  (g-main-loop-quit main-loop)))
+(g-main-loop-run main-loop)
+</pre></div>
+</dd></dl>
 <hr>
 <div class="header">
 <p>

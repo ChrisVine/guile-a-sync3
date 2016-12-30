@@ -540,6 +540,7 @@ g-main-loop-run.  So one way of testing for EPIPE is as follows:
 			 (apply throw args)))))
 	  (g-main-loop-quit main-loop)))
 (g-main-loop-run main-loop)
+@end example
 @end deffn
 
 @deffn {Scheme Procedure} await-glib-put-string await resume port text

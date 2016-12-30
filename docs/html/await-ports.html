@@ -442,7 +442,28 @@ writing of the string.
 further particulars about this procedure.
 </p>
 <p>This procedure is first available in version 0.6 of this library.
-</p></dd></dl>
+</p>
+<p>As mentioned in relation to the await-write-suspendable! procedure,
+write exceptions will propagate out of this procedure in the first
+instance, and if not caught locally (say by placing a catch block
+immediately around this procedure) will then propagate out of
+event-loop-run!.  So one way of testing for EPIPE is as follows:
+</p><div class="example">
+<pre class="example">(set-default-event-loop!) ;; if none has yet been set
+(a-sync (lambda (await resume)
+	  (catch 'system-error
+		 (lambda ()
+		   (await-put-bytevector! await resume port bv))
+		 (lambda args
+		   (if (= (system-error-errno args) EPIPE)
+		       (begin
+			 ... do something to cater for EPIPE ...)
+		       (begin
+			 ;; possibly rethrow the exception
+			 (apply throw args)))))))
+(event-loop-run!)
+</pre></div>
+</dd></dl>
 
 <dl>
 <dt><a name="index-await_002dput_002dstring_0021"></a>Scheme Procedure: <strong>await-put-string!</strong> <em>await resume [loop] port text</em></dt>
@@ -473,7 +494,28 @@ further particulars about this procedure.
 </p>
 <p>This procedure is first available in version 0.5 of this library.
 </p>
-<p>An example of the use of this procedure can be found in the
+<p>As mentioned in relation to the await-write-suspendable! procedure,
+write exceptions will propagate out of this procedure in the first
+instance, and if not caught locally (say by placing a catch block
+immediately around this procedure) will then propagate out of
+event-loop-run!.  So one way of testing for EPIPE is as follows:
+</p><div class="example">
+<pre class="example">(set-default-event-loop!) ;; if none has yet been set
+(a-sync (lambda (await resume)
+	  (catch 'system-error
+		 (lambda ()
+		   (await-put-string! await resume port &quot;test&quot;))
+		 (lambda args
+		   (if (= (system-error-errno args) EPIPE)
+		       (begin
+			 ... do something to cater for EPIPE ...)
+		       (begin
+			 ;; possibly rethrow the exception
+			 (apply throw args)))))))
+(event-loop-run!)
+</pre></div>
+
+<p>An example of the use of this procedure can also be found in the
 example-socket.scm file in the docs directory.
 </p></dd></dl>
 
