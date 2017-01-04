@@ -543,7 +543,7 @@
 ;; invoked by a-sync (which supplies the 'await' and 'resume'
 ;; arguments).
 ;;
-;; See the documentation on the await-write-suspendable! procedure for
+;; See the documentation on the await-read-suspendable! procedure for
 ;; further particulars about this procedure.
 ;;
 ;; This procedure is first available in version 0.7 of this library.

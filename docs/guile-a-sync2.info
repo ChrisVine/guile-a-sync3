@@ -1719,8 +1719,8 @@ procedures must be made non-blocking using fcntl as follows:
      invoked by a-sync (which supplies the 'await' and 'resume'
      arguments).
 
-     See the documentation on the await-write-suspendable!  procedure
-     for further particulars about this procedure.
+     See the documentation on the await-read-suspendable!  procedure for
+     further particulars about this procedure.
 
      This procedure is first available in version 0.7 of this library.
 
@@ -2481,8 +2481,8 @@ Node: overview1220
 Node: coroutines4159
 Node: event loop22349
 Node: await ports65079
-Node: monotonic time90482
-Node: gnome glib91918
-Node: compose119780
+Node: monotonic time90481
+Node: gnome glib91917
+Node: compose119779
 
 End Tag Table
