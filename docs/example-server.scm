@@ -50,17 +50,18 @@
 
 (define (handle-conversation conn-sock)
   (a-sync (lambda (await resume)
-	    (await-getsomelines! await resume conn-sock
-				 (lambda (line k)
-				   (let ((trimmed (string-trim-right line #\cr)))
-				     (if (not (string=? trimmed ""))
-					 (await-put-string! await resume conn-sock (string-append "echo: " trimmed "\n"))
-					 (k #f)))))
-	    (shutdown conn-sock 2)
-	    (close-port conn-sock)
-	    (set! count (- count 1))
-	    (when (zero? count)
-	      (event-loop-quit!)))))
+	    (let next ((line (await-getline! await resume conn-sock)))
+	      (let ((trimmed (string-trim-right line #\cr)))
+		(if (not (string=? trimmed ""))
+		    (begin
+		      (await-put-string! await resume conn-sock (string-append "echo: " trimmed "\n"))
+		      (next (await-getline! await resume conn-sock)))
+		    (begin
+		      (shutdown conn-sock 2)
+		      (close-port conn-sock)
+		      (set! count (- count 1))
+		      (when (zero? count)
+			(event-loop-quit!)))))))))
 
 (define (start-server)
   (a-sync (lambda (await resume)

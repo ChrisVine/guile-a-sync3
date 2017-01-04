@@ -153,9 +153,9 @@
 ;; argument, or if none is passed (or #f is passed), on the default
 ;; event loop.
 ;;
-;; When 'proc' executes, this procedure will have released 'await' and
-;; 'resume', so they may be used by 'proc' to initiate other
-;; asynchronous operations sequentially.
+;; When 'proc' executes, 'await' and 'resume' will still be in use, so
+;; they may not be used by 'proc' to initiate other asynchronous
+;; operations.
 ;;
 ;; See the documentation on the await-read-suspendable!  procedure for
 ;; further particulars about this procedure.
@@ -193,9 +193,9 @@
 ;; argument, or if none is passed (or #f is passed), on the default
 ;; event loop.
 ;;
-;; When 'proc' executes, this procedure will have released 'await' and
-;; 'resume', so they may be used by 'proc' to initiate other
-;; asynchronous operations sequentially.
+;; When 'proc' executes, 'await' and 'resume' will still be in use, so
+;; they may not be used by 'proc' to initiate other asynchronous
+;; operations.
 ;;
 ;; See the documentation on the await-read-suspendable!  procedure for
 ;; further particulars about this procedure.
@@ -294,9 +294,9 @@
 ;; event loop passed in as an argument, or if none is passed (or #f is
 ;; passed), on the default event loop.
 ;;
-;; When 'proc' executes, this procedure will have released 'await' and
-;; 'resume', so they may be used by 'proc' to initiate other
-;; asynchronous operations sequentially.
+;; When 'proc' executes, 'await' and 'resume' will still be in use, so
+;; they may not be used by 'proc' to initiate other asynchronous
+;; operations.
 ;;
 ;; See the documentation on the await-read-suspendable!  procedure for
 ;; further particulars about this procedure.
@@ -358,9 +358,9 @@
 ;; event loop passed in as an argument, or if none is passed (or #f is
 ;; passed), on the default event loop.
 ;;
-;; When 'proc' executes, this procedure will have released 'await' and
-;; 'resume', so they may be used by 'proc' to initiate other
-;; asynchronous operations sequentially.
+;; When 'proc' executes, 'await' and 'resume' will still be in use, so
+;; they may not be used by 'proc' to initiate other asynchronous
+;; operations.
 ;;
 ;; See the documentation on the await-read-suspendable! procedure for
 ;; further particulars about this procedure.
