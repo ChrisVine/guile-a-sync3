@@ -1,4 +1,4 @@
-;; Copyright (C) 2016 Chris Vine
+;; Copyright (C) 2016 and 2017 Chris Vine
 
 ;; This library is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU Lesser General Public
@@ -153,9 +153,9 @@
 ;; argument, or if none is passed (or #f is passed), on the default
 ;; event loop.
 ;;
-;; When 'proc' executes, 'await' and 'resume' will still be in use, so
-;; they may not be used by 'proc' to initiate other asynchronous
-;; operations.
+;; When 'proc' executes, 'await' and 'resume' will still be in use by
+;; this procedure, so they may not be reused by 'proc' (even though
+;; 'proc' runs in the event loop thread).
 ;;
 ;; See the documentation on the await-read-suspendable!  procedure for
 ;; further particulars about this procedure.
@@ -193,9 +193,9 @@
 ;; argument, or if none is passed (or #f is passed), on the default
 ;; event loop.
 ;;
-;; When 'proc' executes, 'await' and 'resume' will still be in use, so
-;; they may not be used by 'proc' to initiate other asynchronous
-;; operations.
+;; When 'proc' executes, 'await' and 'resume' will still be in use by
+;; this procedure, so they may not be reused by 'proc' (even though
+;; 'proc' runs in the event loop thread).
 ;;
 ;; See the documentation on the await-read-suspendable!  procedure for
 ;; further particulars about this procedure.
@@ -294,9 +294,9 @@
 ;; event loop passed in as an argument, or if none is passed (or #f is
 ;; passed), on the default event loop.
 ;;
-;; When 'proc' executes, 'await' and 'resume' will still be in use, so
-;; they may not be used by 'proc' to initiate other asynchronous
-;; operations.
+;; When 'proc' executes, 'await' and 'resume' will still be in use by
+;; this procedure, so they may not be reused by 'proc' (even though
+;; 'proc' runs in the event loop thread).
 ;;
 ;; See the documentation on the await-read-suspendable!  procedure for
 ;; further particulars about this procedure.
@@ -358,9 +358,9 @@
 ;; event loop passed in as an argument, or if none is passed (or #f is
 ;; passed), on the default event loop.
 ;;
-;; When 'proc' executes, 'await' and 'resume' will still be in use, so
-;; they may not be used by 'proc' to initiate other asynchronous
-;; operations.
+;; When 'proc' executes, 'await' and 'resume' will still be in use by
+;; this procedure, so they may not be reused by 'proc' (even though
+;; 'proc' runs in the event loop thread).
 ;;
 ;; See the documentation on the await-read-suspendable! procedure for
 ;; further particulars about this procedure.

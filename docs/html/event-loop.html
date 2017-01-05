@@ -750,10 +750,6 @@ namely the value yielded by the generator.  Each time &rsquo;proc&rsquo; runs it
 will do so as a separate event in the event loop and so be
 multi-plexed with other events.
 </p>
-<p>When &rsquo;proc&rsquo; executes, &rsquo;await&rsquo; and &rsquo;resume&rsquo; will still be in use, so
-they may not be used by &rsquo;proc&rsquo; to initiate other asynchronous
-operations.
-</p>
 <p>This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the event loop runs.
 </p>
@@ -766,6 +762,10 @@ progress, so blocking calls (other than to the yield procedure) should
 not be made in &rsquo;generator&rsquo;.  This procedure can be useful for the
 purpose of implementing co-operative multi-tasking, say by composing
 tasks with compose-a-sync (see compose.scm).
+</p>
+<p>When &rsquo;proc&rsquo; executes, &rsquo;await&rsquo; and &rsquo;resume&rsquo; will still be in use by
+this procedure, so they may not be reused by &rsquo;proc&rsquo; (even though
+&rsquo;proc&rsquo; runs in the event loop thread).
 </p>
 <p>This procedure calls event-post! in the event loop concerned.  This is
 done in the same thread as that in which the event loop runs so it

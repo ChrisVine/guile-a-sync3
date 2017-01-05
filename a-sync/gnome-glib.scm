@@ -1,4 +1,4 @@
-;; Copyright (C) 2016 Chris Vine
+;; Copyright (C) 2016 and 2017 Chris Vine
 
 ;; This library is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU Lesser General Public
@@ -262,12 +262,12 @@
 ;; (other than to the yield procedure) should not be made in
 ;; 'generator'.
 ;;
-;; When 'proc' executes, 'await' and 'resume' will still be in use, so
-;; they may not be used by 'proc' to initiate other asynchronous
-;; operations.
-;;
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the event loop runs.
+;;
+;; When 'proc' executes, 'await' and 'resume' will still be in use by
+;; this procedure, so they may not be reused by 'proc' (even though
+;; 'proc' runs in the event loop thread).
 ;;
 ;; Exceptions may propagate out of this procedure if they arise while
 ;; setting up (that is, before the task starts), which shouldn't

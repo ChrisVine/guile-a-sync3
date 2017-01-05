@@ -183,9 +183,9 @@ happening, this procedure will end and return an end-of-file object or
 operates on the event loop passed in as an argument, or if none is
 passed (or #f is passed), on the default event loop.
 </p>
-<p>When &rsquo;proc&rsquo; executes, &rsquo;await&rsquo; and &rsquo;resume&rsquo; will still be in use, so
-they may not be used by &rsquo;proc&rsquo; to initiate other asynchronous
-operations.
+<p>When &rsquo;proc&rsquo; executes, &rsquo;await&rsquo; and &rsquo;resume&rsquo; will still be in use by
+this procedure, so they may not be reused by &rsquo;proc&rsquo; (even though
+&rsquo;proc&rsquo; runs in the event loop thread).
 </p>
 <p>See the documentation on the await-read-suspendable! procedure for
 further particulars about this procedure.
@@ -229,9 +229,9 @@ will be returned.  The &rsquo;loop&rsquo; argument is optional: this procedure
 operates on the event loop passed in as an argument, or if none is
 passed (or #f is passed), on the default event loop.
 </p>
-<p>When &rsquo;proc&rsquo; executes, &rsquo;await&rsquo; and &rsquo;resume&rsquo; will still be in use, so
-they may not be used by &rsquo;proc&rsquo; to initiate other asynchronous
-operations.
+<p>When &rsquo;proc&rsquo; executes, &rsquo;await&rsquo; and &rsquo;resume&rsquo; will still be in use by
+this procedure, so they may not be reused by &rsquo;proc&rsquo; (even though
+&rsquo;proc&rsquo; runs in the event loop thread).
 </p>
 <p>See the documentation on the await-read-suspendable! procedure for
 further particulars about this procedure.
@@ -315,9 +315,9 @@ after &rsquo;proc&rsquo; has returned, it should store it by copying it.
 loop passed in as an argument, or if none is passed (or #f is passed),
 on the default event loop.
 </p>
-<p>When &rsquo;proc&rsquo; executes, &rsquo;await&rsquo; and &rsquo;resume&rsquo; will still be in use, so
-they may not be used by &rsquo;proc&rsquo; to initiate other asynchronous
-operations.
+<p>When &rsquo;proc&rsquo; executes, &rsquo;await&rsquo; and &rsquo;resume&rsquo; will still be in use by
+this procedure, so they may not be reused by &rsquo;proc&rsquo; (even though
+&rsquo;proc&rsquo; runs in the event loop thread).
 </p>
 <p>See the documentation on the await-read-suspendable! procedure for
 further particulars about this procedure.
@@ -357,9 +357,9 @@ after &rsquo;proc&rsquo; has returned, it should store it by copying it.
 loop passed in as an argument, or if none is passed (or #f is passed),
 on the default event loop.
 </p>
-<p>When &rsquo;proc&rsquo; executes, &rsquo;await&rsquo; and &rsquo;resume&rsquo; will still be in use, so
-they may not be used by &rsquo;proc&rsquo; to initiate other asynchronous
-operations.
+<p>When &rsquo;proc&rsquo; executes, &rsquo;await&rsquo; and &rsquo;resume&rsquo; will still be in use by
+this procedure, so they may not be reused by &rsquo;proc&rsquo; (even though
+&rsquo;proc&rsquo; runs in the event loop thread).
 </p>
 <p>See the documentation on the await-read-suspendable! procedure for
 further particulars about this procedure.
