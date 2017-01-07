@@ -35,8 +35,6 @@
 	    await-accept!
 	    await-connect!))
 
-(install-suspendable-ports!)
-
 ;; NOTE: The procedures which may be used with await-read-suspendable!
 ;; and await-write-suspendable! cover most but not all i/o procedures.
 ;; Thus, the following are safe to use with non-blocking suspendable

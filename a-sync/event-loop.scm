@@ -18,6 +18,7 @@
   #:use-module (ice-9 q)               ;; for make-q, etc
   #:use-module (ice-9 match)
   #:use-module (ice-9 threads)         ;; for with-mutex and call-with-new-thread
+  #:use-module (ice-9 suspendable-ports)
   #:use-module (srfi srfi-1)           ;; for reduce, delete!, member and delete-duplicates
   #:use-module (srfi srfi-9)
   #:use-module (rnrs bytevectors)      ;; for make-bytevector, bytevector-copy!
@@ -49,6 +50,26 @@
 	    await-timeout!
 	    await-sleep!))
 
+
+;; with guile-2.2, the event loop must always be used in conjunction
+;; with suspendable ports - see _write-with-EAGAIN for an explanation
+(install-suspendable-ports!)
+
+;; by default, in guile-2-2 (and unlike in guile-2.0), if EAGAIN
+;; occurs on a write, the write operation will block until writing
+;; becomes available.  That is wrong when writing to the internal
+;; event loop pipe - for that we must skip a write to a full pipe.
+;; This procedure achieves that in conjunction with suspendable-ports.
+;; This procedure returns #t if EAGAIN did not occur, or #f if it did.
+(define (_write-with-EAGAIN proc)
+  (define (write-waiter p)
+    (throw 'EAGAIN))
+  (parameterize ((current-write-waiter write-waiter))
+    (catch 'EAGAIN
+      (lambda ()
+	(proc)
+	#t)
+      (lambda args #f))))
 
 ;; this variable is not exported - use the accessors below
 (define ***default-event-loop*** #f)
@@ -450,14 +471,10 @@
   (with-mutex (_mutex-get el)
     ;; discard any EAGAIN exception when flushing the output buffer
     ;; of a fully filled pipe on closing
-    (catch 'system-error
-      (lambda ()
-	(close-port (_event-in-get el))
-	(close-port (_event-out-get el)))
-      (lambda args
-	(unless (= EAGAIN (system-error-errno args))
-	  (apply throw args))))
-      
+    (_write-with-EAGAIN (lambda ()
+			  (close-port (_event-out-get el))))
+    (close-port (_event-in-get el))
+
     (let* ((event-pipe (pipe))
 	   (in (car event-pipe))
 	   (out (cdr event-pipe)))
@@ -516,14 +533,11 @@
 	;; if the event pipe is full and an EAGAIN error arises, we
 	;; can just swallow it.  The only purpose of writing #\x is to
 	;; cause the select procedure to return and reloop to pick up
-	;; the new file watch list.
-	(catch 'system-error
-	  (lambda ()
-	    (write-char #\x out)
-	    (force-output out))
-	  (lambda args
-	    (unless (= EAGAIN (system-error-errno args))
-	      (apply throw args))))))))
+	;; the new file watch list: blocking until writing becomes
+	;; available is wrong.
+	(_write-with-EAGAIN (lambda ()
+			      (write-char #\x out)
+			      (force-output out)))))))
 
 ;; The 'el' (event loop) argument is optional.  This procedure will
 ;; start a write watch in the event loop passed in as an argument, or
@@ -576,14 +590,11 @@
 	;; if the event pipe is full and an EAGAIN error arises, we
 	;; can just swallow it.  The only purpose of writing #\x is to
 	;; cause the select procedure to return and reloop to pick up
-	;; the new file watch list.
-	(catch 'system-error
-	  (lambda ()
-	    (write-char #\x out)
-	    (force-output out))
-	  (lambda args
-	    (unless (= EAGAIN (system-error-errno args))
-	      (apply throw args))))))))
+	;; the new file watch list: blocking until writing becomes
+	;; available is wrong.
+	(_write-with-EAGAIN (lambda ()
+			      (write-char #\x out)
+			      (force-output out)))))))
 
 ;; The 'el' (event loop) argument is optional.  This procedure will
 ;; remove a read watch from the event loop passed in as an argument,
@@ -602,14 +613,11 @@
 	;; if the event pipe is full and an EAGAIN error arises, we
 	;; can just swallow it.  The only purpose of writing #\x is to
 	;; cause the select procedure to return and reloop to pick up
-	;; the new file watch list.
-	(catch 'system-error
-	  (lambda ()
-	    (write-char #\x out)
-	    (force-output out))
-	  (lambda args
-	    (unless (= EAGAIN (system-error-errno args))
-	      (apply throw args))))))))
+	;; the new file watch list: blocking until writing becomes
+	;; available is wrong.
+	(_write-with-EAGAIN (lambda ()
+			      (write-char #\x out)
+			      (force-output out)))))))
 
 ;; The 'el' (event loop) argument is optional.  This procedure will
 ;; remove a write watch from the event loop passed in as an argument,
@@ -628,14 +636,11 @@
 	;; if the event pipe is full and an EAGAIN error arises, we
 	;; can just swallow it.  The only purpose of writing #\x is to
 	;; cause the select procedure to return and reloop to pick up
-	;; the new file watch list.
-	(catch 'system-error
-	  (lambda ()
-	    (write-char #\x out)
-	    (force-output out))
-	  (lambda args
-	    (unless (= EAGAIN (system-error-errno args))
-	      (apply throw args))))))))
+	;; the new file watch list: blocking until writing becomes
+	;; available is wrong.
+	(_write-with-EAGAIN (lambda ()
+			      (write-char #\x out)
+			      (force-output out)))))))
 
 ;; The 'el' (event loop) argument is optional.  This procedure will
 ;; post a callback for execution in the event loop passed in as an
@@ -666,14 +671,11 @@
 	;; if the event pipe is full and an EAGAIN error arises, we
 	;; can just swallow it.  The only purpose of writing #\x is to
 	;; cause the select procedure to return and reloop to pick up
-	;; any new entries in the event queue.
-	(catch 'system-error
-	  (lambda ()
-	    (write-char #\x out)
-	    (force-output out))
-	  (lambda args
-	    (unless (= EAGAIN (system-error-errno args))
-	      (apply throw args))))))
+	;; any new entries in the event queue: blocking until writing
+	;; becomes available is wrong.
+	(_write-with-EAGAIN (lambda ()
+			      (write-char #\x out)
+			      (force-output out)))))
     (_check-for-throttle el)))
 
 ;; The 'el' (event loop) argument is optional.  This procedure adds a
@@ -763,18 +765,16 @@
       (let ((old-val (_block-get el)))
 	(_block-set! el (not (not val)))
 	(when (and old-val (not val))
-	  ;; if the event pipe is full and an EAGAIN error arises, we
-	  ;; can just swallow it.  The only purpose of writing #\x is
-	  ;; to cause the select procedure to return and reloop and
-	  ;; then exit the event loop if there are no further events.
 	  (let ((out (_event-out-get el)))
-	    (catch 'system-error
-	      (lambda ()
-		(write-char #\x out)
-		(force-output out))
-	      (lambda args
-		(unless (= EAGAIN (system-error-errno args))
-		  (apply throw args))))))))))
+	    ;; if the event pipe is full and an EAGAIN error arises,
+	    ;; we can just swallow it.  The only purpose of writing
+	    ;; #\x is to cause the select procedure to return and
+	    ;; reloop and then exit the event loop if there are no
+	    ;; further events: blocking until writing becomes
+	    ;; available is wrong.
+	    (_write-with-EAGAIN (lambda ()
+				  (write-char #\x out)
+				  (force-output out)))))))))
 
 ;; This procedure causes an event loop to unblock.  Any events
 ;; remaining in the event loop will be discarded.  New events may
@@ -790,17 +790,14 @@
       (error "No default event loop set for call to event-loop-quit!"))
     (with-mutex (_mutex-get el)
       (_done-set! el #t)
-      ;; if the event pipe is full and an EAGAIN error arises, we can
-      ;; just swallow it.  The only purpose of writing #\x is to cause
-      ;; the select procedure to return
       (let ((out (_event-out-get el)))
-	(catch 'system-error
-	  (lambda ()
-	    (write-char #\x out)
-	    (force-output out))
-	  (lambda args
-	    (unless (= EAGAIN (system-error-errno args))
-	      (apply throw args))))))))
+	;; if the event pipe is full and an EAGAIN error arises, we
+	;; can just swallow it.  The only purpose of writing #\x is to
+	;; cause the select procedure to return: blocking until
+	;; writing becomes available is wrong.
+	(_write-with-EAGAIN (lambda ()
+			      (write-char #\x out)
+			      (force-output out)))))))
 
 ;; This is a convenience procedure whose signature is:
 ;;

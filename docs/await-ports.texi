@@ -16,11 +16,11 @@ flush-output-port.  Some others are not at present safe to use with
 suspendable ports, including get-bytevector-n!, get-bytevector-some,
 get-bytevector-all, get-string-n, read, write and display.
 
-Including this module will automatically enable suspendable ports.  To
-disable them again, the uninstall-suspendable-ports! procedure can be
-called, but this means that these procedures can no longer be used
-while suspendable ports are disabled.  In addition, any port using
-these procedures must be made non-blocking using fcntl as follows:
+Including this module will automatically enable suspendable ports.
+The uninstall-suspendable-ports! procedure should not subsequently be
+applied, or the procedures in this module (and in the (a-sync
+event-loop) module) will not work correctly.  Any port using these
+procedures must be made non-blocking using fcntl as follows:
 
 @example
 (fcntl [port] F_SETFL (logior O_NONBLOCK

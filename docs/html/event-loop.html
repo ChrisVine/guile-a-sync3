@@ -81,13 +81,12 @@ means that it may be best with sockets to set the socket as
 non-blocking using the guile wrapper for the fcntl() system call in
 order to prevent a blocking read where it is not expected.  With
 guile-2.2 this means that with such sockets, suspendable ports should
-generally be used with the await-read-suspendable! or
-await-write-suspendable! procedures in the <a href="await-ports.html#await-ports">(a-sync
-await-ports)</a> module.  Secondly, with select() the file descriptor
-value of a port passed to the watch should not exceed FD_SETSIZE.
-Normally, by default the maximum soft user limit for open files is the
-same as FD_SETSIZE, and it is best if this situation is retained by
-user code.
+be used with the await-read-suspendable! or await-write-suspendable!
+procedures in the <a href="await-ports.html#await-ports">(a-sync await-ports)</a> module.
+Secondly, with select() the file descriptor value of a port passed to
+the watch should not exceed FD_SETSIZE.  Normally, by default the
+maximum soft user limit for open files is the same as FD_SETSIZE, and
+it is best if this situation is retained by user code.
 </p>
 <p>Where a file watch on a file descriptor or port has been added with
 event-loop-add-read-watch! or event-loop-add-write-watch!, the event
@@ -106,6 +105,11 @@ or descriptor, the file watch callback may be called once in
 consequence, so in such a case either the callback should be ready to
 handle a possibly closed port or descriptor or the worker thread
 should post the closing as an event using event-post!.
+</p>
+<p>Including this module will automatically enable suspendable ports.
+The uninstall-suspendable-ports! procedure should not subsequently be
+applied, or the procedures in this module (and in the (a-sync
+await-ports) module) will not work correctly.
 </p>
 <p>This modules provides the following procedures:
 </p>
