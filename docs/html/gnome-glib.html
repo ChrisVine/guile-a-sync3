@@ -458,13 +458,16 @@ descriptor ready for reading.
 <dd><p>&rsquo;proc&rsquo; is a procedure taking a single argument, to which the port will
 be passed when it is invoked, and is intended to use the port&rsquo;s normal
 read procedures.  &rsquo;port&rsquo; must be a suspendable non-blocking port.
-&rsquo;proc&rsquo; will be executed whenever there is something available to read,
-and this procedure will return when &rsquo;proc&rsquo; returns, as if by a
-blocking read, with the value returned by &rsquo;proc&rsquo;.  The glib event loop
+This procedure will return when &rsquo;proc&rsquo; returns, as if by blocking read
+operations, with the value returned by &rsquo;proc&rsquo;.  The glib event loop
 will not be blocked by this procedure even if only individual
 characters or bytes comprising part characters are available at any
 one time.  It is intended to be called in a waitable procedure invoked
-by a-sync.
+by a-sync (which supplies the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments).  &rsquo;proc&rsquo;
+must not itself explicitly apply &rsquo;await&rsquo; and &rsquo;resume&rsquo; as those are
+potentially in use by the suspendable port while &rsquo;proc&rsquo; is executing,
+nor should &rsquo;proc&rsquo; itself separately invoke the &rsquo;a-sync&rsquo; procedure -
+the purpose of &rsquo;proc&rsquo; is to carry out i/o operations on &rsquo;port&rsquo;.
 </p>
 <p>This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the event loop runs.
@@ -543,13 +546,16 @@ further particulars about this procedure.
 <dd><p>&rsquo;proc&rsquo; is a procedure taking a single argument, to which the port will
 be passed when it is invoked, and is intended to use the port&rsquo;s normal
 write procedures.  &rsquo;port&rsquo; must be a suspendable non-blocking port.
-&rsquo;proc&rsquo; will be executed whenever the port is available to write to,
-and this procedure will return when &rsquo;proc&rsquo; returns, as if by a
-blocking write, with the value returned by &rsquo;proc&rsquo;.  The glib event
+This procedure will return when &rsquo;proc&rsquo; returns, as if by blocking
+write operations, with the value returned by &rsquo;proc&rsquo;.  The glib event
 loop will not be blocked by this procedure even if only individual
 characters or bytes comprising part characters can be written at any
 one time.  It is intended to be called in a waitable procedure invoked
-by a-sync.
+by a-sync (which supplies the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments).  &rsquo;proc&rsquo;
+must not itself explicitly apply &rsquo;await&rsquo; and &rsquo;resume&rsquo; as those are
+potentially in use by the suspendable port while &rsquo;proc&rsquo; is executing,
+nor should &rsquo;proc&rsquo; itself separately invoke the &rsquo;a-sync&rsquo; procedure -
+the purpose of &rsquo;proc&rsquo; is to carry out i/o operations on &rsquo;port&rsquo;.
 </p>
 <p>This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the event loop runs.

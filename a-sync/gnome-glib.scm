@@ -400,13 +400,17 @@
 ;; 'proc' is a procedure taking a single argument, to which the port
 ;; will be passed when it is invoked, and is intended to use the
 ;; port's normal read procedures.  'port' must be a suspendable
-;; non-blocking port.  'proc' will be executed whenever there is
-;; something available to read, and this procedure will return when
-;; 'proc' returns, as if by a blocking read, with the value returned
-;; by 'proc'.  The glib event loop will not be blocked by this
-;; procedure even if only individual characters or bytes comprising
-;; part characters are available at any one time.  It is intended to
-;; be called in a waitable procedure invoked by a-sync.
+;; non-blocking port.  This procedure will return when 'proc' returns,
+;; as if by blocking read operations, with the value returned by
+;; 'proc'.  The glib event loop will not be blocked by this procedure
+;; even if only individual characters or bytes comprising part
+;; characters are available at any one time.  It is intended to be
+;; called in a waitable procedure invoked by a-sync (which supplies
+;; the 'await' and 'resume' arguments).  'proc' must not itself
+;; explicitly apply 'await' and 'resume' as those are potentially in
+;; use by the suspendable port while 'proc' is executing, nor should
+;; 'proc' itself separately invoke the 'a-sync' procedure - the
+;; purpose of 'proc' is to carry out i/o operations on 'port'.
 ;;
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the event loop runs.
@@ -415,29 +419,33 @@
 ;; will propagate out of this procedure in the first instance, and if
 ;; not caught locally will then propagate out of g-main-loop-run.
 (define (await-glib-read-suspendable await resume port proc)
+  (define id #f)
   (define (read-waiter p)
+    (when (not id)
+      (set! id (glib-add-watch (g-io-channel-unix-new (port->fdes port))
+			       '(in hup err)
+			       (lambda (ioc status)
+				 ;; accessing 'status' doesn't work.  The wrapper does not
+				 ;; seem to provide any way of extracting GIOCondition
+				 ;; enumeration values which actually works.  However, 'err
+				 ;; or 'pri should cause a read of the port to return an
+				 ;; eof-object
+				 (resume)
+				 #t))))
     (await))
-  (define id (glib-add-watch (g-io-channel-unix-new (port->fdes port))
-			     '(in hup err)
-			     (lambda (ioc status)
-			       ;; accessing 'status' doesn't work.  The wrapper does not
-			       ;; seem to provide any way of extracting GIOCondition
-			       ;; enumeration values which actually works.  However, 'err
-			       ;; or 'pri should cause a read of the port to return an
-			       ;; eof-object
-  			       (resume)
-			       #t)))
   (let ((res
 	 (parameterize ((current-read-waiter read-waiter))
 	   (catch #t
 	     (lambda ()
 	       (proc port))
 	     (lambda args
-	       (g-source-remove id)
-	       (release-port-handle port)
+	       (when id
+		 (g-source-remove id)
+		 (release-port-handle port))
 	       (apply throw args))))))
-    (g-source-remove id)
-    (release-port-handle port)
+    (when id
+      (g-source-remove id)
+      (release-port-handle port))
     res))
 
 ;; This procedure is provided mainly to retain compatibility with the
@@ -495,13 +503,17 @@
 ;; 'proc' is a procedure taking a single argument, to which the port
 ;; will be passed when it is invoked, and is intended to use the
 ;; port's normal write procedures.  'port' must be a suspendable
-;; non-blocking port.  'proc' will be executed whenever the port is
-;; available to write to, and this procedure will return when 'proc'
-;; returns, as if by a blocking write, with the value returned by
+;; non-blocking port.  This procedure will return when 'proc' returns,
+;; as if by blocking write operations, with the value returned by
 ;; 'proc'.  The glib event loop will not be blocked by this procedure
 ;; even if only individual characters or bytes comprising part
 ;; characters can be written at any one time.  It is intended to be
-;; called in a waitable procedure invoked by a-sync.
+;; called in a waitable procedure invoked by a-sync (which supplies
+;; the 'await' and 'resume' arguments).  'proc' must not itself
+;; explicitly apply 'await' and 'resume' as those are potentially in
+;; use by the suspendable port while 'proc' is executing, nor should
+;; 'proc' itself separately invoke the 'a-sync' procedure - the
+;; purpose of 'proc' is to carry out i/o operations on 'port'.
 ;;
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the event loop runs.
@@ -510,29 +522,33 @@
 ;; will propagate out of this procedure in the first instance, and if
 ;; not caught locally will then propagate out of g-main-loop-run.
 (define (await-glib-write-suspendable await resume port proc)
+  (define id #f)
   (define (write-waiter p)
+    (when (not id)
+      (set! id (glib-add-watch (g-io-channel-unix-new (port->fdes port))
+			       '(out err)
+			       (lambda (ioc status)
+				 ;; accessing 'status' doesn't work.  The wrapper does not
+				 ;; seem to provide any way of extracting GIOCondition
+				 ;; enumeration values which actually works.  However, 'err
+				 ;; or 'pri should cause a read of the port to return an
+				 ;; eof-object
+				 (resume)
+				 #t))))
     (await))
-  (define id (glib-add-watch (g-io-channel-unix-new (port->fdes port))
-			     '(out err)
-			     (lambda (ioc status)
-			       ;; accessing 'status' doesn't work.  The wrapper does not
-			       ;; seem to provide any way of extracting GIOCondition
-			       ;; enumeration values which actually works.  However, 'err
-			       ;; or 'pri should cause a read of the port to return an
-			       ;; eof-object
-  			       (resume)
-			       #t)))
   (let ((res
 	 (parameterize ((current-write-waiter write-waiter))
 	   (catch #t
 	     (lambda ()
 	       (proc port))
 	     (lambda args
-	       (g-source-remove id)
-	       (release-port-handle port)
+	       (when id
+		 (g-source-remove id)
+		 (release-port-handle port))
 	       (apply throw args))))))
-    (g-source-remove id)
-    (release-port-handle port)
+    (when id
+      (g-source-remove id)
+      (release-port-handle port))
     res))
 
 ;; This procedure is provided mainly to retain compatibility with the

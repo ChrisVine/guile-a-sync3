@@ -51,14 +51,19 @@
 ;; 'proc' is a procedure taking a single argument, to which the port
 ;; will be passed when it is invoked, and is intended to use the
 ;; port's normal read procedures.  'port' must be a suspendable
-;; non-blocking port.  'proc' will be executed whenever there is
-;; something available to read, and this procedure will return when
-;; 'proc' returns, as if by a blocking read.  The event loop will not
-;; be blocked by this procedure even if only individual characters or
-;; bytes comprising part characters are available at any one time.  It
-;; is intended to be called within a waitable procedure invoked by
-;; a-sync (which supplies the 'await' and 'resume' arguments).  If an
-;; exceptional condition ('excpt) is encountered by the
+;; non-blocking port.  This procedure will return when 'proc' returns,
+;; as if by blocking read operations.  However, the event loop will
+;; not be blocked by this procedure even if only individual characters
+;; or bytes comprising part characters are available for reading at
+;; any one time.  It is intended to be called within a waitable
+;; procedure invoked by a-sync (which supplies the 'await' and
+;; 'resume' arguments).  'proc' must not itself explicitly apply
+;; 'await' and 'resume' as those are potentially in use by the
+;; suspendable port while 'proc' is executing, nor should 'proc'
+;; itself separately invoke the 'a-sync' procedure - the purpose of
+;; 'proc' is to carry out i/o operations on 'port'.
+;;
+;; If an exceptional condition ('excpt) is encountered by the
 ;; implementation, #f will be returned by this procedure and the read
 ;; operations to be performed by 'proc' will be abandonned; there is
 ;; however no guarantee that any exceptional condition that does arise
@@ -85,17 +90,20 @@
     ((await resume port proc)
      (await-read-suspendable! await resume #f port proc))
     ((await resume loop port proc)
+     (define watch-installed #f)
      (define (read-waiter p)
+       (when (not watch-installed)
+	 (set! watch-installed #t)
+	 (event-loop-add-read-watch! port
+				     (lambda (status)
+				       (if (eq? status 'except)
+					   (resume 'except)
+					   (resume))
+				       #t)
+				     loop))
        ;;(display "Awaiting\n")
        (when (eq? (await) 'except)
 	 (throw 'except)))
-     (event-loop-add-read-watch! port
-				 (lambda (status)
-				   (if (eq? status 'except)
-				       (resume 'except)
-				       (resume))
-				   #t)
-				 loop)
      (let ((res
 	    (parameterize ((current-read-waiter read-waiter))
 	      (catch #t
@@ -105,9 +113,11 @@
 		  (if (eq? (car args) 'except)
 		      #f
 		      (begin
-			(event-loop-remove-read-watch! port loop)
+			(when watch-installed
+			  (event-loop-remove-read-watch! port loop))
 			(apply throw args))))))))
-       (event-loop-remove-read-watch! port loop)
+       (when watch-installed
+	 (event-loop-remove-read-watch! port loop))
        res))))
      
 ;; This procedure is provided mainly to retain compatibility with the
@@ -124,7 +134,7 @@
 ;; on the default event loop.  If an exceptional condition ('excpt) is
 ;; encountered by the implementation, #f will be returned by this
 ;; procedure and the read operation will be abandonned.  See the
-;; documentation on the await-read-suspendable!  procedure for further
+;; documentation on the await-read-suspendable! procedure for further
 ;; particulars about this procedure.
 (define await-getline!
   (case-lambda
@@ -155,7 +165,7 @@
 ;; this procedure, so they may not be reused by 'proc' (even though
 ;; 'proc' runs in the event loop thread).
 ;;
-;; See the documentation on the await-read-suspendable!  procedure for
+;; See the documentation on the await-read-suspendable! procedure for
 ;; further particulars about this procedure.
 (define await-geteveryline!
   (case-lambda
@@ -195,7 +205,7 @@
 ;; this procedure, so they may not be reused by 'proc' (even though
 ;; 'proc' runs in the event loop thread).
 ;;
-;; See the documentation on the await-read-suspendable!  procedure for
+;; See the documentation on the await-read-suspendable! procedure for
 ;; further particulars about this procedure.
 (define await-getsomelines!
   (case-lambda
@@ -296,7 +306,7 @@
 ;; this procedure, so they may not be reused by 'proc' (even though
 ;; 'proc' runs in the event loop thread).
 ;;
-;; See the documentation on the await-read-suspendable!  procedure for
+;; See the documentation on the await-read-suspendable! procedure for
 ;; further particulars about this procedure.
 ;;
 ;; This procedure is first available in version 0.6 of this library.
@@ -393,14 +403,19 @@
 ;; 'proc' is a procedure taking a single argument, to which the port
 ;; will be passed when it is invoked, and is intended to use the
 ;; port's normal write procedures.  'port' must be a suspendable
-;; non-blocking port.  'proc' will be executed whenever the port is
-;; available to write to, and this procedure will return when 'proc'
-;; returns, as if by a blocking write.  The event loop will not be
-;; blocked by this procedure even if only individual characters or
-;; bytes comprising part characters can be written at any one time.
+;; non-blocking port.  This procedure will return when 'proc' returns,
+;; as if by blocking write operations.  However, the event loop will
+;; not be blocked by this procedure even if only individual characters
+;; or bytes comprising part characters can be written at any one time.
 ;; It is intended to be called within a waitable procedure invoked by
-;; a-sync (which supplies the 'await' and 'resume' arguments).  If an
-;; exceptional condition ('excpt) is encountered by the
+;; a-sync (which supplies the 'await' and 'resume' arguments).  'proc'
+;; must not itself explicitly apply 'await' and 'resume' as those are
+;; potentially in use by the suspendable port while 'proc' is
+;; executing, nor should 'proc' itself separately invoke the 'a-sync'
+;; procedure - the purpose of 'proc' is to carry out i/o operations on
+;; 'port'.
+;;
+;; If an exceptional condition ('excpt) is encountered by the
 ;; implementation, #f will be returned by this procedure and the write
 ;; operations to be performed by 'proc' will be abandonned; there is
 ;; however no guarantee that any exceptional condition that does arise
@@ -425,17 +440,20 @@
     ((await resume port proc)
      (await-write-suspendable! await resume #f port proc))
     ((await resume loop port proc)
+     (define watch-installed #f)
      (define (write-waiter p)
+       (when (not watch-installed)
+	 (set! watch-installed #t)
+	 (event-loop-add-write-watch! port
+				      (lambda (status)
+					(if (eq? status 'except)
+					    (resume 'except)
+					    (resume))
+					#t)
+				      loop))
        ;;(display "Awaiting\n")
        (when (eq? (await) 'except)
 	 (throw 'except)))
-     (event-loop-add-write-watch! port
-				  (lambda (status)
-				    (if (eq? status 'except)
-					(resume 'except)
-					(resume))
-				    #t)
-				  loop)
      (let ((res
 	    (parameterize ((current-write-waiter write-waiter))
 	      (catch #t
@@ -445,9 +463,11 @@
 		  (if (eq? (car args) 'except)
 		      #f
 		      (begin
-			(event-loop-remove-write-watch! port loop)
+			(when watch-installed
+			  (event-loop-remove-write-watch! port loop))
 			(apply throw args))))))))
-       (event-loop-remove-write-watch! port loop)
+       (when watch-installed
+	 (event-loop-remove-write-watch! port loop))
        res))))
 
 ;; This procedure is provided mainly to retain compatibility with the

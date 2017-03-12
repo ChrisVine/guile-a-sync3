@@ -32,23 +32,28 @@ This procedure is provided to implement read file watches using
 guile-2.2's suspendable ports.  'proc' is a procedure taking a single
 argument, to which the port will be passed when it is invoked, and is
 intended to use the port's normal read procedures.  'port' must be a
-suspendable non-blocking port.  'proc' will be executed whenever there
-is something available to read, and this procedure will return when
-'proc' returns, as if by a blocking read.  The event loop will not be
-blocked by this procedure even if only individual characters or bytes
-comprising part characters are available at any one time.  It is
-intended to be called within a waitable procedure invoked by a-sync
-(which supplies the 'await' and 'resume' arguments).  If an
-exceptional condition ('excpt) is encountered by the implementation,
-#f will be returned by this procedure and the read operations to be
-performed by 'proc' will be abandonned; there is however no guarantee
-that any exceptional condition that does arise will be encountered by
-the implementation - the user procedure 'proc' may get there first and
-deal with it, or it may not.  However exceptional conditions are very
-rare, usually comprising only out-of-band data on a TCP socket, or a
-pseudoterminal master in packet mode seeing state change in a slave.
-In the absence of an exceptional condition, the value returned by
-'proc' will be returned.
+suspendable non-blocking port.  This procedure will return when 'proc'
+returns, as if by blocking read operations.  However, the event loop
+will not be blocked by this procedure even if only individual
+characters or bytes comprising part characters are available at any
+one time.  It is intended to be called within a waitable procedure
+invoked by a-sync (which supplies the 'await' and 'resume' arguments).
+'proc' must not itself explicitly apply 'await' and 'resume' as those
+are potentially in use by the suspendable port while 'proc' is
+executing, nor should 'proc' itself separately invoke the 'a-sync'
+procedure - the purpose of 'proc' is to carry out i/o operations on
+'port'.
+
+If an exceptional condition ('excpt) is encountered by the
+implementation, #f will be returned by this procedure and the read
+operations to be performed by 'proc' will be abandonned; there is
+however no guarantee that any exceptional condition that does arise
+will be encountered by the implementation - the user procedure 'proc'
+may get there first and deal with it, or it may not.  However
+exceptional conditions are very rare, usually comprising only
+out-of-band data on a TCP socket, or a pseudoterminal master in packet
+mode seeing state change in a slave.  In the absence of an exceptional
+condition, the value returned by 'proc' will be returned.
 
 The 'loop' argument is optional: this procedure operates on the event
 loop passed in as an argument, or if none is passed (or #f is passed),
@@ -311,21 +316,27 @@ This procedure is provided to implement write file watches using
 guile-2.2's suspendable ports.  'proc' is a procedure taking a single
 argument, to which the port will be passed when it is invoked, and is
 intended to use the port's normal write procedures.  'port' must be a
-suspendable non-blocking port.  'proc' will be executed whenever the
-port is available to write to, and this procedure will return when
-'proc' returns, as if by a blocking write.  The event loop will not be
-blocked by this procedure even if only individual characters or bytes
-comprising part characters can be written at any one time.  It is
-intended to be called within a waitable procedure invoked by a-sync
-(which supplies the 'await' and 'resume' arguments).  If an
-exceptional condition ('excpt) is encountered by the implementation,
-#f will be returned by this procedure and the write operations to be
-performed by 'proc' will be abandonned; there is however no guarantee
-that any exceptional condition that does arise will be encountered by
-the implementation - the user procedure 'proc' may get there first and
-deal with it, or it may not.  However exceptional conditions on write
-ports cannot normally occur.  In the absence of an exceptional
-condition, the value returned by 'proc' will be returned.
+suspendable non-blocking port.  This procedure will return when 'proc'
+returns, as if by blocking write operations.  However, the event loop
+will not be blocked by this procedure even if only individual
+characters or bytes comprising part characters can be written at any
+one time.  It is intended to be called within a waitable procedure
+invoked by a-sync (which supplies the 'await' and 'resume' arguments).
+'proc' must not itself explicitly apply 'await' and 'resume' as those
+are potentially in use by the suspendable port while 'proc' is
+executing, nor should 'proc' itself separately invoke the 'a-sync'
+procedure - the purpose of 'proc' is to carry out i/o operations on
+'port'.
+
+If an exceptional condition ('excpt) is encountered by the
+implementation, #f will be returned by this procedure and the write
+operations to be performed by 'proc' will be abandonned; there is
+however no guarantee that any exceptional condition that does arise
+will be encountered by the implementation - the user procedure 'proc'
+may get there first and deal with it, or it may not.  However
+exceptional conditions on write ports cannot normally occur.  In the
+absence of an exceptional condition, the value returned by 'proc' will
+be returned.
 
 The 'loop' argument is optional: this procedure operates on the event
 loop passed in as an argument, or if none is passed (or #f is passed),
