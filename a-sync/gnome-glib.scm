@@ -398,19 +398,18 @@
     (g-source-attach s context)))
 
 ;; 'proc' is a procedure taking a single argument, to which the port
-;; will be passed when it is invoked, and is intended to use the
-;; port's normal read procedures.  'port' must be a suspendable
-;; non-blocking port.  This procedure will return when 'proc' returns,
-;; as if by blocking read operations, with the value returned by
-;; 'proc'.  The glib event loop will not be blocked by this procedure
-;; even if only individual characters or bytes comprising part
-;; characters are available at any one time.  It is intended to be
-;; called in a waitable procedure invoked by a-sync (which supplies
-;; the 'await' and 'resume' arguments).  'proc' must not itself
-;; explicitly apply 'await' and 'resume' as those are potentially in
-;; use by the suspendable port while 'proc' is executing, nor should
-;; 'proc' itself separately invoke the 'a-sync' procedure - the
-;; purpose of 'proc' is to carry out i/o operations on 'port'.
+;; will be passed when it is invoked.  The purpose of 'proc' is to
+;; carry out i/o operations on 'port' using the port's normal read
+;; procedures.  'port' must be a suspendable non-blocking port.  This
+;; procedure will return when 'proc' returns, as if by blocking read
+;; operations, with the value returned by 'proc'.  However, the glib
+;; event loop will not be blocked by this procedure even if only
+;; individual characters or bytes comprising part characters are
+;; available at any one time.  It is intended to be called in a
+;; waitable procedure invoked by a-sync (which supplies the 'await'
+;; and 'resume' arguments).  'proc' must not itself explicitly apply
+;; 'await' and 'resume' as those are potentially in use by the
+;; suspendable port while 'proc' is executing.
 ;;
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the event loop runs.
@@ -501,19 +500,18 @@
 					     (next (get-u8 p)))))))))
 
 ;; 'proc' is a procedure taking a single argument, to which the port
-;; will be passed when it is invoked, and is intended to use the
-;; port's normal write procedures.  'port' must be a suspendable
-;; non-blocking port.  This procedure will return when 'proc' returns,
-;; as if by blocking write operations, with the value returned by
-;; 'proc'.  The glib event loop will not be blocked by this procedure
-;; even if only individual characters or bytes comprising part
-;; characters can be written at any one time.  It is intended to be
-;; called in a waitable procedure invoked by a-sync (which supplies
-;; the 'await' and 'resume' arguments).  'proc' must not itself
-;; explicitly apply 'await' and 'resume' as those are potentially in
-;; use by the suspendable port while 'proc' is executing, nor should
-;; 'proc' itself separately invoke the 'a-sync' procedure - the
-;; purpose of 'proc' is to carry out i/o operations on 'port'.
+;; will be passed when it is invoked.  The purpose of 'proc' is to
+;; carry out i/o operations on 'port' using the port's normal write
+;; procedures.  'port' must be a suspendable non-blocking port.  This
+;; procedure will return when 'proc' returns, as if by blocking write
+;; operations, with the value returned by 'proc'.  However, the glib
+;; event loop will not be blocked by this procedure even if only
+;; individual characters or bytes comprising part characters can be
+;; written at any one time.  It is intended to be called in a waitable
+;; procedure invoked by a-sync (which supplies the 'await' and
+;; 'resume' arguments).  'proc' must not itself explicitly apply
+;; 'await' and 'resume' as those are potentially in use by the
+;; suspendable port while 'proc' is executing.
 ;;
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the event loop runs.

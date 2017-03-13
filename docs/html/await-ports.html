@@ -85,19 +85,17 @@ procedures must be made non-blocking using fcntl as follows:
 <dt><a name="index-await_002dread_002dsuspendable_0021"></a>Scheme Procedure: <strong>await-read-suspendable!</strong> <em>await resume [loop] port proc</em></dt>
 <dd><p>This procedure is provided to implement read file watches using
 guile-2.2&rsquo;s suspendable ports.  &rsquo;proc&rsquo; is a procedure taking a single
-argument, to which the port will be passed when it is invoked, and is
-intended to use the port&rsquo;s normal read procedures.  &rsquo;port&rsquo; must be a
-suspendable non-blocking port.  This procedure will return when &rsquo;proc&rsquo;
-returns, as if by blocking read operations.  However, the event loop
-will not be blocked by this procedure even if only individual
-characters or bytes comprising part characters are available at any
-one time.  It is intended to be called within a waitable procedure
-invoked by a-sync (which supplies the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments).
-&rsquo;proc&rsquo; must not itself explicitly apply &rsquo;await&rsquo; and &rsquo;resume&rsquo; as those
-are potentially in use by the suspendable port while &rsquo;proc&rsquo; is
-executing, nor should &rsquo;proc&rsquo; itself separately invoke the &rsquo;a-sync&rsquo;
-procedure - the purpose of &rsquo;proc&rsquo; is to carry out i/o operations on
-&rsquo;port&rsquo;.
+argument, to which the port will be passed when it is invoked.  The
+purpose of &rsquo;proc&rsquo; is to carry out i/o operations on &rsquo;port&rsquo; using the
+port&rsquo;s normal read procedures.  &rsquo;port&rsquo; must be a suspendable
+non-blocking port.  This procedure will return when &rsquo;proc&rsquo; returns, as
+if by blocking read operations.  However, the event loop will not be
+blocked by this procedure even if only individual characters or bytes
+comprising part characters are available for reading at any one time.
+It is intended to be called within a waitable procedure invoked by
+a-sync (which supplies the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments).  &rsquo;proc&rsquo;
+must not itself explicitly apply &rsquo;await&rsquo; and &rsquo;resume&rsquo; as those are
+potentially in use by the suspendable port while &rsquo;proc&rsquo; is executing.
 </p>
 <p>If an exceptional condition (&rsquo;excpt) is encountered by the
 implementation, #f will be returned by this procedure and the read
@@ -376,19 +374,17 @@ further particulars about this procedure.
 <dt><a name="index-await_002dwrite_002dsuspendable_0021"></a>Scheme Procedure: <strong>await-write-suspendable!</strong> <em>await resume [loop] port proc</em></dt>
 <dd><p>This procedure is provided to implement write file watches using
 guile-2.2&rsquo;s suspendable ports.  &rsquo;proc&rsquo; is a procedure taking a single
-argument, to which the port will be passed when it is invoked, and is
-intended to use the port&rsquo;s normal write procedures.  &rsquo;port&rsquo; must be a
-suspendable non-blocking port.  This procedure will return when &rsquo;proc&rsquo;
-returns, as if by blocking write operations.  However, the event loop
-will not be blocked by this procedure even if only individual
-characters or bytes comprising part characters can be written at any
-one time.  It is intended to be called within a waitable procedure
-invoked by a-sync (which supplies the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments).
-&rsquo;proc&rsquo; must not itself explicitly apply &rsquo;await&rsquo; and &rsquo;resume&rsquo; as those
-are potentially in use by the suspendable port while &rsquo;proc&rsquo; is
-executing, nor should &rsquo;proc&rsquo; itself separately invoke the &rsquo;a-sync&rsquo;
-procedure - the purpose of &rsquo;proc&rsquo; is to carry out i/o operations on
-&rsquo;port&rsquo;.
+argument, to which the port will be passed when it is invoked.  The
+purpose of &rsquo;proc&rsquo; is to carry out i/o operations on &rsquo;port&rsquo; using the
+port&rsquo;s normal write procedures.  &rsquo;port&rsquo; must be a suspendable
+non-blocking port.  This procedure will return when &rsquo;proc&rsquo; returns, as
+if by blocking write operations.  However, the event loop will not be
+blocked by this procedure even if only individual characters or bytes
+comprising part characters can be written at any one time.  It is
+intended to be called within a waitable procedure invoked by a-sync
+(which supplies the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments).  &rsquo;proc&rsquo; must not
+itself explicitly apply &rsquo;await&rsquo; and &rsquo;resume&rsquo; as those are potentially
+in use by the suspendable port while &rsquo;proc&rsquo; is executing.
 </p>
 <p>If an exceptional condition (&rsquo;excpt) is encountered by the
 implementation, #f will be returned by this procedure and the write
