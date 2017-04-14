@@ -1,4 +1,4 @@
-@node await ports,monotonic time,event loop,Top
+@node await ports,thread pool,event loop,Top
 
 The (a-sync await-ports) module provides procedures for using
 guile-2.2's suspendable ports with event loops, and a convenient way
