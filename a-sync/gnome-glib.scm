@@ -43,8 +43,10 @@
   #:use-module (oop goops)             ;; for make
   #:use-module (ice-9 rdelim)          ;; for read-line
   #:use-module (ice-9 textual-ports)   ;; for put-string
+  #:use-module (ice-9 binary-ports)    ;; for get-u8
   #:use-module (ice-9 suspendable-ports)
   #:use-module (a-sync coroutines)     ;; for make-iterator
+  #:use-module (rnrs bytevectors)      ;; for bytevectors
   #:export (await-glib-task-in-thread
 	    await-glib-task
 	    await-glib-yield
