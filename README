@@ -55,9 +55,6 @@ because a unix-like compile environment is not available which is
 acceptable to the compile scripts), then configure with the
 --disable-compile-to-bytecode option.
 
-The code in the (a-sync gnome-glib) module has not yet been tested, as
-guile-2.2 does not at the time of writing support guile gnome.
-
 Documentation
 -------------
 
