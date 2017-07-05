@@ -36,6 +36,7 @@
 	    event-loop-tasks
 	    event-loop-block!
 	    event-loop-quit!
+	    event-loop-close!
 	    event-post!
 	    timeout-post!
 	    timeout-remove!
@@ -321,9 +322,13 @@
 ;; different from the thread which called make-event-loop, external
 ;; synchronization is required to ensure visibility.  If this
 ;; procedure has returned, including after a call to event-loop-quit!,
-;; this procedure may be called again to restart the event loop.  If a
-;; callback throws, or something else throws in the implementation,
-;; then this procedure will clean up the event loop as if
+;; this procedure may be called again to restart the event loop,
+;; provided event-loop-close! has not been applied to the loop.  If
+;; event-loop-close! has previously been invoked, this procedure will
+;; throw an 'event-loop-error exception.
+;;
+;; If something else throws in the implementation or a callback
+;; throws, then this procedure will clean up the event loop as if
 ;; event-loop-quit! had been called, and the exception will be
 ;; rethrown out of this procedure.
 (define* (event-loop-run! #:optional el)
@@ -335,17 +340,21 @@
 (define (_event-loop-run-impl! el)
   (define mutex (_mutex-get el))
   (define q (_q-get el))
-  (define event-in (_event-in-get el))
-  (define event-fd (fileno event-in))
+  (define event-in #f)
+  (define event-fd #f)
   (define read-files #f)
   (define read-files-actions #f)
   (define write-files #f)
   (define write-files-actions #f)
 
   (with-mutex mutex
+    (when (eq? (_done-get el) 'closed)
+      (throw 'event-loop-error
+	     "event-loop-run!"
+	     "event-loop-run! applied to an event loop which has been closed"))
+    (set! event-in (_event-in-get el))
+    (set! event-fd (fileno event-in))
     (_loop-thread-set! el (current-thread))
-    ;; in case event-loop-quit! was called after this procedure had
-    ;; previously returned
     (_done-set! el #f))
 
   (catch
@@ -466,9 +475,9 @@
 ;; event-loop-run!  The only things requiring protection by a mutex
 ;; are the q, done-set, event-out, num-tasks and loop-thread fields,
 ;; of the event loop object together with the read-files,
-;; read-files-actions, write-files and write-files-actions fields.
-;; However, for consistency we deal with all operations on the event
-;; pipe below via the mutex.
+;; read-files-actions, write-files and write-files-actions fields and
+;; port closing.  However, for consistency we deal with all operations
+;; on the event pipe below via the mutex.
 (define (_event-loop-reset! el)
   ;; the only foolproof way of vacating a unix pipe is to close it and
   ;; then create another one
@@ -479,19 +488,27 @@
 			  (close-port (_event-out-get el))))
     (close-port (_event-in-get el))
 
-    (let* ((event-pipe (pipe))
-	   (in (car event-pipe))
-	   (out (cdr event-pipe)))
-      (fcntl out F_SETFL (logior O_NONBLOCK
-				 (fcntl out F_GETFL)))
-      (_event-in-set! el in)
-      (_event-out-set! el out))
+    ;; we can enter this procedure with:
+    ;; - 'done' unset, in which case there has been an exception in
+    ;;   event-loop-run!
+    ;; - 'done' set to 'prepare-to-quit, in which case
+    ;;   event-loop-quit! has been called
+    ;; - 'done' set to 'closed, in which case event-loop-close! has
+    ;;   been called
+    (when (not (eq? (_done-get el) 'closed))
+      (_done-set! el 'quit)
+      (let* ((event-pipe (pipe))
+	     (in (car event-pipe))
+	     (out (cdr event-pipe)))
+	(fcntl out F_SETFL (logior O_NONBLOCK
+				   (fcntl out F_GETFL)))
+	(_event-in-set! el in)
+	(_event-out-set! el out)))
     (let ((q (_q-get el)))
       (let loop ()
 	(when (not (q-empty? q))
 	  (deq! q)
 	  (loop))))
-    (_done-set! el #f)
     (_num-tasks-set! el 0)
     (_loop-thread-set! el #f)
     (_read-files-set! el '())
@@ -531,17 +548,21 @@
     (when (not el) 
       (error "No default event loop set for call to event-loop-add-read-watch!"))
     (with-mutex (_mutex-get el)
-      (_read-files-set! el (cons file (delete! file (_read-files-get el) _file-equal?)))
-      (hashtable-set! (_read-files-actions-get el) (_fd-or-port->fd file) proc)
-      (let ((out (_event-out-get el)))
-	;; if the event pipe is full and an EAGAIN error arises, we
-	;; can just swallow it.  The only purpose of writing #\x is to
-	;; cause the select procedure to return and reloop to pick up
-	;; the new file watch list: blocking until writing becomes
-	;; available is wrong.
-	(_write-with-EAGAIN (lambda ()
-			      (write-char #\x out)
-			      (force-output out)))))))
+      ;; given the possible permutations, it is too violent to throw
+      ;; an exception at this point if the event loop has been closed:
+      ;; instead defer the exception to the call to event-loop-run!
+      (when (not (eq? (_done-get el) 'closed))
+	(_read-files-set! el (cons file (delete! file (_read-files-get el) _file-equal?)))
+	(hashtable-set! (_read-files-actions-get el) (_fd-or-port->fd file) proc)
+	(let ((out (_event-out-get el)))
+	  ;; if the event pipe is full and an EAGAIN error arises, we
+	  ;; can just swallow it.  The only purpose of writing #\x is
+	  ;; to cause the select procedure to return and reloop to
+	  ;; pick up the new file watch list: blocking until writing
+	  ;; becomes available is wrong.
+	  (_write-with-EAGAIN (lambda ()
+				(write-char #\x out)
+				(force-output out))))))))
 
 ;; The 'el' (event loop) argument is optional.  This procedure will
 ;; start a write watch in the event loop passed in as an argument, or
@@ -588,17 +609,21 @@
     (when (not el) 
       (error "No default event loop set for call to event-loop-add-write-watch!"))
     (with-mutex (_mutex-get el)
-      (_write-files-set! el (cons file (delete! file (_write-files-get el) _file-equal?)))
-      (hashtable-set! (_write-files-actions-get el) (_fd-or-port->fd file) proc)
-      (let ((out (_event-out-get el)))
-	;; if the event pipe is full and an EAGAIN error arises, we
-	;; can just swallow it.  The only purpose of writing #\x is to
-	;; cause the select procedure to return and reloop to pick up
-	;; the new file watch list: blocking until writing becomes
-	;; available is wrong.
-	(_write-with-EAGAIN (lambda ()
-			      (write-char #\x out)
-			      (force-output out)))))))
+      ;; given the possible permutations, it is too violent to throw
+      ;; an exception at this point if the event loop has been closed:
+      ;; instead defer the exception to the call to event-loop-run!
+      (when (not (eq? (_done-get el) 'closed))
+	(_write-files-set! el (cons file (delete! file (_write-files-get el) _file-equal?)))
+	(hashtable-set! (_write-files-actions-get el) (_fd-or-port->fd file) proc)
+	(let ((out (_event-out-get el)))
+	  ;; if the event pipe is full and an EAGAIN error arises, we
+	  ;; can just swallow it.  The only purpose of writing #\x is
+	  ;; to cause the select procedure to return and reloop to
+	  ;; pick up the new file watch list: blocking until writing
+	  ;; becomes available is wrong.
+	  (_write-with-EAGAIN (lambda ()
+				(write-char #\x out)
+				(force-output out))))))))
 
 ;; The 'el' (event loop) argument is optional.  This procedure will
 ;; remove a read watch from the event loop passed in as an argument,
@@ -607,21 +632,25 @@
 ;; is thread safe - any thread may remove a watch.  A file descriptor
 ;; and a port with the same underlying file descriptor compare equal
 ;; for the purposes of removal.
+;;
+;; This procedure should not throw an exception unless memory is
+;; exhausted.
 (define* (event-loop-remove-read-watch! file #:optional el)
   (let ((el (or el (get-default-event-loop))))
     (when (not el) 
       (error "No default event loop set for call to event-loop-remove-read-watch!"))
     (with-mutex (_mutex-get el)
-      (_remove-read-watch-impl! file el)
-      (let ((out (_event-out-get el)))
-	;; if the event pipe is full and an EAGAIN error arises, we
-	;; can just swallow it.  The only purpose of writing #\x is to
-	;; cause the select procedure to return and reloop to pick up
-	;; the new file watch list: blocking until writing becomes
-	;; available is wrong.
-	(_write-with-EAGAIN (lambda ()
-			      (write-char #\x out)
-			      (force-output out)))))))
+      (when (not (eq? (_done-get el) 'closed))
+	(_remove-read-watch-impl! file el)
+	(let ((out (_event-out-get el)))
+	  ;; if the event pipe is full and an EAGAIN error arises, we
+	  ;; can just swallow it.  The only purpose of writing #\x is
+	  ;; to cause the select procedure to return and reloop to
+	  ;; pick up the new file watch list: blocking until writing
+	  ;; becomes available is wrong.
+	  (_write-with-EAGAIN (lambda ()
+				(write-char #\x out)
+				(force-output out))))))))
 
 ;; The 'el' (event loop) argument is optional.  This procedure will
 ;; remove a write watch from the event loop passed in as an argument,
@@ -630,21 +659,25 @@
 ;; is thread safe - any thread may remove a watch.  A file descriptor
 ;; and a port with the same underlying file descriptor compare equal
 ;; for the purposes of removal.
+;;
+;; This procedure should not throw an exception unless memory is
+;; exhausted.
 (define* (event-loop-remove-write-watch! file #:optional el)
   (let ((el (or el (get-default-event-loop))))
     (when (not el) 
       (error "No default event loop set for call to event-loop-remove-write-watch!"))
     (with-mutex (_mutex-get el)
-      (_remove-write-watch-impl! file el)
-      (let ((out (_event-out-get el)))
-	;; if the event pipe is full and an EAGAIN error arises, we
-	;; can just swallow it.  The only purpose of writing #\x is to
-	;; cause the select procedure to return and reloop to pick up
-	;; the new file watch list: blocking until writing becomes
-	;; available is wrong.
-	(_write-with-EAGAIN (lambda ()
-			      (write-char #\x out)
-			      (force-output out)))))))
+      (when (not (eq? (_done-get el) 'closed))
+	(_remove-write-watch-impl! file el)
+	(let ((out (_event-out-get el)))
+	  ;; if the event pipe is full and an EAGAIN error arises, we
+	  ;; can just swallow it.  The only purpose of writing #\x is
+	  ;; to cause the select procedure to return and reloop to
+	  ;; pick up the new file watch list: blocking until writing
+	  ;; becomes available is wrong.
+	  (_write-with-EAGAIN (lambda ()
+				(write-char #\x out)
+				(force-output out))))))))
 
 ;; The 'el' (event loop) argument is optional.  This procedure will
 ;; post a callback for execution in the event loop passed in as an
@@ -668,19 +701,29 @@
   (let ((el (or el (get-default-event-loop))))
     (when (not el) 
       (error "No default event loop set for call to event-post!"))
-    (with-mutex (_mutex-get el)
-      (enq! (_q-get el) action)
-      (_num-tasks-set! el (1+ (_num-tasks-get el)))
-      (let ((out (_event-out-get el)))
-	;; if the event pipe is full and an EAGAIN error arises, we
-	;; can just swallow it.  The only purpose of writing #\x is to
-	;; cause the select procedure to return and reloop to pick up
-	;; any new entries in the event queue: blocking until writing
-	;; becomes available is wrong.
-	(_write-with-EAGAIN (lambda ()
-			      (write-char #\x out)
-			      (force-output out)))))
-    (_check-for-throttle el)))
+    ;; given the possible permutations, it is too violent to throw an
+    ;; exception at this point if the event loop has been closed:
+    ;; instead defer the exception to the call to event-loop-run!
+    (let ((closed
+	   (with-mutex (_mutex-get el)
+	     (if (eq? (_done-get el) 'closed)
+		 #t
+		 (begin
+		   (enq! (_q-get el) action)
+		   (_num-tasks-set! el (1+ (_num-tasks-get el)))
+		   (let ((out (_event-out-get el)))
+		     ;; if the event pipe is full and an EAGAIN error
+		     ;; arises, we can just swallow it.  The only
+		     ;; purpose of writing #\x is to cause the select
+		     ;; procedure to return and reloop to pick up any
+		     ;; new entries in the event queue: blocking until
+		     ;; writing becomes available is wrong.
+		     (_write-with-EAGAIN (lambda ()
+					   (write-char #\x out)
+					   (force-output out))))
+		   #f)))))
+      ;; _check-for-throttle must be called outside the mutex
+      (when (not closed) (_check-for-throttle el)))))
 
 ;; The 'el' (event loop) argument is optional.  This procedure adds a
 ;; timeout to the event loop passed in as an argument, or if none is
@@ -715,6 +758,9 @@
 ;; the timeout with the given tag from executing in the event loop
 ;; passed in as an argument, or if none is passed (or #f is passed),
 ;; in the default event loop.  It may be called by any thread.
+;;
+;; This procedure should not throw an exception unless memory is
+;; exhausted.
 (define* (timeout-remove! tag #:optional el)
   (let ((el (or el (get-default-event-loop))))
     (when (not el) 
@@ -761,47 +807,120 @@
 ;; call this procedure.  The 'el' (event loop) argument is optional:
 ;; this procedure operates on the event loop passed in as an argument,
 ;; or if none is passed (or #f is passed), on the default event loop.
+;;
+;; This procedure should not throw an exception unless memory is
+;; exhausted.
 (define* (event-loop-block! val #:optional el)
   (let ((el (or el (get-default-event-loop))))
     (when (not el) 
       (error "No default event loop set for call to event-loop-block!"))
     (with-mutex (_mutex-get el)
-      (let ((old-val (_block-get el)))
-	(_block-set! el (not (not val)))
-	(when (and old-val (not val))
-	  (let ((out (_event-out-get el)))
-	    ;; if the event pipe is full and an EAGAIN error arises,
-	    ;; we can just swallow it.  The only purpose of writing
-	    ;; #\x is to cause the select procedure to return and
-	    ;; reloop and then exit the event loop if there are no
-	    ;; further events: blocking until writing becomes
-	    ;; available is wrong.
-	    (_write-with-EAGAIN (lambda ()
-				  (write-char #\x out)
-				  (force-output out)))))))))
+      ;; given the possible permutations, it is too violent to throw
+      ;; an exception at this point if the event loop has been
+      ;; closed: instead defer the exception to the call to
+      ;; event-loop-run!
+      (when (not (eq? (_done-get el) 'closed))
+	(let ((old-val (_block-get el)))
+	  (_block-set! el (not (not val)))
+	  (when (and old-val (not val))
+	    (let ((out (_event-out-get el)))
+	      ;; if the event pipe is full and an EAGAIN error arises,
+	      ;; we can just swallow it.  The only purpose of writing
+	      ;; #\x is to cause the select procedure to return and
+	      ;; reloop and then exit the event loop if there are no
+	      ;; further events: blocking until writing becomes
+	      ;; available is wrong.
+	      (_write-with-EAGAIN (lambda ()
+				    (write-char #\x out)
+				    (force-output out))))))))))
 
 ;; This procedure causes an event loop to unblock.  Any events
 ;; remaining in the event loop will be discarded.  New events may
 ;; subsequently be added after event-loop-run! has unblocked and
 ;; event-loop-run! then called for them.  This is thread safe - any
-;; thread may call this procedure.  The 'el' (event loop) argument is
+;; thread may call this procedure, including any callback or task
+;; running on the event loop.  The 'el' (event loop) argument is
 ;; optional: this procedure operates on the event loop passed in as an
 ;; argument, or if none is passed (or #f is passed), on the default
 ;; event loop.
+;;
+;; This procedure should not throw an exception unless memory is
+;; exhausted.
 (define* (event-loop-quit! #:optional el)
   (let ((el (or el (get-default-event-loop))))
     (when (not el) 
       (error "No default event loop set for call to event-loop-quit!"))
     (with-mutex (_mutex-get el)
-      (_done-set! el #t)
-      (let ((out (_event-out-get el)))
-	;; if the event pipe is full and an EAGAIN error arises, we
-	;; can just swallow it.  The only purpose of writing #\x is to
-	;; cause the select procedure to return: blocking until
-	;; writing becomes available is wrong.
-	(_write-with-EAGAIN (lambda ()
-			      (write-char #\x out)
-			      (force-output out)))))))
+      ;; given the possible permutations, it is too violent to throw
+      ;; an exception at this point if the event loop has been
+      ;; closed: instead defer the exception to the call to
+      ;; event-loop-run!
+      (when (not (eq? (_done-get el) 'closed))
+	(_done-set! el 'prepare-to-quit)
+	(let ((out (_event-out-get el)))
+	  ;; if the event pipe is full and an EAGAIN error arises, we
+	  ;; can just swallow it.  The only purpose of writing #\x is
+	  ;; to cause the select procedure to return: blocking until
+	  ;; writing becomes available is wrong.
+	  (_write-with-EAGAIN (lambda ()
+				(write-char #\x out)
+				(force-output out))))))))
+
+;; This procedure closes an event loop.  Like event-loop-quit!, if the
+;; loop is still running it causes the event loop to unblock, and any
+;; events remaining in the event loop will be discarded.  However,
+;; unlike event-loop-quit!, it also closes the internal event pipe
+;; ports, and any subsequent application of event-loop-run! to the
+;; event loop will cause an 'event-loop-error exception to be thrown.
+;;
+;; You might want to call this procedure to ensure that, after an
+;; event loop in a local scope has been finished with, the two
+;; internal event pipe file descriptors used by the loop are released
+;; to the operating system in advance of the garbage collector being
+;; called on it when it becomes inaccessible.
+;;
+;; This is thread safe - any thread may call this procedure, including
+;; any callback or task running on the event loop.  The 'el' (event
+;; loop) argument is optional: this procedure operates on the event
+;; loop passed in as an argument, or if none is passed (or #f is
+;; passed), on the default event loop.
+;;
+;; This procedure should not throw an exception unless memory is
+;; exhausted.
+;;
+;; This procedure is first available in version 0.13 of this library.
+(define* (event-loop-close! #:optional el)
+  (let ((el (or el (get-default-event-loop))))
+    (when (not el) 
+      (error "No default event loop set for call to event-loop-close!"))
+    (with-mutex (_mutex-get el)
+      (let ((status (_done-get el)))
+	(cond
+	 ((eq? status 'closed)
+	  ;; this procedure applied before
+	  #f)
+	 ((eq? status 'quit)
+	  ;; loop no longer running - just close the pipe ports
+	  (_done-set! el 'closed)
+	  ;; discard any EAGAIN exception when flushing the output
+	  ;; buffer of a fully filled pipe on closing
+	  (_write-with-EAGAIN (lambda ()
+				(close-port (_event-out-get el))))
+	  (close-port (_event-in-get el)))
+	 ((eq? status 'prepare-to-quit)
+	  ;; loop still running but event-loop-quit! already called
+	  ;; and event-loop-reset! about to execute
+	  (_done-set! el 'closed))
+	 (else
+	  ;; loop still running normally
+	  (_done-set! el 'closed)
+	  ;; if the event pipe is full and an EAGAIN error arises, we can
+	  ;; just swallow it.  The only purpose of writing #\x is to cause
+	  ;; the select procedure to return
+	  (let ((out (_event-out-get el)))
+	    (_write-with-EAGAIN (lambda ()
+				  (write-char #\x out)
+				  (force-output out))))))))))
 
 ;; This is a convenience procedure whose signature is:
 ;;
@@ -1187,7 +1306,7 @@
 ;; out of the event-loop-run! procedure called for the 'worker' event
 ;; loop.  Exceptions arising during the execution of 'proc', if not
 ;; caught locally, will propagate out of the event-loop-run! procedure
-;; called for the 'waiter' or default event loop (as the case may be).
+;; called for the 'waiter' or default event loop, as the case may be.
 ;;
 ;; This procedure is first available in version 0.4 of this library.
 (define await-generator-in-event-loop!
@@ -1257,8 +1376,8 @@
 ;; setting up (that is, before the task starts), which shouldn't
 ;; happen unless memory is exhausted.  Exceptions arising during
 ;; execution of the generator, if not caught locally, will propagate
-;; out of await-generator!.  Exceptions thrown by 'proc', if not
-;; caught locally, will propagate out of event-loop-run!.
+;; out of event-loop-run!.  Exceptions thrown by 'proc', if not caught
+;; locally, will propagate out of event-loop-run!.
 ;;
 ;; This procedure is first available in version 0.4 of this library.
 (define await-generator!
