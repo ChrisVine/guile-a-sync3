@@ -94,7 +94,10 @@
      (define (read-waiter p)
        (when (not watch-installed)
 	 (set! watch-installed #t)
-	 (event-loop-add-read-watch! port
+	 ;; we can establish the watch on the file descriptor rather
+	 ;; than the port, because what we need to know (if a read has
+	 ;; failed) is whether the file descriptor has become ready
+	 (event-loop-add-read-watch! (port->fdes port)
 				     (lambda (status)
 				       (if (eq? status 'except)
 					   (resume 'except)
@@ -115,11 +118,13 @@
 		   #f
 		   (begin
 		     (when watch-installed
-		       (event-loop-remove-read-watch! port loop))
+		       (event-loop-remove-read-watch! (fileno port) loop)
+		       (release-port-handle port))
 		     (apply throw args)))))))
        (lambda args
 	 (when watch-installed
-	   (event-loop-remove-read-watch! port loop))
+	   (event-loop-remove-read-watch! (fileno port) loop)
+	   (release-port-handle port))
 	 (apply values args))))))
      
 ;; This procedure is provided mainly to retain compatibility with the
@@ -424,15 +429,9 @@
 ;; 'proc' may get there first and deal with it, or it may not.
 ;; However exceptional conditions on write ports cannot normally
 ;; occur.  In the absence of an exceptional condition, the value(s)
-;; returned by 'proc' will be returned.
-
-;; Prior to version 0.14, 'proc' could only return a single value.
-;; From version 0.14, 'proc' may return any number of values.  (Note
-;; however that there appears to be a possible optimizer bug in
-;; guile-2.2 such that if the last expression in 'proc' is a flush
-;; with force-output or flush-output-port, the flush can be optimized
-;; incorrectly, provoking a hang, unless followed by another
-;; expression such as #f or #t.)
+;; returned by 'proc' will be returned.  Prior to version 0.14, 'proc'
+;; could only return a single value.  From version 0.14, 'proc' may
+;; return any number of values.
 ;;
 ;; The 'loop' argument is optional: this procedure operates on the
 ;; event loop passed in as an argument, or if none is passed (or #f is
@@ -453,7 +452,11 @@
      (define (write-waiter p)
        (when (not watch-installed)
 	 (set! watch-installed #t)
-	 (event-loop-add-write-watch! port
+	 ;; establish the watch on the file descriptor not the port,
+	 ;; so that buffering is not taken into account (when flushing
+	 ;; we should only take account of whether the file descriptor
+	 ;; is ready)
+	 (event-loop-add-write-watch! (port->fdes port)
 				      (lambda (status)
 					(if (eq? status 'except)
 					    (resume 'except)
@@ -474,11 +477,13 @@
 		   #f
 		   (begin
 		     (when watch-installed
-		       (event-loop-remove-write-watch! port loop))
+		       (event-loop-remove-write-watch! (fileno port) loop)
+		       (release-port-handle port))
 		     (apply throw args)))))))
        (lambda args
 	 (when watch-installed
-	   (event-loop-remove-write-watch! port loop))
+	   (event-loop-remove-write-watch! (fileno port) loop)
+	   (release-port-handle port))
 	 (apply values args))))))
 
 ;; This procedure is provided mainly to retain compatibility with the
@@ -498,7 +503,7 @@
 ;; cannot normally occur.
 ;;
 ;; The port will be flushed by this procedure upon conclusion of the
-;; writing of the string.
+;; writing of the bytevector.
 ;;
 ;; See the documentation on the await-write-suspendable! procedure for
 ;; further particulars about this procedure.

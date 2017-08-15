@@ -99,13 +99,7 @@
 			       (lambda (s)
 				 (connect s addr)
 				 (write-request request s)
-				 (force-output s)
-				 ;; there seems to be an optimizer bug
-				 ;; in guile-2.2 such that the flush
-				 ;; above can perform incorrectly
-				 ;; (hanging sometimes) unless
-				 ;; followed by another expression
-				 #f))
+				 (force-output s)))
      (call-with-values
 	 (lambda ()
 	   (await-read-response await resume sock))

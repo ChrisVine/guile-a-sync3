@@ -1667,15 +1667,9 @@ procedures must be made non-blocking using fcntl as follows:
      'proc' may get there first and deal with it, or it may not.
      However exceptional conditions on write ports cannot normally
      occur.  In the absence of an exceptional condition, the value(s)
-     returned by 'proc' will be returned.
-
-     Prior to version 0.14, 'proc' could only return a single value.
-     From version 0.14, 'proc' may return any number of values.  (Note
-     however that there appears to be a possible optimizer bug in
-     guile-2.2 such that if the last expression in 'proc' is a flush
-     with force-output or flush-output-port, the flush can be optimized
-     incorrectly, provoking a hang, unless followed by another
-     expression such as #f or #t.)
+     returned by 'proc' will be returned.  Prior to version 0.14, 'proc'
+     could only return a single value.  From version 0.14, 'proc' may
+     return any number of values.
 
      The 'loop' argument is optional: this procedure operates on the
      event loop passed in as an argument, or if none is passed (or #f is
@@ -1721,7 +1715,7 @@ procedures must be made non-blocking using fcntl as follows:
      cannot normally occur.
 
      The port will be flushed by this procedure upon conclusion of the
-     writing of the string.
+     writing of the bytevector.
 
      See the documentation on the await-write-suspendable!  procedure
      for further particulars about this procedure.
@@ -3311,10 +3305,10 @@ Node: overview1433
 Node: coroutines4737
 Node: event loop23129
 Node: await ports69153
-Node: thread pool95463
-Node: monotonic time116888
-Node: gnome glib118324
-Node: compose146600
-Node: meeting154472
+Node: thread pool95156
+Node: monotonic time116581
+Node: gnome glib118017
+Node: compose146293
+Node: meeting154165
 
 End Tag Table
