@@ -51,7 +51,9 @@ may get there first and deal with it, or it may not.  However
 exceptional conditions are very rare, usually comprising only
 out-of-band data on a TCP socket, or a pseudoterminal master in packet
 mode seeing state change in a slave.  In the absence of an exceptional
-condition, the value returned by 'proc' will be returned.
+condition, the value(s) returned by 'proc' will be returned.  Prior to
+version 0.14, 'proc' could only return a single value.  From version
+0.14, 'proc' may return multiple values.
 
 The 'loop' argument is optional: this procedure operates on the event
 loop passed in as an argument, or if none is passed (or #f is passed),
@@ -331,8 +333,9 @@ however no guarantee that any exceptional condition that does arise
 will be encountered by the implementation - the user procedure 'proc'
 may get there first and deal with it, or it may not.  However
 exceptional conditions on write ports cannot normally occur.  In the
-absence of an exceptional condition, the value returned by 'proc' will
-be returned.
+absence of an exceptional condition, the value(s) returned by 'proc'
+will be returned.  Prior to version 0.14, 'proc' could only return a
+single value.  From version 0.14, 'proc' may return multiple values.
 
 The 'loop' argument is optional: this procedure operates on the event
 loop passed in as an argument, or if none is passed (or #f is passed),

@@ -71,8 +71,9 @@
 ;; However exceptional conditions are very rare, usually comprising
 ;; only out-of-band data on a TCP socket, or a pseudoterminal master
 ;; in packet mode seeing state change in a slave.  In the absence of
-;; an exceptional condition, the value returned by 'proc' will be
-;; returned.
+;; an exceptional condition, the value(s) returned by 'proc' will be
+;; returned.  Prior to version 0.14, 'proc' could only return a single
+;; value.  From version 0.14, 'proc' may return multiple values.
 ;;
 ;; The 'loop' argument is optional: this procedure operates on the
 ;; event loop passed in as an argument, or if none is passed (or #f is
@@ -103,21 +104,23 @@
        ;;(display "Awaiting\n")
        (when (eq? (await) 'except)
 	 (throw 'except)))
-     (let ((res
-	    (parameterize ((current-read-waiter read-waiter))
-	      (catch #t
-		(lambda ()
-		  (proc port))
-		(lambda args
-		  (if (eq? (car args) 'except)
-		      #f
-		      (begin
-			(when watch-installed
-			  (event-loop-remove-read-watch! port loop))
-			(apply throw args))))))))
-       (when watch-installed
-	 (event-loop-remove-read-watch! port loop))
-       res))))
+     (call-with-values
+       (lambda ()
+	 (parameterize ((current-read-waiter read-waiter))
+	   (catch #t
+	     (lambda ()
+	       (proc port))
+	     (lambda args
+	       (if (eq? (car args) 'except)
+		   #f
+		   (begin
+		     (when watch-installed
+		       (event-loop-remove-read-watch! port loop))
+		     (apply throw args)))))))
+       (lambda args
+	 (when watch-installed
+	   (event-loop-remove-read-watch! port loop))
+	 (apply values args))))))
      
 ;; This procedure is provided mainly to retain compatibility with the
 ;; guile-a-sync library for guile-2.0, because it is trivial to
@@ -420,8 +423,10 @@
 ;; will be encountered by the implementation - the user procedure
 ;; 'proc' may get there first and deal with it, or it may not.
 ;; However exceptional conditions on write ports cannot normally
-;; occur.  In the absence of an exceptional condition, the value
-;; returned by 'proc' will be returned.
+;; occur.  In the absence of an exceptional condition, the value(s)
+;; returned by 'proc' will be returned.  Prior to version 0.14, 'proc'
+;; could only return a single value.  From version 0.14, 'proc' may
+;; return multiple values.
 ;;
 ;; The 'loop' argument is optional: this procedure operates on the
 ;; event loop passed in as an argument, or if none is passed (or #f is
@@ -452,21 +457,23 @@
        ;;(display "Awaiting\n")
        (when (eq? (await) 'except)
 	 (throw 'except)))
-     (let ((res
-	    (parameterize ((current-write-waiter write-waiter))
-	      (catch #t
-		(lambda ()
-		  (proc port))
-		(lambda args
-		  (if (eq? (car args) 'except)
-		      #f
-		      (begin
-			(when watch-installed
-			  (event-loop-remove-write-watch! port loop))
-			(apply throw args))))))))
-       (when watch-installed
-	 (event-loop-remove-write-watch! port loop))
-       res))))
+     (call-with-values
+       (lambda ()
+	 (parameterize ((current-write-waiter write-waiter))
+	   (catch #t
+	     (lambda ()
+	       (proc port))
+	     (lambda args
+	       (if (eq? (car args) 'except)
+		   #f
+		   (begin
+		     (when watch-installed
+		       (event-loop-remove-write-watch! port loop))
+		     (apply throw args)))))))
+       (lambda args
+	 (when watch-installed
+	   (event-loop-remove-write-watch! port loop))
+	 (apply values args))))))
 
 ;; This procedure is provided mainly to retain compatibility with the
 ;; guile-a-sync library for guile-2.0, because it is trivial to
