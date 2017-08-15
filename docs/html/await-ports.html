@@ -108,7 +108,7 @@ out-of-band data on a TCP socket, or a pseudoterminal master in packet
 mode seeing state change in a slave.  In the absence of an exceptional
 condition, the value(s) returned by &rsquo;proc&rsquo; will be returned.  Prior to
 version 0.14, &rsquo;proc&rsquo; could only return a single value.  From version
-0.14, &rsquo;proc&rsquo; may return multiple values.
+0.14, &rsquo;proc&rsquo; may return any number of values.
 </p>
 <p>The &rsquo;loop&rsquo; argument is optional: this procedure operates on the event
 loop passed in as an argument, or if none is passed (or #f is passed),
@@ -396,8 +396,14 @@ will be encountered by the implementation - the user procedure &rsquo;proc&rsquo
 may get there first and deal with it, or it may not.  However
 exceptional conditions on write ports cannot normally occur.  In the
 absence of an exceptional condition, the value(s) returned by &rsquo;proc&rsquo;
-will be returned.  Prior to version 0.14, &rsquo;proc&rsquo; could only return a
-single value.  From version 0.14, &rsquo;proc&rsquo; may return multiple values.
+will be returned.
+</p>
+<p>Prior to version 0.14, &rsquo;proc&rsquo; could only return a single value.  From
+version 0.14, &rsquo;proc&rsquo; may return any number of values.  (Note however
+that there appears to be a possible optimizer bug in guile-2.2 such
+that if the last expression in &rsquo;proc&rsquo; is a flush with force-output or
+flush-output-port, the flush can be optimized incorrectly, provoking a
+hang, unless followed by another expression such as #f or #t.)
 </p>
 <p>The &rsquo;loop&rsquo; argument is optional: this procedure operates on the event
 loop passed in as an argument, or if none is passed (or #f is passed),
