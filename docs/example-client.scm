@@ -1,7 +1,7 @@
 #!/usr/bin/env guile
 !#
 
-;; Copyright (C) 2016 Chris Vine
+;; Copyright (C) 2016 and 2017 Chris Vine
 ;;
 ;; Permission is hereby granted, free of charge, to any person
 ;; obtaining a copy of this file (the "Software"), to deal in the
@@ -28,9 +28,9 @@
 ;; This is an example file for using asynchronous reads and writes on
 ;; sockets.  It will provide the caller's IPv4 internet address from
 ;; myip.dnsdynamic.org.  Normally if you wanted to do this from a
-;; utility script, you would do it synchronously using guile's built
-;; in web support module.  However in a program using an event loop,
-;; you would need to do it asynchronously.  This does so.
+;; utility script, you would do it synchronously.  However in a
+;; program using an event loop, you would need to do it
+;; asynchronously.  This does so.
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -38,33 +38,33 @@
 (use-modules
  (a-sync coroutines)
  (a-sync event-loop)
- (a-sync await-ports))
+ (a-sync await-ports)
+ (ice-9 textual-ports)
+ (web request)
+ (web uri))
 
 (define check-ip "myip.dnsdynamic.org")
 
+;; unfortunately the read-response-body procedure in guile's (web
+;; response) module calls get-bytevector-all, which is not
+;; suspendable, so we have to write our own waitable procedure to read
+;; the response instead - get-line and get-string-all are suspendable.
+;; This procedure returns two values, first the header and second the
+;; body.
 (define (await-read-response await resume sock)
-  (define header "")
-  (define body "")
-  (await-geteveryline! await resume sock
-		       (lambda (line)
-			 ;; get rid of CR characters at line endings
-			 (let ((trimmed (string-trim-right line #\cr)))
-			   (cond
-			    ((not (string=? body ""))
-			     (set! body (string-append body "\n" trimmed)))
-			    ((string=? trimmed "")
-			     (set! body (string (integer->char 0)))) ;; marker
-			    (else
-			     (set! header (if (string=? header "")
-					      trimmed
-					      (string-append header "\n" trimmed))))))))
-  ;; get rid of marker (with \n) in body
-  (set! body (substring body 2 (string-length body)))
-  (values header body))
-
-(define (await-send-get-request await resume host path sock)
-  (await-put-string! await resume sock
-  		     (string-append "GET " path " HTTP/1.1\r\nHost: " host "\r\nConnection: close\r\n\r\n")))
+  (await-read-suspendable! await resume sock
+			   (lambda (s)
+			     (let lp ((header ""))
+			       (let ((line (get-line s)))
+				 (if (eof-object? line)
+				     (values header "")
+				     (let ((line (string-trim-right line #\cr)))
+				       (if (string=? line "")
+					   (let ((body (get-string-all s)))
+					     (values header body))
+					   (lp (if (string=? header "")
+						   line
+						   (string-append header "\n" line)))))))))))
 
 (set-default-event-loop!)
 (sigaction SIGPIPE SIG_IGN) ;; we want EPIPE, not SIGPIPE
@@ -72,22 +72,40 @@
 (a-sync
  (lambda (await resume)
    (let ((sock (socket PF_INET SOCK_STREAM 0))
-	 ;; getaddrinfo can block, so call it up with
+	 (request (build-request (build-uri 'http 
+					    #:host check-ip
+					    #:port 80
+					    #:path "/")))
+	 ;; getaddrinfo is not suspendable, so call it up with
 	 ;; await-task-in-thread!, await-task-in-event-loop! or
 	 ;; await-task-in-thread-pool!
 	 (addr (await-task-in-thread! await resume
 				      (lambda ()
 					(addrinfo:addr (car (getaddrinfo check-ip "http")))))))
+
      ;; make socket non-blocking
      (fcntl sock F_SETFL (logior O_NONBLOCK
-				     (fcntl sock F_GETFL)))
+				 (fcntl sock F_GETFL)))
      ;; socket ports are unbuffered by default, so make the socket
      ;; buffered (as this is a socket, with no file position pointer,
-     ;; keeping port buffers synchronized is not an issue, and
-     ;; await-put-string! flushes the buffer for us when sending)
+     ;; keeping port buffers synchronized is not an issue, and we
+     ;; flush the buffer when sending)
      (setvbuf sock 'block)
-     (await-connect! await resume sock addr)
-     (await-send-get-request await resume check-ip "/" sock)
+
+     ;; the connect and force-output procedures are suspendable in
+     ;; guile-2.2, as is write-request if no custom header writers
+     ;; are imported which invoke non-suspendable i/o
+     (await-write-suspendable! await resume sock
+			       (lambda (s)
+				 (connect s addr)
+				 (write-request request s)
+				 (force-output s)
+				 ;; there seems to be an optimizer bug
+				 ;; in guile-2.2 such that the flush
+				 ;; above can perform incorrectly
+				 ;; (hanging sometimes) unless
+				 ;; followed by another expression
+				 #f))
      (call-with-values
 	 (lambda ()
 	   (await-read-response await resume sock))
