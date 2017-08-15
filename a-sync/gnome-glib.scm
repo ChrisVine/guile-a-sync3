@@ -413,6 +413,9 @@
 ;; 'await' and 'resume' as those are potentially in use by the
 ;; suspendable port while 'proc' is executing.
 ;;
+;; Prior to version 0.14, 'proc' could only return a single value.
+;; From version 0.14, 'proc' may return any number of values.
+;;
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the event loop runs.
 ;;
@@ -434,20 +437,22 @@
 				 (resume)
 				 #t))))
     (await))
-  (let ((res
-	 (parameterize ((current-read-waiter read-waiter))
-	   (catch #t
-	     (lambda ()
-	       (proc port))
-	     (lambda args
-	       (when id
-		 (g-source-remove id)
-		 (release-port-handle port))
-	       (apply throw args))))))
-    (when id
-      (g-source-remove id)
-      (release-port-handle port))
-    res))
+  (call-with-values
+    (lambda ()
+      (parameterize ((current-read-waiter read-waiter))
+	(catch #t
+	  (lambda ()
+	    (proc port))
+	  (lambda args
+	    (when id
+	      (g-source-remove id)
+	      (release-port-handle port))
+	    (apply throw args)))))
+    (lambda args
+      (when id
+	(g-source-remove id)
+	(release-port-handle port))
+      (apply values args))))
 
 ;; This procedure is provided mainly to retain compatibility with the
 ;; guile-a-sync library for guile-2.0, because it is trivial to
@@ -515,6 +520,9 @@
 ;; 'await' and 'resume' as those are potentially in use by the
 ;; suspendable port while 'proc' is executing.
 ;;
+;; Prior to version 0.14, 'proc' could only return a single value.
+;; From version 0.14, 'proc' may return any number of values.
+;;
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the event loop runs.
 ;;
@@ -536,20 +544,22 @@
 				 (resume)
 				 #t))))
     (await))
-  (let ((res
-	 (parameterize ((current-write-waiter write-waiter))
-	   (catch #t
-	     (lambda ()
-	       (proc port))
-	     (lambda args
-	       (when id
-		 (g-source-remove id)
-		 (release-port-handle port))
-	       (apply throw args))))))
-    (when id
-      (g-source-remove id)
-      (release-port-handle port))
-    res))
+  (call-with-values
+    (lambda ()
+      (parameterize ((current-write-waiter write-waiter))
+	(catch #t
+	  (lambda ()
+	    (proc port))
+	  (lambda args
+	    (when id
+	      (g-source-remove id)
+	      (release-port-handle port))
+	    (apply throw args)))))
+    (lambda args
+      (when id
+	(g-source-remove id)
+	(release-port-handle port))
+      (apply values args))))
 
 ;; This procedure is provided mainly to retain compatibility with the
 ;; guile-a-sync library for guile-2.0, because it is trivial to

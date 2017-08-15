@@ -468,6 +468,9 @@ supplies the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments).  &rsquo;pr
 explicitly apply &rsquo;await&rsquo; and &rsquo;resume&rsquo; as those are potentially in use
 by the suspendable port while &rsquo;proc&rsquo; is executing.
 </p>
+<p>Prior to version 0.14, &rsquo;proc&rsquo; could only return a single value.  From
+version 0.14, &rsquo;proc&rsquo; may return any number of values.
+</p>
 <p>This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the event loop runs.
 </p>
@@ -554,6 +557,9 @@ is intended to be called in a waitable procedure invoked by a-sync
 (which supplies the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments).  &rsquo;proc&rsquo; must not
 itself explicitly apply &rsquo;await&rsquo; and &rsquo;resume&rsquo; as those are potentially
 in use by the suspendable port while &rsquo;proc&rsquo; is executing.
+</p>
+<p>Prior to version 0.14, &rsquo;proc&rsquo; could only return a single value.  From
+version 0.14, &rsquo;proc&rsquo; may return any number of values.
 </p>
 <p>This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the event loop runs.

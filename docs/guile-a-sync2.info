@@ -2669,6 +2669,9 @@ procedures must be made non-blocking using fcntl as follows:
      'await' and 'resume' as those are potentially in use by the
      suspendable port while 'proc' is executing.
 
+     Prior to version 0.14, 'proc' could only return a single value.
+     From version 0.14, 'proc' may return any number of values.
+
      This procedure must (like the a-sync procedure) be called in the
      same thread as that in which the event loop runs.
 
@@ -2747,6 +2750,9 @@ procedures must be made non-blocking using fcntl as follows:
      'resume' arguments).  'proc' must not itself explicitly apply
      'await' and 'resume' as those are potentially in use by the
      suspendable port while 'proc' is executing.
+
+     Prior to version 0.14, 'proc' could only return a single value.
+     From version 0.14, 'proc' may return any number of values.
 
      This procedure must (like the a-sync procedure) be called in the
      same thread as that in which the event loop runs.
@@ -3308,7 +3314,7 @@ Node: await ports69153
 Node: thread pool95156
 Node: monotonic time116581
 Node: gnome glib118017
-Node: compose146293
-Node: meeting154165
+Node: compose146561
+Node: meeting154433
 
 End Tag Table
