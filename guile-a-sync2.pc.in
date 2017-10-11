@@ -6,3 +6,4 @@ includedir=@includedir@
 Name: guile-a-sync2
 Description: Event loop and coroutine interface for guile-2.2
 Version: @VERSION@
+Requires: guile-2.2
