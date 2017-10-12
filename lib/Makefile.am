@@ -8,4 +8,4 @@ AM_CFLAGS = @GUILE_CFLAGS@ -I..
 
 libguile_a_sync2_0_la_LIBADD = @GUILE_LIBS@
 
-libguile_a_sync2_0_la_LDFLAGS = -version-info @GUILE_A_SYNC2_SO_VERSION@
+libguile_a_sync2_0_la_LDFLAGS = -shared -version-info @GUILE_A_SYNC2_SO_VERSION@
