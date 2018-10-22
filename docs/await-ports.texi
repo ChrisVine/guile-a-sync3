@@ -1,9 +1,9 @@
 @node await ports,thread pool,event loop,Top
 
 The (a-sync await-ports) module provides procedures for using
-guile-2.2's suspendable ports with event loops, and a convenient way
-of using ports' normal input and output procedures with non-blocking
-ports.
+guile-2.2/3.0's suspendable ports with event loops, and a convenient
+way of using ports' normal input and output procedures with
+non-blocking ports.
 
 For this purpose, the 'normal input and output' procedures which may
 be used with await-read-suspendable! and await-write-suspendable!
@@ -29,10 +29,10 @@ procedures must be made non-blocking using fcntl as follows:
 
 @deffn {Scheme Procedure} await-read-suspendable! await resume [loop] port proc
 This procedure is provided to implement read file watches using
-guile-2.2's suspendable ports.  'proc' is a procedure taking a single
-argument, to which the port will be passed when it is invoked.  The
-purpose of 'proc' is to carry out i/o operations on 'port' using the
-port's normal read procedures.  'port' must be a suspendable
+guile-2.2/3.0's suspendable ports.  'proc' is a procedure taking a
+single argument, to which the port will be passed when it is invoked.
+The purpose of 'proc' is to carry out i/o operations on 'port' using
+the port's normal read procedures.  'port' must be a suspendable
 non-blocking port.  This procedure will return when 'proc' returns, as
 if by blocking read operations.  However, the event loop will not be
 blocked by this procedure even if only individual characters or bytes
@@ -313,10 +313,10 @@ This procedure is first available in version 0.6 of this library.
 
 @deffn {Scheme Procedure} await-write-suspendable! await resume [loop] port proc
 This procedure is provided to implement write file watches using
-guile-2.2's suspendable ports.  'proc' is a procedure taking a single
-argument, to which the port will be passed when it is invoked.  The
-purpose of 'proc' is to carry out i/o operations on 'port' using the
-port's normal write procedures.  'port' must be a suspendable
+guile-2.2/3.0's suspendable ports.  'proc' is a procedure taking a
+single argument, to which the port will be passed when it is invoked.
+The purpose of 'proc' is to carry out i/o operations on 'port' using
+the port's normal write procedures.  'port' must be a suspendable
 non-blocking port.  This procedure will return when 'proc' returns, as
 if by blocking write operations.  However, the event loop will not be
 blocked by this procedure even if only individual characters or bytes

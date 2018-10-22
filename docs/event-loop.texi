@@ -29,13 +29,14 @@ select() applied to sockets can give rise to spurious wake-ups, which
 means that it may be best with sockets to set the socket as
 non-blocking using the guile wrapper for the fcntl() system call in
 order to prevent a blocking read where it is not expected.  With
-guile-2.2 this means that with such sockets, suspendable ports should
-be used with the await-read-suspendable! or await-write-suspendable!
-procedures in the @ref{await ports,,(a-sync await-ports)} module.
-Secondly, with select() the file descriptor value of a port passed to
-the watch should not exceed FD_SETSIZE.  Normally, by default the
-maximum soft user limit for open files is the same as FD_SETSIZE, and
-it is best if this situation is retained by user code.
+guile-2.2/3.0 this means that with such sockets, suspendable ports
+should be used with the await-read-suspendable! or
+await-write-suspendable!  procedures in the @ref{await ports,,(a-sync
+await-ports)} module.  Secondly, with select() the file descriptor
+value of a port passed to the watch should not exceed FD_SETSIZE.
+Normally, by default the maximum soft user limit for open files is the
+same as FD_SETSIZE, and it is best if this situation is retained by
+user code.
 
 Where a file watch on a file descriptor or port has been added with
 event-loop-add-read-watch! or event-loop-add-write-watch!, the event

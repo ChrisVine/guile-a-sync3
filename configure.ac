@@ -33,9 +33,7 @@ AC_PROG_LIBTOOL
 AC_CONFIG_MACRO_DIR([m4])
 
 dnl check for guile
-PKG_CHECK_MODULES(GUILE, guile-2.2 >= 2.1.3)
-AC_CHECK_GUILE_SITEDIR
-AC_CHECK_GUILE_OBJDIR
+AC_CHECK_GUILE
 
 dnl check whether to compile scheme files to bytecode
 AC_CHECK_COMPILE_SCHEME
@@ -51,5 +49,6 @@ dnl define MAKE for subdirectories
 AC_PROG_MAKE_SET
 
 AC_CONFIG_FILES([ Makefile a-sync/Makefile lib/Makefile docs/Makefile \
-                  tests/Makefile guile-a-sync2.pc ])
+                  tests/Makefile a-sync/monotonic-time.scm \
+                  guile-a-sync$GUILE_VER.pc ])
 AC_OUTPUT

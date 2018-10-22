@@ -14,8 +14,8 @@ snapshot: dist
 	mv @PACKAGE@-@VERSION@.tar.gz @PACKAGE@-`date +%y%m%d`.tar.gz 
 
 pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = guile-a-sync2.pc
+pkgconfig_DATA = guile-a-sync@GUILE_VER@.pc
 
-EXTRA_DIST = m4/*.m4 autogen.sh config.rpath compile README.md
+EXTRA_DIST = m4/*.m4 autogen.sh config.rpath compile README.md guile-a-sync2.pc.in guile-a-sync2-30.pc.in
 
 ACLOCAL_AMFLAGS = -I m4
