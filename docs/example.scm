@@ -27,6 +27,8 @@
 (use-modules (a-sync event-loop) (a-sync coroutines) (a-sync compose) (a-sync await-ports))
 
 (set-default-event-loop!)
+;; because one task runs in another thread
+(event-loop-block! #t)
 
 (a-sync (lambda (await resume)
 
@@ -67,8 +69,6 @@
 				  (event-loop-quit!)
 				  "Quitting\n")))))
 
-;; because one task runs in another thread
-(event-loop-block! #t)
 (event-loop-run!)
 
 ;; this is the identical code using compose-a-sync for composition:

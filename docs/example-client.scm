@@ -68,6 +68,7 @@
 
 (set-default-event-loop!)
 (sigaction SIGPIPE SIG_IGN) ;; we want EPIPE, not SIGPIPE
+(event-loop-block! #t)  ;; we invoke await-task-in-thread!
 
 (a-sync
  (lambda (await resume)
@@ -108,5 +109,4 @@
 	 (newline)))
      (event-loop-block! #f))))
 
-(event-loop-block! #t)
 (event-loop-run!)
