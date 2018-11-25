@@ -78,13 +78,12 @@
 	  				  (+ 5 10)))))
 	    (test-result 15 res)
 	    (print-result)
-	    (event-loop-quit! main-loop)
-	    (event-loop-block! #f main-loop))))
+	    ;; we can apply event-loop-quit! here as we know the loop is running
+	    (event-loop-quit! main-loop))))
 (event-loop-run! main-loop)
   
 ;; Test 3: await-task-in-thread! with handler
 
-(event-loop-block! #t main-loop)
 (a-sync (lambda (await resume)
 	  (let ((res
 	  	 (await-task-in-thread!
@@ -95,8 +94,8 @@
 		    5))))
 	    (test-result 5 res)
 	    (print-result)
-	    (event-loop-quit! main-loop)
-	    (event-loop-block! #f main-loop))))
+	    ;; we can apply event-loop-quit! here as we know the loop is running
+	    (event-loop-quit! main-loop))))
 (event-loop-run! main-loop)
 
 ;; Test 4: await-task-in-event-loop!
@@ -611,8 +610,8 @@
 							 (+ 5 10)))))
 	      ((no-await (test-result 15 res)
 			 (print-result)
-			 (event-loop-quit! main-loop)
-			 (event-loop-block! #f main-loop))))
+			 ;; we can apply event-loop-quit! here as we know the loop is running
+			 (event-loop-quit! main-loop))))
 (event-loop-run! main-loop)
 
 ;;;;;;;;;; now the same tests with a default event loop ;;;;;;;;;;
@@ -644,13 +643,12 @@
 	  				  (+ 5 10)))))
 	    (test-result 15 res)
 	    (print-result)
-	    (event-loop-quit!)
-	    (event-loop-block! #f))))
+	    ;; we can apply event-loop-quit! here as we know the loop is running
+	    (event-loop-quit!))))
 (event-loop-run!)
   
 ;; Test 25: await-task-in-thread! without handler (explicit loop argument)
 
-(event-loop-block! #t)
 (a-sync (lambda (await resume)
 	  (let ((res
 	  	 (await-task-in-thread! await resume #f
@@ -658,13 +656,12 @@
 	  				  (+ 5 10)))))
 	    (test-result 15 res)
 	    (print-result)
-	    (event-loop-quit!)
-	    (event-loop-block! #f))))
+	    ;; we can apply event-loop-quit! here as we know the loop is running
+	    (event-loop-quit!))))
 (event-loop-run!)
 
 ;; Test 26: await-task-in-thread! with handler
 
-(event-loop-block! #t)
 (a-sync (lambda (await resume)
 	  (let ((res
 	  	 (await-task-in-thread!
@@ -675,8 +672,8 @@
 		    5))))
 	    (test-result 5 res)
 	    (print-result)
-	    (event-loop-quit!)
-	    (event-loop-block! #f))))
+	    ;; we can apply event-loop-quit! here as we know the loop is running
+	    (event-loop-quit!))))
 (event-loop-run!)
 
 ;; Test 27: await-task-in-event-loop!
@@ -1199,6 +1196,6 @@
 					       (+ 5 10)))))
 	      ((no-await (test-result 15 res)
 			 (print-result)
-			 (event-loop-quit!)
-			 (event-loop-block! #f))))
+			 ;; we can apply event-loop-quit! here as we know the loop is running
+			 (event-loop-quit!))))
 (event-loop-run!)
