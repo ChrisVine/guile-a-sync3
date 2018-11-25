@@ -415,6 +415,11 @@ Exceptions (say, from 'proc' because of port or conversion errors)
 will propagate out of this procedure in the first instance, and if not
 caught locally will then propagate out of g-main-loop-run.
 
+This procedure will not call 'await' if the read operation(s) in
+'proc' can be effected immediately without waiting: instead, after
+reading this procedure would return straight away without invoking the
+glib main loop.
+
 As an example of how to use await-glib-read-suspendable, here is the
 implementation of await-glib-getline:
 
@@ -501,6 +506,11 @@ thread as that in which the event loop runs.
 Exceptions (say, from 'proc' because of port or conversion errors)
 will propagate out of this procedure in the first instance, and if not
 caught locally will then propagate out of g-main-loop-run.
+
+This procedure will not call 'await' if the write operation(s) in
+'proc' can be effected immediately without waiting: instead, after
+writing this procedure would return straight away without invoking the
+glib main loop.
 
 As an example of how to use await-glib-write-suspendable, here is the
 implementation of await-glib-put-string:

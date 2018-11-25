@@ -85,6 +85,12 @@
 ;; Exceptions (say, from 'proc' because of port or conversion errors)
 ;; will propagate out of this procedure in the first instance, and if
 ;; not caught locally will then propagate out of event-loop-run!.
+;;
+;; Unlike the await-* procedures in the (a-sync event-loop) module,
+;; this procedure will not call 'await' if the read operation(s) in
+;; 'proc' can be effected immediately without waiting: instead, after
+;; reading this procedure would return straight away without invoking
+;; the event loop.
 (define await-read-suspendable!
   (case-lambda
     ((await resume port proc)
@@ -443,6 +449,12 @@
 ;; Exceptions (say, from 'proc' because of port or conversion errors)
 ;; will propagate out of this procedure in the first instance, and if
 ;; not caught locally will then propagate out of event-loop-run!.
+;;
+;; Unlike the await-* procedures in the (a-sync event-loop) module,
+;; this procedure will not call 'await' if the write operation(s) in
+;; 'proc' can be effected immediately without waiting: instead, after
+;; writing this procedure would return straight away without invoking
+;; the event loop.
 (define await-write-suspendable!
   (case-lambda
     ((await resume port proc)

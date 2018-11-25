@@ -422,6 +422,11 @@
 ;; Exceptions (say, from 'proc' because of port or conversion errors)
 ;; will propagate out of this procedure in the first instance, and if
 ;; not caught locally will then propagate out of g-main-loop-run.
+;;
+;; This procedure will not call 'await' if the read operation(s) in
+;; 'proc' can be effected immediately without waiting: instead, after
+;; reading this procedure would return straight away without invoking
+;; the glib main loop.
 (define (await-glib-read-suspendable await resume port proc)
   (define id #f)
   (define (read-waiter p)
@@ -529,6 +534,11 @@
 ;; Exceptions (say, from 'proc' because of port or conversion errors)
 ;; will propagate out of this procedure in the first instance, and if
 ;; not caught locally will then propagate out of g-main-loop-run.
+;;
+;; This procedure will not call 'await' if the write operation(s) in
+;; 'proc' can be effected immediately without waiting: instead, after
+;; writing this procedure would return straight away without invoking
+;; the glib main loop.
 (define (await-glib-write-suspendable await resume port proc)
   (define id #f)
   (define (write-waiter p)

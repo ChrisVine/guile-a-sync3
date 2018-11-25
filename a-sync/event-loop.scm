@@ -881,7 +881,7 @@
 ;; argument is optional: this procedure operates on the event loop
 ;; passed in as an argument, or if none is passed (or #f is passed),
 ;; on the default event loop.  Applying this procedure to an event
-;; loop does not changing the blocking status of the loop as may
+;; loop does not change the blocking status of the loop as may
 ;; previously have been set by event-loop-block!, should
 ;; event-loop-run! be applied to it again.
 ;;
