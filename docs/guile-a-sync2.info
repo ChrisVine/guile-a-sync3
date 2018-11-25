@@ -819,7 +819,19 @@ await-ports) module) will not work correctly.
      again.
 
      Applying this procedure to an event loop has no effect if the event
-     loop is not actually running.
+     loop is not actually running.  Unlike the await-* procedures in
+     this module, the await-* procedures in the *note (a-sync
+     await-ports): await ports. module do not pass control to the event
+     loop if they can operate immediately without waiting, so if (i) the
+     event loop concerned has been set blocking by event-loop-block!,
+     (ii) this procedure is invoked in an a-sync or compose-a-sync block
+     in order to bring the event loop to an end, and (iii) before
+     invoking this procedure the a-sync or compose-a-sync block has done
+     nothing except make a call to one or more of the await-* procedures
+     in the *note (a-sync await-ports): await ports. module, then in
+     order to make sure the loop is running consider calling
+     await-yield!  or some similar procedure before applying this
+     procedure.
 
      Note that the discarding of file watches, timeouts and unexecuted
      events remaining in the event loop means that if one of the helper
@@ -827,8 +839,8 @@ await-ports) module) will not work correctly.
      not yet returned, it may fail to complete, as its continuation may
      disappear - it will be as if the a-sync or compose-a-sync block
      concerned had come to an end.  It may therefore be best only to
-     call this procedure on an event loop after all such await-*
-     procedures which are executing have returned.
+     call this procedure on an event loop after all await-* procedures
+     which are executing in it have returned.
 
      This procedure should not throw an exception unless memory is
      exhausted.
@@ -3346,11 +3358,11 @@ Node: Top87
 Node: overview1437
 Node: coroutines4741
 Node: event loop23133
-Node: await ports69745
-Node: thread pool96411
-Node: monotonic time117861
-Node: gnome glib119297
-Node: compose148322
-Node: meeting156310
+Node: await ports70554
+Node: thread pool97220
+Node: monotonic time118670
+Node: gnome glib120106
+Node: compose149131
+Node: meeting157119
 
 End Tag Table
