@@ -22,6 +22,7 @@
 	     (ice-9 rdelim)       ;; for write-line and read-string
 	     (ice-9 control)      ;; for call/ec
 	     (ice-9 binary-ports) ;; for get-bytevector-all and put-bytevector
+	     (ice-9 exceptions)   ;; for raise-exception
 	     (rnrs base)          ;; for assert
 	     (rnrs bytevectors))  ;; for bytevectors
 
@@ -88,9 +89,9 @@
 	  (let ((res
 	  	 (await-task-in-thread!
 		  await resume main-loop
-		  (lambda () (throw 'test-exception))
-		  (lambda (key . args)
-		    (test-result 'test-exception key)
+		  (lambda () (raise-exception 'test-exception))
+		  (lambda (obj)
+		    (test-result 'test-exception obj)
 		    5))))
 	    (test-result 5 res)
 	    (print-result)
@@ -186,7 +187,7 @@
 						     (yield (* 2 count))
 						     (loop (1+ count)))
 						    ((= count 5)
-						     (throw 'my-exception)
+						     (raise-exception 'my-exception)
 						     ;; we never reach here
 						     (yield (* 2 count))
 						     (loop (1+ count)))
@@ -194,9 +195,8 @@
 						     (assert #f))))) ;; we should never reach here
 					       (lambda (val)
 						 (set! lst (cons val lst)))
-					       (lambda args
-						 (test-result (length args) 1)
-						 (test-result (car args) 'my-exception)
+					       (lambda (obj)
+						 (test-result obj 'my-exception)
 						 (set! lst (cons 100 lst))))))
 	      (test-result (car lst) 100)
 	      (test-result (length lst) 6)
@@ -666,9 +666,9 @@
 	  (let ((res
 	  	 (await-task-in-thread!
 		  await resume
-		  (lambda () (throw 'test-exception))
-		  (lambda (key . args)
-		    (test-result 'test-exception key)
+		  (lambda () (raise-exception 'test-exception))
+		  (lambda (obj)
+		    (test-result 'test-exception obj)
 		    5))))
 	    (test-result 5 res)
 	    (print-result)
@@ -786,7 +786,7 @@
 						     (yield (* 2 count))
 						     (loop (1+ count)))
 						    ((= count 5)
-						     (throw 'my-exception)
+						     (raise-exception 'my-exception)
 						     ;; we never reach here
 						     (yield (* 2 count))
 						     (loop (1+ count)))
@@ -794,9 +794,8 @@
 						     (assert #f))))) ;; we should never reach here
 					       (lambda (val)
 						 (set! lst (cons val lst)))
-					       (lambda args
-						 (test-result (length args) 1)
-						 (test-result (car args) 'my-exception)
+					       (lambda (obj)
+						 (test-result obj 'my-exception)
 						 (set! lst (cons 100 lst))))))
 	      (test-result (car lst) 100)
 	      (test-result (length lst) 6)

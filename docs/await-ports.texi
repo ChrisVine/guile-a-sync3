@@ -1,9 +1,9 @@
 @node await ports,thread pool,event loop,Top
 
 The (a-sync await-ports) module provides procedures for using
-guile-2.2/3.0's suspendable ports with event loops, and a convenient
-way of using ports' normal input and output procedures with
-non-blocking ports.
+guile-3.0's suspendable ports with event loops, and a convenient way
+of using ports' normal input and output procedures with non-blocking
+ports.
 
 For this purpose, the 'normal input and output' procedures which may
 be used with await-read-suspendable! and await-write-suspendable!
@@ -44,10 +44,10 @@ procedures must be made non-blocking using fcntl as follows:
 
 @deffn {Scheme Procedure} await-read-suspendable! await resume [loop] port proc
 This procedure is provided to implement read file watches using
-guile-2.2/3.0's suspendable ports.  'proc' is a procedure taking a
-single argument, to which the port will be passed when it is invoked.
-The purpose of 'proc' is to carry out i/o operations on 'port' using
-the port's normal read procedures.  'port' must be a suspendable
+guile-3.0's suspendable ports.  'proc' is a procedure taking a single
+argument, to which the port will be passed when it is invoked.  The
+purpose of 'proc' is to carry out i/o operations on 'port' using the
+port's normal read procedures.  'port' must be a suspendable
 non-blocking port.  This procedure will return when 'proc' returns, as
 if by blocking read operations.  However, the event loop will not be
 blocked by this procedure even if only individual characters or bytes
@@ -66,9 +66,8 @@ may get there first and deal with it, or it may not.  However
 exceptional conditions are very rare, usually comprising only
 out-of-band data on a TCP socket, or a pseudoterminal master in packet
 mode seeing state change in a slave.  In the absence of an exceptional
-condition, the value(s) returned by 'proc' will be returned.  Prior to
-version 0.14, 'proc' could only return a single value.  From version
-0.14, 'proc' may return any number of values.
+condition, the value(s) returned by 'proc' will be returned ('proc'
+may return any number of values).
 
 The 'loop' argument is optional: this procedure operates on the event
 loop passed in as an argument, or if none is passed (or #f is passed),
@@ -249,8 +248,6 @@ on the default event loop.
 
 See the documentation on the await-read-suspendable! procedure for
 further particulars about this procedure.
-
-This procedure is first available in version 0.6 of this library.
 @end deffn
 
 @deffn {Scheme Procedure} await-geteveryblock! await resume [loop] port size proc
@@ -287,8 +284,6 @@ this procedure, so they may not be reused by 'proc' (even though
 
 See the documentation on the await-read-suspendable! procedure for
 further particulars about this procedure.
-
-This procedure is first available in version 0.6 of this library.
 @end deffn
 
 @deffn {Scheme Procedure} await-getsomeblocks! await resume [loop] port size proc
@@ -328,8 +323,6 @@ this procedure, so they may not be reused by 'proc' (even though
 
 See the documentation on the await-read-suspendable! procedure for
 further particulars about this procedure.
-
-This procedure is first available in version 0.6 of this library.
 @end deffn
 
 @deffn {Scheme Procedure} await-write-suspendable! await resume [loop] port proc
@@ -355,9 +348,7 @@ will be encountered by the implementation - the user procedure 'proc'
 may get there first and deal with it, or it may not.  However
 exceptional conditions on write ports cannot normally occur.  In the
 absence of an exceptional condition, the value(s) returned by 'proc'
-will be returned.  Prior to version 0.14, 'proc' could only return a
-single value.  From version 0.14, 'proc' may return any number of
-values.
+will be returned ('proc' may return any number of values).
 
 The 'loop' argument is optional: this procedure operates on the event
 loop passed in as an argument, or if none is passed (or #f is passed),
@@ -416,8 +407,6 @@ writing of the bytevector.
 See the documentation on the await-write-suspendable! procedure for
 further particulars about this procedure.
 
-This procedure is first available in version 0.6 of this library.
-
 As mentioned in relation to the await-write-suspendable! procedure,
 write exceptions will propagate out of this procedure in the first
 instance, and if not caught locally (say by placing a catch block
@@ -466,8 +455,6 @@ the string.
 See the documentation on the await-write-suspendable! procedure for
 further particulars about this procedure.
 
-This procedure is first available in version 0.5 of this library.
-
 As mentioned in relation to the await-write-suspendable! procedure,
 write exceptions will propagate out of this procedure in the first
 instance, and if not caught locally (say by placing a catch block
@@ -512,8 +499,6 @@ supplies the 'await' and 'resume' arguments).
 
 See the documentation on the await-read-suspendable! procedure for
 further particulars about this procedure.
-
-This procedure is first available in version 0.7 of this library.
 @end deffn
 
 @deffn {Scheme Procedure} await-connect! await resume [loop] sock . args
@@ -540,6 +525,4 @@ await-write-suspendable!.
 
 See the documentation on the await-write-suspendable! procedure for
 further particulars about this procedure.
-
-This procedure is first available in version 0.7 of this library.
 @end deffn

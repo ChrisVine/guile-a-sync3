@@ -2,15 +2,15 @@
 
 .PHONY: docs
 docs:
-	makeinfo guile-a-sync2.texi
-	makeinfo --html guile-a-sync2.texi
+	makeinfo guile-a-sync3.texi
+	makeinfo --html guile-a-sync3.texi
 	rm -rf html
-	mv guile-a-sync2 html
+	mv guile-a-sync3 html
 
 doc_DATA = example.scm example-glib.scm example-client.scm example-server.scm
 
 infofiledir = $(infodir)
-infofile_DATA = guile-a-sync2.info
+infofile_DATA = guile-a-sync3.info
 
 install-data-hook:
 	install -d $(DESTDIR)$(htmldir)/html
@@ -19,4 +19,4 @@ install-data-hook:
 uninstall-hook:
 	for files in `ls html`; do rm -f $(DESTDIR)$(htmldir)/html/$$files; done
 
-EXTRA_DIST = html/*.html *.texi guile-a-sync2.info $(doc_DATA)
+EXTRA_DIST = html/*.html *.texi guile-a-sync3.info $(doc_DATA)

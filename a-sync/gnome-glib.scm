@@ -45,6 +45,7 @@
   #:use-module (ice-9 textual-ports)   ;; for put-string
   #:use-module (ice-9 binary-ports)    ;; for get-u8
   #:use-module (ice-9 suspendable-ports)
+  #:use-module (ice-9 exceptions)      ;; for raise-exception and with-exception-handler
   #:use-module (a-sync coroutines)     ;; for make-iterator
   #:use-module (rnrs bytevectors)      ;; for bytevectors
   #:export (await-glib-task-in-thread
@@ -71,8 +72,8 @@
 ;; in the default glib main loop if 'thunk' throws and its return
 ;; value will be the return value of this procedure; otherwise the
 ;; program will terminate if an unhandled exception propagates out of
-;; 'thunk'.  'handler' should take the same arguments as a guile catch
-;; handler (this is implemented using catch).
+;; 'thunk'.  'handler' should take a single argument, which will be
+;; the thrown exception object.
 ;;
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the default glib main loop runs, where
@@ -90,17 +91,17 @@
   (if handler
       (call-with-new-thread
        (lambda ()
-	 (catch
-	  #t
-	  (lambda ()
-	    (let ((res (thunk)))
-	      (g-idle-add (lambda ()
-			    (resume res)
-			    #f))))
-	  (lambda args
-	    (g-idle-add (lambda ()
-			  (resume (apply handler args))
-			  #f))))))
+	 (with-exception-handler
+	   (lambda (exc)
+	     (g-idle-add (lambda ()
+			   (resume (handler exc))
+			   #f)))
+	   (lambda ()
+	     (let ((res (thunk)))
+	       (g-idle-add (lambda ()
+			     (resume res)
+			     #f))))
+	   #:unwind? #t)))
       (call-with-new-thread
        (lambda ()
 	 (let ((res (thunk)))
@@ -159,8 +160,6 @@
 ;;
 ;; This procedure should not throw any exceptions unless memory is
 ;; exhausted.
-;;
-;; This procedure is first available in version 0.7 of this library.
 (define (await-glib-yield await resume)
   (g-idle-add (lambda ()
 		(resume)
@@ -180,8 +179,8 @@
 ;; is provided, then that handler will be run in the default glib main
 ;; loop if 'generator' throws; otherwise the program will terminate if
 ;; an unhandled exception propagates out of 'generator'.  'handler'
-;; should take the same arguments as a guile catch handler (this is
-;; implemented using catch).
+;; should take a single argument, which will be the thrown exception
+;; object.
 ;;
 ;; This procedure calls 'await' and will return when the generator has
 ;; finished or, if 'handler' is provided, upon the generator throwing
@@ -205,14 +204,16 @@
 ;; program.  Exceptions thrown by the handler procedure will propagate
 ;; out of g-main-loop-run.  Exceptions thrown by 'proc', if not caught
 ;; locally, will also propagate out of g-main-loop-run.
-;;
-;; This procedure is first available in version 0.4 of this library.
 (define* (await-glib-generator-in-thread await resume generator proc #:optional handler)
   (if handler
       (call-with-new-thread
        (lambda ()
-	 (catch
-	   #t
+	 (with-exception-handler
+	   (lambda (exc)
+	     (g-idle-add (lambda ()
+			   (handler exc)
+			   (resume 'guile-a-sync-thread-error)
+			   #f)))
 	   (lambda ()
 	     (let ((iter (make-iterator generator)))
 	       (let next ((res (iter)))
@@ -221,11 +222,7 @@
 			       #f))
 		 (when (not (eq? res 'stop-iteration))
 		   (next (iter))))))
-	   (lambda args
-	     (g-idle-add (lambda ()
-			   (apply handler args)
-			   (resume 'guile-a-sync-thread-error)
-			   #f))))))
+	   #:unwind? #t)))
       (call-with-new-thread
        (lambda ()
 	 (let ((iter (make-iterator generator)))
@@ -277,8 +274,6 @@
 ;; execution of the generator, if not caught locally, will propagate
 ;; out of await-glib-generator.  Exceptions thrown by 'proc', if not
 ;; caught locally, will propagate out of g-main-loop-run.
-;;
-;; This procedure is first available in version 0.4 of this library.
 (define (await-glib-generator await resume generator proc)
   (let ((iter (make-iterator generator)))
     (let next ((res (iter)))
@@ -341,8 +336,6 @@
 ;;
 ;; This procedure should not throw any exceptions unless memory is
 ;; exhausted.
-;;
-;; This procedure is first available in version 0.7 of this library.
 (define (await-glib-sleep await resume msecs)
   (g-timeout-add msecs
 		 (lambda ()
@@ -411,10 +404,8 @@
 ;; waitable procedure invoked by a-sync (which supplies the 'await'
 ;; and 'resume' arguments).  'proc' must not itself explicitly apply
 ;; 'await' and 'resume' as those are potentially in use by the
-;; suspendable port while 'proc' is executing.
-;;
-;; Prior to version 0.14, 'proc' could only return a single value.
-;; From version 0.14, 'proc' may return any number of values.
+;; suspendable port while 'proc' is executing.  'proc' may return any
+;; number of values.
 ;;
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the event loop runs.
@@ -445,14 +436,15 @@
   (call-with-values
     (lambda ()
       (parameterize ((current-read-waiter read-waiter))
-	(catch #t
-	  (lambda ()
-	    (proc port))
-	  (lambda args
+	(with-exception-handler
+	  (lambda (exc)
 	    (when id
 	      (g-source-remove id)
 	      (release-port-handle port))
-	    (apply throw args)))))
+	    (raise-exception exc))
+	  (lambda ()
+	    (proc port))
+	  #:unwind? true)))
     (lambda args
       (when id
 	(g-source-remove id)
@@ -492,8 +484,6 @@
 ;;
 ;; See the documentation on the await-glib-read-suspendable procedure
 ;; for further particulars about this procedure.
-;;
-;; This procedure is first available in version 0.6 of this library.
 (define (await-glib-getblock await resume port size)
   (define bv (make-bytevector size))
   (define index 0)
@@ -523,10 +513,8 @@
 ;; procedure invoked by a-sync (which supplies the 'await' and
 ;; 'resume' arguments).  'proc' must not itself explicitly apply
 ;; 'await' and 'resume' as those are potentially in use by the
-;; suspendable port while 'proc' is executing.
-;;
-;; Prior to version 0.14, 'proc' could only return a single value.
-;; From version 0.14, 'proc' may return any number of values.
+;; suspendable port while 'proc' is executing.  'proc' may return any
+;; number of values.
 ;;
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the event loop runs.
@@ -557,14 +545,15 @@
   (call-with-values
     (lambda ()
       (parameterize ((current-write-waiter write-waiter))
-	(catch #t
-	  (lambda ()
-	    (proc port))
-	  (lambda args
+	(with-exception-handler
+	  (lambda (exc)
 	    (when id
 	      (g-source-remove id)
 	      (release-port-handle port))
-	    (apply throw args)))))
+	    (raise-exception exc))
+	  (lambda ()
+	    (proc port))
+	  #:unwind? #t)))
     (lambda args
       (when id
 	(g-source-remove id)
@@ -581,8 +570,6 @@
 ;;
 ;; See the documentation on the await-glib-write-suspendable procedure
 ;; for further particulars about this procedure.
-;;
-;; This procedure is first available in version 0.6 of this library.
 (define (await-glib-put-bytevector await resume port bv)
   (await-glib-write-suspendable await resume port
 				(lambda (p)
@@ -605,8 +592,6 @@
 ;;
 ;; See the documentation on the await-glib-write-suspendable procedure
 ;; for further particulars about this procedure.
-;;
-;; This procedure is first available in version 0.5 of this library.
 (define (await-glib-put-string await resume port text)
   (await-glib-write-suspendable await resume port
 				(lambda (p)

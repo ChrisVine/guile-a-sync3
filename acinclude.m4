@@ -137,8 +137,8 @@ AC_DEFUN([AC_CHECK_COMPILE_SCHEME],
   AM_CONDITIONAL([COMPILE_TO_BYTECODE], [test x$compile_scheme = xtrue])
 ])
 
-AC_DEFUN([AC_CHECK_GUILE],
-[  
+AC_DEFUN([AC_CHECK_GUILE_SITEDIR],
+[
   if test -z "$PKG_CONFIG"; then
     AC_PATH_PROG(PKG_CONFIG, pkg-config, no)
   fi
@@ -148,68 +148,28 @@ AC_DEFUN([AC_CHECK_GUILE],
     echo "*** to the full path to pkg-config."
     echo "*** Or see http://www.freedesktop.org/software/pkgconfig to get pkg-config."
   else
-    AC_MSG_CHECKING(which version of guile to compile against)
-
-    AC_ARG_WITH(guile,
-    [  --with-guile            whether to use guile-2.2 or guile-3.0 [(2.2, 3.0, auto)] [[default=auto]]],
-    [
-      if test "x$withval" = "x2.2" ;  then
-        AC_MSG_RESULT([guile-2.2])
-        PKG_CHECK_MODULES(GUILE, guile-2.2 >= 2.1.3)
-	GUILE_SITEDIR=`$PKG_CONFIG guile-2.2 --variable=sitedir`
-	guile_a_sync_libdir=`$PKG_CONFIG guile-2.2 --variable=libdir`
-	GUILE_OBJDIR=$guile_a_sync_libdir/guile/2.2/site-ccache
-	GUILE_VER="2"
-      elif test "x$withval" = "x3.0" ;  then
-	AC_MSG_RESULT([guile-3.0])
-	PKG_CHECK_MODULES(GUILE, guile-3.0 >= 2.9.1)
-	GUILE_SITEDIR=`$PKG_CONFIG guile-3.0 --variable=sitedir`
-	guile_a_sync_libdir=`$PKG_CONFIG guile-3.0 --variable=libdir`
-	GUILE_OBJDIR=$guile_a_sync_libdir/guile/3.0/site-ccache
-	GUILE_VER="2-30"
-      elif test "x$withval" = "xauto";  then
-      	AC_MSG_RESULT([auto])
-        PKG_CHECK_MODULES(GUILE, guile-3.0 >= 2.9.1,
-        [
-       	  GUILE_SITEDIR=`$PKG_CONFIG guile-3.0 --variable=sitedir`
-       	  guile_a_sync_libdir=`$PKG_CONFIG guile-3.0 --variable=libdir`
-       	  GUILE_OBJDIR=$guile_a_sync_libdir/guile/3.0/site-ccache
-	  GUILE_VER="2-30"
-       	],
-       	[
-       	  PKG_CHECK_MODULES(GUILE, guile-2.2 >= 2.1.3,
-          [
-       	    GUILE_SITEDIR=`$PKG_CONFIG guile-2.2 --variable=sitedir`
-       	    guile_a_sync_libdir=`$PKG_CONFIG guile-2.2 --variable=libdir`
-       	    GUILE_OBJDIR=$guile_a_sync_libdir/guile/2.2/site-ccache
-	    GUILE_VER="2"
-       	  ])
-        ])
-      else
-        AC_MSG_ERROR([incorrect guile version specified - should be 2.2, 3.0 or auto])
-      fi
-    ],
-    [
-      AC_MSG_RESULT([auto])
-      PKG_CHECK_MODULES(GUILE, guile-3.0 >= 2.9.1,
-      [
-       	GUILE_SITEDIR=`$PKG_CONFIG guile-3.0 --variable=sitedir`
-       	guile_a_sync_libdir=`$PKG_CONFIG guile-3.0 --variable=libdir`
-       	GUILE_OBJDIR=$guile_a_sync_libdir/guile/3.0/site-ccache
-	GUILE_VER="2-30"
-      ],
-      [
-        PKG_CHECK_MODULES(GUILE, guile-2.2 >= 2.1.3,
-        [
-       	  GUILE_SITEDIR=`$PKG_CONFIG guile-2.2 --variable=sitedir`
-       	  guile_a_sync_libdir=`$PKG_CONFIG guile-2.2 --variable=libdir`
-       	  GUILE_OBJDIR=$guile_a_sync_libdir/guile/2.2/site-ccache
-	  GUILE_VER="2"
-       	])
-      ])
-    ])
-    AC_SUBST(GUILE_SITEDIR)
-    AC_SUBST(GUILE_OBJDIR)
-    AC_SUBST(GUILE_VER)
+    AC_MSG_CHECKING([guile-3.0 site directory])
+    GUILE30_SITEDIR=`$PKG_CONFIG guile-3.0 --variable=sitedir`
+    AC_MSG_RESULT([$GUILE30_SITEDIR])
   fi
+  AC_SUBST(GUILE30_SITEDIR)
+])
+
+AC_DEFUN([AC_CHECK_GUILE_OBJDIR],
+[
+  if test -z "$PKG_CONFIG"; then
+    AC_PATH_PROG(PKG_CONFIG, pkg-config, no)
+  fi
+  if test "$PKG_CONFIG" = "no" ; then
+    echo "*** The pkg-config script could not be found. Make sure it is"
+    echo "*** in your path, or set the PKG_CONFIG environment variable"
+    echo "*** to the full path to pkg-config."
+    echo "*** Or see http://www.freedesktop.org/software/pkgconfig to get pkg-config."
+  else
+    AC_MSG_CHECKING([guile-3.0 object file directory])
+    guile_a_sync_libdir=`$PKG_CONFIG guile-3.0 --variable=libdir`
+    GUILE30_OBJDIR=$guile_a_sync_libdir/guile/3.0/site-ccache
+    AC_MSG_RESULT([$GUILE30_OBJDIR])
+  fi
+  AC_SUBST(GUILE30_OBJDIR)
 ])

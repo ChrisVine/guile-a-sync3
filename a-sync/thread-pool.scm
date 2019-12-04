@@ -1,4 +1,4 @@
-;; Copyright (C) 2017 Chris Vine
+;; Copyright (C) 2017 and 2019 Chris Vine
 
 ;; This library is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU Lesser General Public
@@ -20,6 +20,7 @@
   #:use-module (ice-9 control)     ;; for call/ec
   #:use-module (ice-9 threads)     ;; for call-with-new-thread, mutexes and condition variables
   #:use-module (ice-9 match)
+  #:use-module (ice-9 exceptions)  ;; for raise-exception, define-exception-type and with-exception-handler
   #:use-module (a-sync coroutines) ;; for make-iterator
   #:use-module (a-sync event-loop) ;; for event-post!
   #:export (make-thread-pool
@@ -34,9 +35,15 @@
 	    thread-pool-set-idle-time!
 	    thread-pool-stop!
 	    thread-pool-add!
+	    &thread-pool-error
+	    thread-pool-error?
 	    with-thread-pool-increment
 	    await-task-in-thread-pool!
 	    await-generator-in-thread-pool!))
+
+
+(define-exception-type
+  &thread-pool-error &exception make-thread-pool-error thread-pool-error?)
 
 
 (define-record-type <a-queue>
@@ -146,8 +153,6 @@
 ;; start the number of threads given as the #:min-threads argument.
 ;; In such a case, any threads which have in fact started in the pool
 ;; will be killed.
-;;
-;; This procedure is first available in version 0.12 of this library.
 (define* (make-thread-pool #:key max-threads min-threads idle non-blocking)
   (when (and max-threads
 	     (< max-threads 1))
@@ -171,21 +176,22 @@
 				 0
 				 (not non-blocking)
 				 #f)))
-    (catch #t
+    (with-exception-handler
+      (lambda (exc)
+	;; if starting any new threads failed, kill them all before
+	;; rethrowing the exception
+	(let ((thread-count (num-threads-get pool)))
+	  (do ((kill-count 0 (1+ kill-count)))
+	      ((= kill-count thread-count))
+	    (a-queue-push! (aq-get pool) (cons (lambda () (raise-exception 'kill-thread)) #f)))
+	  (raise-exception exc)))
       (lambda ()
 	(when min-threads
 	  (do ((count 0 (1+ count)))
 	      ((= count min-threads))
 	    (call-with-new-thread (lambda () (thread-loop pool #t)))
 	    (num-threads-set! pool (1+ (num-threads-get pool))))))
-      ;; if starting any new threads failed, kill them all before
-      ;; rethrowing the exception
-      (lambda args
-	(let ((thread-count (num-threads-get pool)))
-	  (do ((kill-count 0 (1+ kill-count)))
-	      ((= kill-count thread-count))
-	    (a-queue-push! (aq-get pool) (cons (lambda () (throw 'kill-thread)) #f)))
-	  (apply throw args))))
+      #:unwind? #t)
     pool))
 
 ;; This is the thread loop which each thread will execute, taking
@@ -218,41 +224,42 @@
 			     (a-queue-pop! (aq-get pool))
 			     (a-queue-timed-pop! (aq-get pool) (idle-time-get pool)))))))
 	     (begin
-	      (catch #t
-		(lambda ()
-		  ((car task)))
-		(lambda (key . args)
-		  (if (eq? key 'kill-thread)
-		      ;; we don't decrement 'tasks' here, as adding a
-		      ;; 'kill-thread callback does not increment the
-		      ;; number of tasks
-		      (with-mutex mutex
-			(num-threads-set! pool (1- (num-threads-get pool)))
-			(when (and (stopped-get pool)
-				   (blocking-get pool))
-			  (broadcast-condition-variable (condvar-get pool)))
-			(return #f))
-		      (let ((fail-handler (cdr task)))
-			(if fail-handler
-			    (apply fail-handler key args)
-			    (error
-			     (string-append "Exception thrown by thread pool task with no fail-handler: "
-					    (object->string (cons key args)))))))))
-	      (with-mutex mutex
-		(num-tasks-set! pool (1- (num-tasks-get pool)))
-		;; cater for a case where the maximum number of
-		;; threads has been reduced by the user
-		(when (and (not persistent)
-			   (> (num-threads-get pool) (max-threads-get pool)))
-		  (num-threads-set! pool (1- (num-threads-get pool)))
-		  (when (and (stopped-get pool)
-			     (blocking-get pool))
-		    (broadcast-condition-variable (condvar-get pool)))
-		  (return #f)))
-	      ;; we are outside the mutex here
-	      (lp (if persistent
-		      (a-queue-pop! (aq-get pool))
-		      (a-queue-timed-pop! (aq-get pool) (idle-time-get pool)))))))))))
+	       (with-exception-handler
+		 (lambda (exc)
+		   (if (eq? exc 'kill-thread)
+		       ;; we don't decrement 'tasks' here, as adding
+		       ;; a 'kill-thread callback does not increment
+		       ;; the number of tasks
+		       (with-mutex mutex
+			 (num-threads-set! pool (1- (num-threads-get pool)))
+			 (when (and (stopped-get pool)
+				    (blocking-get pool))
+			   (broadcast-condition-variable (condvar-get pool)))
+			 (return #f))
+		       (let ((fail-handler (cdr task)))
+			 (if fail-handler
+			     (fail-handler exc)
+			     (error
+			      (string-append "Exception thrown by thread pool task with no fail-handler: "
+					     (object->string exc)))))))
+		 (lambda ()
+		   ((car task)))
+		 #:unwind? #t)
+	       (with-mutex mutex
+		 (num-tasks-set! pool (1- (num-tasks-get pool)))
+		 ;; cater for a case where the maximum number of
+		 ;; threads has been reduced by the user
+		 (when (and (not persistent)
+			    (> (num-threads-get pool) (max-threads-get pool)))
+		   (num-threads-set! pool (1- (num-threads-get pool)))
+		   (when (and (stopped-get pool)
+			      (blocking-get pool))
+		     (broadcast-condition-variable (condvar-get pool)))
+		   (return #f)))
+	       ;; we are outside the mutex here
+	       (lp (if persistent
+		       (a-queue-pop! (aq-get pool))
+		       (a-queue-timed-pop! (aq-get pool) (idle-time-get pool)))))))))))
 
 ;; This procedure returns the number of tasks which the thread pool
 ;; object is at present either running in the pool or has queued for
@@ -261,8 +268,6 @@
 ;; and therefore with relaxed memory ordering.  That enables this
 ;; procedure to be applied more efficiently for rate limiting purposes
 ;; but the result might at any one time be marginally out of date.
-;;
-;; This procedure is first available in version 0.12 of this library.
 (define (thread-pool-get-num-tasks pool)
   ;; we do not use the thread pool mutex to protect the num-tasks
   ;; record field here for efficiency reasons, as user code may want
@@ -281,8 +286,6 @@
 ;; the thread pool.
 ;;
 ;; This procedure is thread safe (any thread may call it).
-;;
-;; This procedure is first available in version 0.12 of this library.
 (define (thread-pool-get-num-threads pool)
   (with-mutex (mutex-get pool)
     (num-threads-get pool)))
@@ -291,8 +294,6 @@
 ;; for the thread pool.
 ;;
 ;; This procedure is thread safe (any thread may call it).
-;;
-;; This procedure is first available in version 0.12 of this library.
 (define (thread-pool-get-max-threads pool)
   (with-mutex (mutex-get pool)
     (max-threads-get pool)))
@@ -341,8 +342,6 @@
 ;; pool can be brought back into use by calling this procedure again
 ;; with a positive value (which can be preceded by a call with a
 ;; negative value to prevent too many threads trying to start).
-;;
-;; This procedure is first available in version 0.12 of this library.
 (define (thread-pool-change-max-threads! pool delta)
   (let ((mutex (mutex-get pool)))
     ;; to minimize contention, we want to start any new threads
@@ -374,10 +373,8 @@
       (when start-threads
 	(do ((count 0 (1+ count)))
 	    ((= count start-threads))
-	  (catch #t
-	    (lambda ()
-	      (call-with-new-thread (lambda () (thread-loop pool #f))))
-	    (lambda args
+	  (with-exception-handler
+	    (lambda (exc)
 	      ;; roll back for any unstarted threads
 	      (with-mutex mutex
 		(num-threads-set! pool (+ (- (num-threads-get pool) start-threads) count))
@@ -404,23 +401,25 @@
 		  ;; if this fails, all is lost (that is, we may have
 		  ;; queued tasks in the pool with no thread startable
 		  ;; to run them)
-		  (catch #t
+		  (with-exception-handler
+		    (lambda (exc) #f)
 		    (lambda ()
 		      (call-with-new-thread (lambda () (thread-loop pool #f)))
 		      (num-threads-set! pool 1))
-		    (lambda args #f)))
+		    #:unwind? #t))
 		(when (and (stopped-get pool)
 			   (blocking-get pool))
 		  (broadcast-condition-variable (condvar-get pool)))
-		(apply throw args)))))))))
+		(raise-exception exc)))
+	    (lambda ()
+	      (call-with-new-thread (lambda () (thread-loop pool #f))))
+	    #:unwind? #t))))))
 
 ;; This procedure returns the current non-blocking status of the
 ;; thread pool.  (See the documentation on the thread-pool-stop!
 ;; procedure for more information about what that means.)
 ;;
 ;; This procedure is thread safe (any thread may call it).
-;;
-;; This procedure is first available in version 0.12 of this library.
 (define (thread-pool-get-non-blocking pool)
   (with-mutex (mutex-get pool)
     (not (blocking-get pool))))
@@ -432,27 +431,24 @@
 ;;
 ;; This procedure is thread safe (any thread may call it).
 ;;
-;; This procedure will throw a 'thread-pool-error exception if it is
-;; invoked after the thread pool object concerned has been closed by a
-;; call to thread-pool-stop!.
-;;
-;; This procedure is first available in version 0.12 of this library.
+;; This procedure will throw a compound &thread-pool-error exception
+;; (also incorporating &origin and &message objects) if it is invoked
+;; after the thread pool object concerned has been closed by a call to
+;; thread-pool-stop!.
 (define (thread-pool-set-non-blocking! pool val)
   (with-mutex (mutex-get pool)
     (when (stopped-get pool)
-      (throw 'thread-pool-error
-	     "thread-pool-set-non-blocking!"
-	     "thread-pool-set-non-blocking! applied to a thread pool which has been closed"
-	     #f
-	     #f))
+      (raise-exception
+       (make-exception (make-thread-pool-error)
+		       (make-exception-with-origin 'thread-pool-set-non-blocking!)
+		       (make-exception-with-message
+			"thread-pool-set-non-blocking! applied to a thread pool which has been closed"))))
     (blocking-set! pool (not val))))
 
 ;; This procedure returns the current idle time setting for the thread
 ;; pool, in milliseconds.
 ;;
 ;; This procedure is thread safe (any thread may call it).
-;;
-;; This procedure is first available in version 0.12 of this library.
 (define (thread-pool-get-idle-time pool)
   (with-mutex (mutex-get pool)
     (idle-time-get pool)))
@@ -465,8 +461,6 @@
 ;; procedure is called.
 ;;
 ;; This procedure is thread safe (any thread may call it).
-;;
-;; This procedure is first available in version 0.12 of this library.
 (define (thread-pool-set-idle-time! pool millisecs)
   (with-mutex (mutex-get pool)
     (idle-time-set! pool millisecs)))
@@ -480,24 +474,23 @@
 ;;
 ;; After this procedure has been called, any attempt to add further
 ;; tasks with the thread-pool-add! procedure will fail, and that
-;; procedure will throw a 'thread-pool-error exception.  The same
-;; exception will be thrown if this procedure is applied to a thread
-;; pool to which this procedure has previously been applied.
+;; procedure will throw a compound &thread-pool-error exception (also
+;; incorporating &origin and &message objects).  The same exception
+;; will be thrown if this procedure is applied to a thread pool to
+;; which this procedure has previously been applied.
 ;;
 ;; This procedure is thread safe (any thread may call it) unless the
 ;; non-blocking setting is #f, in which case no task running on the
 ;; thread-pool object may call this procedure.
-;;
-;; This procedure is first available in version 0.12 of this library.
 (define (thread-pool-stop! pool)
   (let ((mutex (mutex-get pool)))
     (with-mutex mutex
       (when (stopped-get pool)
-	(throw 'thread-pool-error
-	       "thread-pool-stop!"
-	       "thread-pool-stop! applied to a thread pool which has been closed"
-	       #f
-	       #f))
+	(raise-exception
+	 (make-exception (make-thread-pool-error)
+			 (make-exception-with-origin 'thread-pool-stop!)
+			 (make-exception-with-message
+			  "thread-pool-stop! applied to a thread pool which has been closed"))))
       (stopped-set! pool #t)
       (let ((thread-count (num-threads-get pool)))
 	;; we could be adding more 'kill-thread callbacks than
@@ -510,7 +503,7 @@
 	;; gets used and disappears when the pool is garbage collected
 	(do ((kill-count 0 (1+ kill-count)))
 	    ((= kill-count thread-count))
-	  (a-queue-push! (aq-get pool) (cons (lambda () (throw 'kill-thread)) #f)))
+	  (a-queue-push! (aq-get pool) (cons (lambda () (raise-exception 'kill-thread)) #f)))
 	(when (blocking-get pool)
 	  (do ()
 	      ((= (num-threads-get pool) 0))
@@ -529,20 +522,18 @@
 ;; may call it, including any task running on the thread pool object).
 ;;
 ;; An optional handler procedure may be passed to 'fail-handler' which
-;; will be invoked if the task throws an exception.  If a task throws
-;; an exception and no handler procedure is provided, the program will
-;; terminate.  The 'fail-handler' procedure will be passed the same
-;; arguments as if it were a guile catch handler (it is implemented
-;; using catch).
+;; will be invoked if the task throws an exception.  The
+;; 'fail-handler' procedure will be passed the exception object which
+;; was thrown.  If a task throws an exception and no handler procedure
+;; is provided, the program will terminate.
 ;;
 ;; If this procedure starts a new thread (see above), it may throw an
 ;; exception if the system is unable to start the thread correctly,
 ;; and if it does so the task will not be added.  This procedure will
-;; throw a 'thread-pool-error exception if it is invoked after the
-;; thread pool object concerned has been closed by a call to
+;; throw a compound &thread-pool-error exception (also incorporating
+;; &origin and &message objects) if it is invoked after the thread
+;; pool object concerned has been closed by a call to
 ;; thread-pool-stop!.
-;;
-;; This procedure is first available in version 0.12 of this library.
 (define* (thread-pool-add! pool task #:optional fail-handler)
   (let ((mutex (mutex-get pool)))
     ;; to minimize contention, we want to start a new thread outside
@@ -555,11 +546,11 @@
 	   ;; atomicity within the pool
 	   (with-mutex mutex
 	     (when (stopped-get pool)
-	       (throw 'thread-pool-error
-		      "thread-pool-add!"
-		      "thread-pool-add! applied to a thread pool which has been closed"
-		      #f
-		      #f))
+	       (raise-exception
+		(make-exception (make-thread-pool-error)
+				(make-exception-with-origin 'thread-pool-add!)
+				(make-exception-with-message
+				 "thread-pool-add! applied to a thread pool which has been closed"))))
 	     (let ((num-threads (num-threads-get pool))
 		   (num-tasks (num-tasks-get pool)))
 	       (if (and (>= num-tasks num-threads)
@@ -575,47 +566,48 @@
       ;; reduce contention: we will roll back if starting the thread
       ;; fails
       (when start-thread
-	(catch #t
-	  (lambda ()
-	    (call-with-new-thread (lambda () (thread-loop pool #f))))
-	  (lambda args
+	(with-exception-handler
+	  (lambda (exc)
 	    (with-mutex mutex
-              ;; If min-threads is 0 we could be down to 0 threads
-              ;; with tasks still pending if in the period between
-              ;; releasing the mutex acquired on entry to this
-              ;; procedure and acquiring it again on handling this
-              ;; exception, there have been concurrent calls to
-              ;; thread-pool-set-max-threads! increasing and reducing
-              ;; the maximum thread count by at least two other
-              ;; threads where the launching of all new threads via
-              ;; that procedure and this one fails.  In such a case we
-              ;; should be able to launch a rescue thread while
-              ;; holding the mutex because no other threads could be
-              ;; running in the pool.  If we still cannot launch a
-              ;; thread the program and/or system must be totally
-              ;; borked and there is little we can do.
-              (let ((retry
-                     (if (= (num-threads-get pool) 1)
-                         (catch #t
-                           (lambda ()
-                             (call-with-new-thread (lambda () (thread-loop pool #f)))
+	      ;; If min-threads is 0 we could be down to 0 threads
+	      ;; with tasks still pending if in the period between
+	      ;; releasing the mutex acquired on entry to this
+	      ;; procedure and acquiring it again on handling this
+	      ;; exception, there have been concurrent calls to
+	      ;; thread-pool-set-max-threads! increasing and reducing
+	      ;; the maximum thread count by at least two other
+	      ;; threads where the launching of all new threads via
+	      ;; that procedure and this one fails.  In such a case we
+	      ;; should be able to launch a rescue thread while
+	      ;; holding the mutex because no other threads could be
+	      ;; running in the pool.  If we still cannot launch a
+	      ;; thread the program and/or system must be totally
+	      ;; borked and there is little we can do.
+	      (let ((retry
+		     (if (= (num-threads-get pool) 1)
+			 (with-exception-handler
+			   (lambda (exc) #f)
+			   (lambda ()
+			     (call-with-new-thread (lambda () (thread-loop pool #f)))
 			     #t)
-                           (lambda args
-                             #f))
-                         #f)))
-                (when (not retry)
+			   #:unwind? #t)
+			 #f)))
+		(when (not retry)
 		  (num-tasks-set! pool (1- (num-tasks-get pool)))
 		  (num-threads-set! pool (1- (num-threads-get pool)))
 		  (when (and (stopped-get pool)
 			     (blocking-get pool))
 		    (broadcast-condition-variable (condvar-get pool)))
-		  (apply throw args))))))))
+		  (raise-exception exc)))))
+	  (lambda ()
+	    (call-with-new-thread (lambda () (thread-loop pool #f))))
+	  #:unwind? #t)))
     ;; we need to check again whether thread-pool-stop! has been
     ;; called between us releasing the mutex above and reaching here.
     ;; We need to hold the mutex when adding the task so that the
     ;; whole operation is atomic - otherwise if thread-pool-stop! is
     ;; called concurrently with thread-pool-add!, we cannot guarantee
-    ;; that a task will either run or a 'thread-pool-error exception
+    ;; that a task will either run or a &thread-pool-error exception
     ;; will be thrown.  We must give this guarantee for
     ;; await-task-in-thread-pool! to work correctly.  That is not too
     ;; much of an additional point of contention, because
@@ -626,18 +618,19 @@
 	    ;; roll back if the pool has been stopped so we do not add
 	    ;; the task after all to the pool
 	    (num-tasks-set! pool (1- (num-tasks-get pool)))
-	    (throw 'thread-pool-error
-		   "thread-pool-add!"
-		   "thread-pool-add! applied to a thread pool which has been closed"
-		   #f
-		   #f))
-	  (catch #t
-	    (lambda ()
-	      (a-queue-push! (aq-get pool) (cons task fail-handler)))
-	    (lambda args
+	    (raise-exception
+	     (make-exception (make-thread-pool-error)
+			     (make-exception-with-origin 'thread-pool-add!)
+			     (make-exception-with-message
+			      "thread-pool-add! applied to a thread pool which has been closed"))))
+	  (with-exception-handler
+	    (lambda (exc)
 	      ;; roll back if adding the task fails
 	      (num-tasks-set! pool (1- (num-tasks-get pool)))
-	      (apply throw args)))))))
+	      (raise-exception exc))
+	    (lambda ()
+	      (a-queue-push! (aq-get pool) (cons task fail-handler)))
+	    #:unwind? #t)))))
 
 ;; This macro is intended to be called by a task running on a thread
 ;; pool which is about to make a blocking (non-asynchronous) call.  It
@@ -650,8 +643,6 @@
 ;; decrement, form the three branches of a dynamic-wind, so the
 ;; decrement automatically occurs if control leaves body execution
 ;; because of an exception or other jump.
-;;
-;; This macro is first available in version 0.12 of this library.
 (define-syntax-rule (with-thread-pool-increment pool body0 body1 ...)
   (let ((p pool))
     (dynamic-wind
@@ -695,13 +686,12 @@
 ;;
 ;; Exceptions may propagate out of this procedure if they arise while
 ;; setting up, which shouldn't happen unless the thread pool given by
-;; the 'pool' argument has been closed (in which case a
-;; 'thread-pool-error exception will arise), the thread pool tries to
-;; start an additional native thread which the operating system fails
-;; to supply (which would cause a system exception to arise) or memory
-;; is exhausted.
-;;
-;; This procedure is first available in version 0.12 of this library.
+;; the 'pool' argument has been closed (in which case a compound
+;; &thread-pool-error exception, also incorporating &origin and
+;; &message objects, will arise), the thread pool tries to start an
+;; additional native thread which the operating system fails to supply
+;; (which would cause a system exception to arise) or memory is
+;; exhausted.
 (define (await-task-in-thread-pool! await resume . rest)
   (match rest
     ((loop pool thunk handler)
@@ -727,8 +717,8 @@
 			    (let ((res (thunk)))
 			      (event-post! (lambda () (resume res))
 					   loop)))
-			  (lambda args
-			    (event-post! (lambda () (resume (apply handler args)))
+			  (lambda (exc)
+			    (event-post! (lambda () (resume (handler exc)))
 					 loop)))
 	(thread-pool-add! pool
 			  (lambda ()
@@ -783,15 +773,14 @@
 ;;
 ;; Exceptions may propagate out of this procedure if they arise while
 ;; setting up, which shouldn't happen unless the thread loop given by
-;; the 'pool' argument has been closed (in which case an
-;; 'thread-pool-error exception will arise), the thread pool tries to
-;; start an additional native thread which the operating system fails
-;; to supply (which would cause a system exception to arise) or memory
-;; is exhausted.  Exceptions arising during the execution of 'proc',
-;; if not caught locally, will propagate out of event-loop-run! for
+;; the 'pool' argument has been closed (in which case a compound
+;; &thread-pool-error exception, also incorporating &origin and
+;; &message objects, will arise), the thread pool tries to start an
+;; additional native thread which the operating system fails to supply
+;; (which would cause a system exception to arise) or memory is
+;; exhausted.  Exceptions arising during the execution of 'proc', if
+;; not caught locally, will propagate out of event-loop-run! for
 ;; 'loop' or the default event loop (as the case may be).
-;;
-;; This procedure is first available in version 0.12 of this library.
 (define (await-generator-in-thread-pool! await resume . rest)
   (match rest
     ((loop pool generator proc handler)
@@ -820,9 +809,9 @@
 					    loop)
 			       (when (not (eq? res 'stop-iteration))
 				 (next (iter))))))
-			 (lambda args
+			 (lambda (exc)
 			   (event-post! (lambda ()
-					  (apply handler args)
+					  (handler exc)
 					  (resume 'guile-a-sync-thread-error))
 					loop)))
        (thread-pool-add! pool

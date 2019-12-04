@@ -3,10 +3,10 @@
 <!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<title>gnome glib (guile-a-sync2)</title>
+<title>gnome glib (guile-a-sync3)</title>
 
-<meta name="description" content="gnome glib (guile-a-sync2)">
-<meta name="keywords" content="gnome glib (guile-a-sync2)">
+<meta name="description" content="gnome glib (guile-a-sync3)">
+<meta name="keywords" content="gnome glib (guile-a-sync3)">
 <meta name="resource-type" content="document">
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
@@ -92,8 +92,8 @@ the optional &rsquo;handler&rsquo; argument is provided, then it will be run in
 the default glib main loop if &rsquo;thunk&rsquo; throws and its return value will
 be the return value of this procedure; otherwise the program will
 terminate if an unhandled exception propagates out of &rsquo;thunk&rsquo;.
-&rsquo;handler&rsquo; should take the same arguments as a guile catch handler
-(this is implemented using catch).
+&rsquo;handler&rsquo; should take a single argument, which will be the thrown
+exception object.
 </p>
 <p>This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the default glib main loop runs, where the
@@ -187,8 +187,6 @@ the &rsquo;loop&rsquo; argument, then the default event loop.
 <p>This procedure should not throw any exceptions unless memory is
 exhausted.
 </p>
-<p>This procedure is first available in version 0.7 of this library.
-</p>
 <p>This procedure uses g-idle-add: see the introductory remarks about
 that.
 </p>
@@ -219,8 +217,7 @@ value yielded by the generator.  If the optional &rsquo;handler&rsquo; argument 
 provided, then that handler will be run in the default glib main loop
 if &rsquo;generator&rsquo; throws; otherwise the program will terminate if an
 unhandled exception propagates out of &rsquo;generator&rsquo;.  &rsquo;handler&rsquo; should
-take the same arguments as a guile catch handler (this is implemented
-using catch).
+take a single argument, which will be the thrown exception object.
 </p>
 <p>This procedure calls &rsquo;await&rsquo; and will return when the generator has
 finished or, if &rsquo;handler&rsquo; is provided, upon the generator throwing an
@@ -243,8 +240,6 @@ a handler procedure, will terminate the program.  Exceptions thrown by
 the handler procedure will propagate out of g-main-loop-run.
 Exceptions thrown by &rsquo;proc&rsquo;, if not caught locally, will also
 propagate out of g-main-loop-run.
-</p>
-<p>This procedure is first available in version 0.4 of this library.
 </p>
 <p>This procedure uses g-idle-add: see the introductory remarks about
 that.
@@ -301,8 +296,6 @@ unless memory is exhausted.  Exceptions arising during execution of
 the generator, if not caught locally, will propagate out of
 await-glib-generator.  Exceptions thrown by &rsquo;proc&rsquo;, if not caught
 locally, will propagate out of g-main-loop-run.
-</p>
-<p>This procedure is first available in version 0.4 of this library.
 </p>
 <p>This procedure uses g-idle-add: see the introductory remarks about
 that.
@@ -386,8 +379,6 @@ thread as that in which the default glib main loop runs.
 <p>This procedure should not throw any exceptions unless memory is
 exhausted.
 </p>
-<p>This procedure is first available in version 0.7 of this library.
-</p>
 <p>Here is an example of the use of await-glib-sleep:
 </p><div class="example">
 <pre class="example">(define main-loop (g-main-loop-new #f #f))
@@ -456,10 +447,8 @@ bytes comprising part characters are available at any one time.  It is
 intended to be called in a waitable procedure invoked by a-sync (which
 supplies the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments).  &rsquo;proc&rsquo; must not itself
 explicitly apply &rsquo;await&rsquo; and &rsquo;resume&rsquo; as those are potentially in use
-by the suspendable port while &rsquo;proc&rsquo; is executing.
-</p>
-<p>Prior to version 0.14, &rsquo;proc&rsquo; could only return a single value.  From
-version 0.14, &rsquo;proc&rsquo; may return any number of values.
+by the suspendable port while &rsquo;proc&rsquo; is executing.  &rsquo;proc&rsquo; may return
+any number of values.
 </p>
 <p>This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the event loop runs.
@@ -534,8 +523,6 @@ returned.
 </p>
 <p>See the documentation on the await-glib-read-suspendable procedure for
 further particulars about this procedure.
-</p>
-<p>This procedure is first available in version 0.6 of this library.
 </p></dd></dl>
 
 <dl>
@@ -551,10 +538,8 @@ bytes comprising part characters can be written at any one time.  It
 is intended to be called in a waitable procedure invoked by a-sync
 (which supplies the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments).  &rsquo;proc&rsquo; must not
 itself explicitly apply &rsquo;await&rsquo; and &rsquo;resume&rsquo; as those are potentially
-in use by the suspendable port while &rsquo;proc&rsquo; is executing.
-</p>
-<p>Prior to version 0.14, &rsquo;proc&rsquo; could only return a single value.  From
-version 0.14, &rsquo;proc&rsquo; may return any number of values.
+in use by the suspendable port while &rsquo;proc&rsquo; is executing.  &rsquo;proc&rsquo; may
+return any number of values.
 </p>
 <p>This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the event loop runs.
@@ -595,8 +580,6 @@ and will write a bytevector to the port.
 <p>See the documentation on the await-glib-write-suspendable procedure
 for further particulars about this procedure.
 </p>
-<p>This procedure is first available in version 0.6 of this library.
-</p>
 <p>As mentioned in relation to the await-glib-write-suspendable
 procedure, write exceptions will propagate out of this procedure in
 the first instance, and if not caught locally (say by placing a catch
@@ -636,8 +619,6 @@ the string.
 </p>
 <p>See the documentation on the await-glib-write-suspendable procedure
 for further particulars about this procedure.
-</p>
-<p>This procedure is first available in version 0.5 of this library.
 </p>
 <p>As mentioned in relation to the await-glib-write-suspendable
 procedure, write exceptions will propagate out of this procedure in

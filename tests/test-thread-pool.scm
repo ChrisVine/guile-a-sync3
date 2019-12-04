@@ -17,8 +17,9 @@
 (use-modules (a-sync thread-pool)
 	     (a-sync coroutines)
 	     (a-sync event-loop)
-	     (ice-9 threads)  ;; for mutexes and condition variables
-             (rnrs base))     ;; for assert
+	     (ice-9 threads)    ;; for mutexes and condition variables
+	     (ice-9 exceptions) ;; for raise-exception
+             (rnrs base))       ;; for assert
 
 ;; helpers
 
@@ -181,10 +182,10 @@
 		      (assert #f))) ;; we should never reach here
   (thread-pool-add! pool
 		    (lambda ()
-		      (throw 'quelle-horreur)
+		      (raise-exception 'quelle-horreur)
 		      (assert #f))  ;; we should never reach here
-		    (lambda (key)
-		      (test-result 'quelle-horreur key)
+		    (lambda (obj)
+		      (test-result 'quelle-horreur obj)
 		      (with-mutex mutex
 			(set! count (1+ count))
 			(signal-condition-variable condvar))))
@@ -295,9 +296,9 @@
 	    (let ((res
 		   (await-task-in-thread-pool!
 		    await resume main-loop pool
-		    (lambda () (throw 'test-exception))
-		    (lambda (key . args)
-		      (test-result 'test-exception key)
+		    (lambda () (raise-exception 'test-exception))
+		    (lambda (obj)
+		      (test-result 'test-exception obj)
 		      5))))
 	      (test-result 5 res)
 	      (test-result 1 (thread-pool-get-num-threads pool))
@@ -346,7 +347,7 @@
 							  (yield (* 2 count))
 							  (loop (1+ count)))
 							 ((= count 5)
-							  (throw 'my-exception)
+							  (raise-exception 'my-exception)
 							  ;; we never reach here
 							  (yield (* 2 count))
 							  (loop (1+ count)))
@@ -354,9 +355,8 @@
 							  (assert #f))))) ;; we should never reach here
 						    (lambda (val)
 						      (set! lst (cons val lst)))
-						    (lambda args
-						      (test-result (length args) 1)
-						      (test-result (car args) 'my-exception)
+						    (lambda (obj)
+						      (test-result obj 'my-exception)
 						      (set! lst (cons 100 lst))))))
 	      (test-result (car lst) 100)
 	      (test-result (length lst) 6)
@@ -397,9 +397,9 @@
 	    (let ((res
 		   (await-task-in-thread-pool!
 		    await resume pool
-		    (lambda () (throw 'test-exception))
-		    (lambda (key . args)
-		      (test-result 'test-exception key)
+		    (lambda () (raise-exception 'test-exception))
+		    (lambda (obj)
+		      (test-result 'test-exception obj)
 		      5))))
 	      (test-result 5 res)
 	      (test-result 1 (thread-pool-get-num-threads pool))
@@ -448,7 +448,7 @@
 							  (yield (* 2 count))
 							  (loop (1+ count)))
 							 ((= count 5)
-							  (throw 'my-exception)
+							  (raise-exception 'my-exception)
 							  ;; we never reach here
 							  (yield (* 2 count))
 							  (loop (1+ count)))
@@ -456,9 +456,8 @@
 							  (assert #f))))) ;; we should never reach here
 						    (lambda (val)
 						      (set! lst (cons val lst)))
-						    (lambda args
-						      (test-result (length args) 1)
-						      (test-result (car args) 'my-exception)
+						    (lambda (obj)
+						      (test-result obj 'my-exception)
 						      (set! lst (cons 100 lst))))))
 	      (test-result (car lst) 100)
 	      (test-result (length lst) 6)

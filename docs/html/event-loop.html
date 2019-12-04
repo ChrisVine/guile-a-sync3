@@ -3,10 +3,10 @@
 <!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<title>event loop (guile-a-sync2)</title>
+<title>event loop (guile-a-sync3)</title>
 
-<meta name="description" content="event loop (guile-a-sync2)">
-<meta name="keywords" content="event loop (guile-a-sync2)">
+<meta name="description" content="event loop (guile-a-sync3)">
+<meta name="keywords" content="event loop (guile-a-sync3)">
 <meta name="resource-type" content="document">
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
@@ -73,14 +73,13 @@ select() applied to sockets can give rise to spurious wake-ups, which
 means that it may be best with sockets to set the socket as
 non-blocking using the guile wrapper for the fcntl() system call in
 order to prevent a blocking read where it is not expected.  With
-guile-2.2/3.0 this means that with such sockets, suspendable ports
-should be used with the await-read-suspendable! or
-await-write-suspendable!  procedures in the <a href="await-ports.html">(a-sync
-await-ports)</a> module.  Secondly, with select() the file descriptor
-value of a port passed to the watch should not exceed FD_SETSIZE.
-Normally, by default the maximum soft user limit for open files is the
-same as FD_SETSIZE, and it is best if this situation is retained by
-user code.
+guile-3.0 this means that with such sockets, suspendable ports should
+be used with the await-read-suspendable! or await-write-suspendable!
+procedures in the <a href="await-ports.html">(a-sync await-ports)</a> module.
+Secondly, with select() the file descriptor value of a port passed to
+the watch should not exceed FD_SETSIZE.  Normally, by default the
+maximum soft user limit for open files is the same as FD_SETSIZE, and
+it is best if this situation is retained by user code.
 </p>
 <p>Where a file watch on a file descriptor or port has been added with
 event-loop-add-read-watch! or event-loop-add-write-watch!, the event
@@ -142,19 +141,20 @@ procedure, or #f if none has been set.
 
 <dl>
 <dt id="index-make_002devent_002dloop">Scheme Procedure: <strong>make-event-loop</strong> <em>[throttle-threshold throttle-delay]</em></dt>
-<dd><p>This constructs a new event loop object.  From version 0.2, this
-procedure optionally takes two throttling arguments for backpressure
-when applying the event-post! procedure to the event loop.  The
-&rsquo;throttle-threshold&rsquo; argument specifies the number of unexecuted tasks
-queued for execution, by virtue of calls to event-post!, at which
-throttling will first be applied.  Where the threshold is exceeded,
-throttling proceeds by adding a wait to any thread which calls the
-event-post! procedure, equal to the cube of the number of times (if
-any) by which the number of queued tasks exceeds the threshold
-multiplied by the value of &rsquo;throttle-delay&rsquo;.  The value of
-&rsquo;throttle-delay&rsquo; should be given in microseconds.  Throttling is only
-applied where the call to event-post! is made in a thread other than
-the one in which the event loop runs.
+<dd><p>This procedure constructs a new event loop object.
+</p>
+<p>This procedure optionally takes two throttling arguments for
+backpressure when applying the event-post! procedure to the event
+loop.  The &rsquo;throttle-threshold&rsquo; argument specifies the number of
+unexecuted tasks queued for execution, by virtue of calls to
+event-post!, at which throttling will first be applied.  Where the
+threshold is exceeded, throttling proceeds by adding a wait to any
+thread which calls the event-post! procedure, equal to the cube of the
+number of times (if any) by which the number of queued tasks exceeds
+the threshold multiplied by the value of &rsquo;throttle-delay&rsquo;.  The value
+of &rsquo;throttle-delay&rsquo; should be given in microseconds.  Throttling is
+only applied where the call to event-post! is made in a thread other
+than the one in which the event loop runs.
 </p>
 <p>So if the threshold given is 10000 tasks and the delay given is 1000
 microseconds, upon 10000 unexecuted tasks accumulating a delay of 1000
@@ -183,11 +183,9 @@ returned, including after a call to event-loop-quit!, this procedure
 may be called again to restart the event loop, provided
 event-loop-close! has not been applied to the loop.  If
 event-loop-close! has previously been invoked, this procedure will
-throw an &rsquo;event-loop-error exception.
-</p>
-<p>From version 0.15, this procedure will also throw an &rsquo;event-loop-error
-exception if it is applied to an event loop which is currently running
-(prior to version 0.15, doing so would fail in a less helpful way).
+throw an &rsquo;event-loop-error exception.  This procedure will also throw
+an &rsquo;event-loop-error exception if it is applied to an event loop which
+is currently running.
 </p>
 <p>If something else throws in the implementation or a callback throws,
 then this procedure will clean up the event loop as if
@@ -361,8 +359,6 @@ see the documentation on make-event-loop for further details.
 on the event loop passed in as an argument, or if none is passed (or
 #f is passed), on the default event loop.  This procedure is thread
 safe - any thread may call it.
-</p>
-<p>This procedure is first available in version 0.2 of this library.
 </p></dd></dl>
 
 <dl>
@@ -460,8 +456,6 @@ which are executing have returned.
 </p>
 <p>This procedure should not throw an exception unless memory is
 exhausted.
-</p>
-<p>This procedure is first available in version 0.13 of this library.
 </p></dd></dl>
 
 <dl>
@@ -480,8 +474,8 @@ optional &rsquo;handler&rsquo; argument is provided, then that handler will be r
 in the event loop thread if &rsquo;thunk&rsquo; throws and the return value of the
 handler would become the return value of this procedure; otherwise the
 program will terminate if an unhandled exception propagates out of
-&rsquo;thunk&rsquo;.  &rsquo;handler&rsquo; should take the same arguments as a guile catch
-handler (this is implemented using catch).
+&rsquo;thunk&rsquo;.  &rsquo;handler&rsquo; should take a single argument, which will be the
+thrown exception object.
 </p>
 <p>This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the event loop runs, where the result of
@@ -551,8 +545,6 @@ setting up, which shouldn&rsquo;t happen unless memory is exhausted or
 pthread has run out of resources.  Exceptions arising during execution
 of the task, if not caught locally, will propagate out of the
 event-loop-run! procedure called for the &rsquo;worker&rsquo; event loop.
-</p>
-<p>This procedure is first available in version 0.2 of this library.
 </p>
 <p>Here is an example of the use of await-task-in-event-loop!:
 </p><div class="example">
@@ -658,8 +650,6 @@ about that.
 <p>This procedure should not throw any exceptions unless memory is
 exhausted.
 </p>
-<p>This procedure is first available in version 0.7 of this library.
-</p>
 <p>Here is an example of the use of await-yield!:
 </p><div class="example">
 <pre class="example">(set-default-event-loop!) ;; if none has yet been set
@@ -688,8 +678,7 @@ value yielded by the generator.  If the optional &rsquo;handler&rsquo; argument 
 provided, then that handler will be run in the event loop thread if
 &rsquo;generator&rsquo; throws; otherwise the program will terminate if an
 unhandled exception propagates out of &rsquo;generator&rsquo;.  &rsquo;handler&rsquo; should
-take the same arguments as a guile catch handler (this is implemented
-using catch).
+take a single argument, which will be the thrown exception object.
 </p>
 <p>This procedure calls &rsquo;await&rsquo; and will return when the generator has
 finished or, if &rsquo;handler&rsquo; is provided, upon the generator throwing an
@@ -720,8 +709,6 @@ a handler procedure, will terminate the program.  Exceptions thrown by
 the handler procedure will propagate out of event-loop-run!.
 Exceptions thrown by &rsquo;proc&rsquo;, if not caught locally, will also
 propagate out of event-loop-run!.
-</p>
-<p>This procedure is first available in version 0.4 of this library.
 </p>
 <p>Here is an example of the use of await-generator-in-thread!:
 </p><div class="example">
@@ -790,8 +777,6 @@ event-loop-run! procedure called for the &rsquo;worker&rsquo; event loop.
 Exceptions arising during the execution of &rsquo;proc&rsquo;, if not caught
 locally, will propagate out of the event-loop-run! procedure called
 for the &rsquo;waiter&rsquo; or default event loop, as the case may be.
-</p>
-<p>This procedure is first available in version 0.4 of this library.
 </p>
 <p>Here is an example of the use of await-generator-in-event-loop!:
 </p><div class="example">
@@ -865,8 +850,6 @@ unless memory is exhausted.  Exceptions arising during execution of
 the generator, if not caught locally, will propagate out of
 event-loop-run!.  Exceptions thrown by &rsquo;proc&rsquo;, if not caught locally,
 will propagate out of event-loop-run!.
-</p>
-<p>This procedure is first available in version 0.4 of this library.
 </p>
 <p>Here is an example of the use of await-generator!:
 </p><div class="example">
@@ -949,8 +932,6 @@ thread as that in which the event loop runs.
 </p>
 <p>This procedure should not throw any exceptions unless memory is
 exhausted.
-</p>
-<p>This procedure is first available in version 0.7 of this library.
 </p>
 <p>Here is an example of the use of await-sleep!:
 </p><div class="example">

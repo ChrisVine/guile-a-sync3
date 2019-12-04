@@ -3,10 +3,10 @@
 <!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<title>await ports (guile-a-sync2)</title>
+<title>await ports (guile-a-sync3)</title>
 
-<meta name="description" content="await ports (guile-a-sync2)">
-<meta name="keywords" content="await ports (guile-a-sync2)">
+<meta name="description" content="await ports (guile-a-sync3)">
+<meta name="keywords" content="await ports (guile-a-sync3)">
 <meta name="resource-type" content="document">
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
@@ -45,9 +45,9 @@ Next: <a href="thread-pool.html" accesskey="n" rel="next">thread pool</a>, Previ
 <h4 class="node-heading">await ports</h4>
 
 <p>The (a-sync await-ports) module provides procedures for using
-guile-2.2/3.0&rsquo;s suspendable ports with event loops, and a convenient
-way of using ports&rsquo; normal input and output procedures with
-non-blocking ports.
+guile-3.0&rsquo;s suspendable ports with event loops, and a convenient way
+of using ports&rsquo; normal input and output procedures with non-blocking
+ports.
 </p>
 <p>For this purpose, the &rsquo;normal input and output&rsquo; procedures which may
 be used with await-read-suspendable! and await-write-suspendable!
@@ -89,10 +89,10 @@ procedures must be made non-blocking using fcntl as follows:
 <dl>
 <dt id="index-await_002dread_002dsuspendable_0021">Scheme Procedure: <strong>await-read-suspendable!</strong> <em>await resume [loop] port proc</em></dt>
 <dd><p>This procedure is provided to implement read file watches using
-guile-2.2/3.0&rsquo;s suspendable ports.  &rsquo;proc&rsquo; is a procedure taking a
-single argument, to which the port will be passed when it is invoked.
-The purpose of &rsquo;proc&rsquo; is to carry out i/o operations on &rsquo;port&rsquo; using
-the port&rsquo;s normal read procedures.  &rsquo;port&rsquo; must be a suspendable
+guile-3.0&rsquo;s suspendable ports.  &rsquo;proc&rsquo; is a procedure taking a single
+argument, to which the port will be passed when it is invoked.  The
+purpose of &rsquo;proc&rsquo; is to carry out i/o operations on &rsquo;port&rsquo; using the
+port&rsquo;s normal read procedures.  &rsquo;port&rsquo; must be a suspendable
 non-blocking port.  This procedure will return when &rsquo;proc&rsquo; returns, as
 if by blocking read operations.  However, the event loop will not be
 blocked by this procedure even if only individual characters or bytes
@@ -111,9 +111,8 @@ may get there first and deal with it, or it may not.  However
 exceptional conditions are very rare, usually comprising only
 out-of-band data on a TCP socket, or a pseudoterminal master in packet
 mode seeing state change in a slave.  In the absence of an exceptional
-condition, the value(s) returned by &rsquo;proc&rsquo; will be returned.  Prior to
-version 0.14, &rsquo;proc&rsquo; could only return a single value.  From version
-0.14, &rsquo;proc&rsquo; may return any number of values.
+condition, the value(s) returned by &rsquo;proc&rsquo; will be returned (&rsquo;proc&rsquo;
+may return any number of values).
 </p>
 <p>The &rsquo;loop&rsquo; argument is optional: this procedure operates on the event
 loop passed in as an argument, or if none is passed (or #f is passed),
@@ -298,8 +297,6 @@ on the default event loop.
 </p>
 <p>See the documentation on the await-read-suspendable! procedure for
 further particulars about this procedure.
-</p>
-<p>This procedure is first available in version 0.6 of this library.
 </p></dd></dl>
 
 <dl>
@@ -337,8 +334,6 @@ this procedure, so they may not be reused by &rsquo;proc&rsquo; (even though
 </p>
 <p>See the documentation on the await-read-suspendable! procedure for
 further particulars about this procedure.
-</p>
-<p>This procedure is first available in version 0.6 of this library.
 </p></dd></dl>
 
 <dl>
@@ -379,8 +374,6 @@ this procedure, so they may not be reused by &rsquo;proc&rsquo; (even though
 </p>
 <p>See the documentation on the await-read-suspendable! procedure for
 further particulars about this procedure.
-</p>
-<p>This procedure is first available in version 0.6 of this library.
 </p></dd></dl>
 
 <dl>
@@ -407,9 +400,7 @@ will be encountered by the implementation - the user procedure &rsquo;proc&rsquo
 may get there first and deal with it, or it may not.  However
 exceptional conditions on write ports cannot normally occur.  In the
 absence of an exceptional condition, the value(s) returned by &rsquo;proc&rsquo;
-will be returned.  Prior to version 0.14, &rsquo;proc&rsquo; could only return a
-single value.  From version 0.14, &rsquo;proc&rsquo; may return any number of
-values.
+will be returned (&rsquo;proc&rsquo; may return any number of values).
 </p>
 <p>The &rsquo;loop&rsquo; argument is optional: this procedure operates on the event
 loop passed in as an argument, or if none is passed (or #f is passed),
@@ -469,8 +460,6 @@ writing of the bytevector.
 <p>See the documentation on the await-write-suspendable! procedure for
 further particulars about this procedure.
 </p>
-<p>This procedure is first available in version 0.6 of this library.
-</p>
 <p>As mentioned in relation to the await-write-suspendable! procedure,
 write exceptions will propagate out of this procedure in the first
 instance, and if not caught locally (say by placing a catch block
@@ -520,8 +509,6 @@ the string.
 <p>See the documentation on the await-write-suspendable! procedure for
 further particulars about this procedure.
 </p>
-<p>This procedure is first available in version 0.5 of this library.
-</p>
 <p>As mentioned in relation to the await-write-suspendable! procedure,
 write exceptions will propagate out of this procedure in the first
 instance, and if not caught locally (say by placing a catch block
@@ -567,8 +554,6 @@ supplies the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments).
 </p>
 <p>See the documentation on the await-read-suspendable! procedure for
 further particulars about this procedure.
-</p>
-<p>This procedure is first available in version 0.7 of this library.
 </p></dd></dl>
 
 <dl>
@@ -596,8 +581,6 @@ await-write-suspendable!.
 </p>
 <p>See the documentation on the await-write-suspendable! procedure for
 further particulars about this procedure.
-</p>
-<p>This procedure is first available in version 0.7 of this library.
 </p></dd></dl>
 <hr>
 <div class="header">

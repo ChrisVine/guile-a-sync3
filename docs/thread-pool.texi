@@ -80,15 +80,11 @@ This procedure will throw an exception if the system is unable to
 start the number of threads given as the #:min-threads argument.  In
 such a case, any threads which have in fact started in the pool will
 be killed.
-
-This procedure is first available in version 0.12 of this library.
 @end deffn
 
 @deffn {Scheme Procedure} thread-pool? obj
 This procedure indicates whether 'obj' is a thread pool object
 constructed by make-thread-pool.
-
-This procedure is first available in version 0.12 of this library.
 @end deffn
 
 @deffn {Scheme Procedure} thread-pool-get-num-tasks pool
@@ -99,8 +95,6 @@ although it accesses the task number field outside the pool mutex and
 therefore with relaxed memory ordering.  That enables this procedure
 to be applied more efficiently for rate limiting purposes but the
 result might at any one time be marginally out of date.
-
-This procedure is first available in version 0.12 of this library.
 @end deffn
 
 @deffn {Scheme Procedure} thread-pool-get-num-threads pool
@@ -108,8 +102,6 @@ This procedure returns the number of threads currently running in the
 thread pool.
 
 This procedure is thread safe (any thread may call it).
-
-This procedure is first available in version 0.12 of this library.
 @end deffn
 
 @deffn {Scheme Procedure} thread-pool-get-max-threads pool
@@ -117,8 +109,6 @@ This procedure returns the current maximum number of threads set for
 the thread pool.
 
 This procedure is thread safe (any thread may call it).
-
-This procedure is first available in version 0.12 of this library.
 @end deffn
 
 @deffn {Scheme Procedure} thread-pool-change-max-threads! pool delta
@@ -164,8 +154,6 @@ addressed, then the thread pool can be brought back into use by
 calling this procedure again with a positive value (which can be
 preceded by a call with a negative value to prevent too many threads
 trying to start).
-
-This procedure is first available in version 0.12 of this library.
 @end deffn
 
 @deffn {Scheme Procedure} thread-pool-get-non-blocking pool
@@ -174,8 +162,6 @@ pool.  (See the documentation on the thread-pool-stop! procedure for
 more information about what that means.)
 
 This procedure is thread safe (any thread may call it).
-
-This procedure is first available in version 0.12 of this library.
 @end deffn
 
 @deffn {Scheme Procedure} thread-pool-set-non-blocking! pool val
@@ -186,11 +172,10 @@ more information about this.)
 
 This procedure is thread safe (any thread may call it).
 
-This procedure will throw a 'thread-pool-error exception if it is
-invoked after the thread pool object concerned has been closed by a
-call to thread-pool-stop!.
-
-This procedure is first available in version 0.12 of this library.
+This procedure will throw a compound &thread-pool-error exception
+(also incorporating &origin and &message objects) if it is invoked
+after the thread pool object concerned has been closed by a call to
+thread-pool-stop!.
 @end deffn
 
 @deffn {Scheme Procedure} thread-pool-get-idle-time pool
@@ -198,8 +183,6 @@ This procedure returns the current idle time setting for the thread
 pool, in milliseconds.
 
 This procedure is thread safe (any thread may call it).
-
-This procedure is first available in version 0.12 of this library.
 @end deffn
 
 @deffn {Scheme Procedure} thread-pool-set-idle-time! pool millisecs
@@ -210,8 +193,6 @@ waiting for new tasks.  This will only have effect for threads in the
 pool which begin waiting for new tasks after this procedure is called.
 
 This procedure is thread safe (any thread may call it).
-
-This procedure is first available in version 0.12 of this library.
 @end deffn
 
 @deffn {Scheme Procedure} thread-pool-stop! pool
@@ -224,15 +205,14 @@ returning, and if #t it will return straight away.
 
 After this procedure has been called, any attempt to add further tasks
 with the thread-pool-add! procedure will fail, and that procedure will
-throw a 'thread-pool-error exception.  The same exception will be
-thrown if this procedure is applied to a thread pool to which this
-procedure has previously been applied.
+throw a compound &thread-pool-error exception (also incorporating
+&origin and &message objects).  The same exception will be thrown if
+this procedure is applied to a thread pool to which this procedure has
+previously been applied.
 
 This procedure is thread safe (any thread may call it) unless the
 non-blocking setting is #f, in which case no task running on the
 thread-pool object may call this procedure.
-
-This procedure is first available in version 0.12 of this library.
 @end deffn
 
 @deffn {Scheme Procedure} thread-pool-add! pool task [fail-handler]
@@ -249,19 +229,17 @@ thread safe (any thread may call it, including any task running on the
 thread pool object).
 
 An optional handler procedure may be passed to 'fail-handler' which
-will be invoked if the task throws an exception.  If a task throws
-an exception and no handler procedure is provided, the program will
-terminate.  The 'fail-handler' procedure will be passed the same
-arguments as if it were a guile catch handler (it is implemented
-using catch).
+will be invoked if the task throws an exception.  The 'fail-handler'
+procedure will be passed the exception object which was thrown.  If a
+task throws an exception and no handler procedure is provided, the
+program will terminate.
 
 If this procedure starts a new thread (see above), it may throw an
 exception if the system is unable to start the thread correctly, and
 if it does so the task will not be added.  This procedure will throw a
-'thread-pool-error exception if it is invoked after the thread pool
-object concerned has been closed by a call to thread-pool-stop!.
-
-This procedure is first available in version 0.12 of this library.
+compound &thread-pool-error exception (also incorporating &origin and
+&message objects) if it is invoked after the thread pool object
+concerned has been closed by a call to thread-pool-stop!.
 @end deffn
 
 @deffn {Syntax} with-thread-pool-increment pool body0 body1 ...
@@ -276,8 +254,6 @@ The (i) increment, (ii) execution of body clauses, and (iii)
 decrement, form the three branches of a dynamic-wind, so the decrement
 automatically occurs if control leaves body execution because of an
 exception or other jump.
-
-This macro is first available in version 0.12 of this library.
 @end deffn
 
 @deffn {Scheme Procedure} await-task-in-thread-pool! await resume [loop] pool thunk [handler]
@@ -312,8 +288,9 @@ make-event-loop procedure for further information).
 
 Exceptions may propagate out of this procedure if they arise while
 setting up, which shouldn't happen unless the thread pool given by the
-'pool' argument has been closed (in which case a 'thread-pool-error
-exception will arise), the thread pool tries to start an additional
+'pool' argument has been closed (in which case a compound
+&thread-pool-error exception, also incorporating &origin and &message
+objects, will arise), the thread pool tries to start an additional
 native thread which the operating system fails to supply (which would
 cause a system exception to arise) or memory is exhausted.
 
@@ -331,7 +308,6 @@ Here is an example of the use of await-task-in-thread-pool!:
 	    (event-loop-block! #f))))
 (event-loop-run!)
 @end example
-This procedure is first available in version 0.12 of this library.
 @end deffn
 
 @deffn {Scheme Procedure} await-generator-in-thread-pool! await resume [loop] pool generator proc [handler]
@@ -375,8 +351,9 @@ make-event-loop procedure for further information).
 
 Exceptions may propagate out of this procedure if they arise while
 setting up, which shouldn't happen unless the thread loop given by the
-'pool' argument has been closed (in which case an 'thread-pool-error
-exception will arise), the thread pool tries to start an additional
+'pool' argument has been closed (in which case a compound
+&thread-pool-error exception, also incorporating &origin and &message
+objects, will arise), the thread pool tries to start an additional
 native thread which the operating system fails to supply (which would
 cause a system exception to arise) or memory is exhausted.  Exceptions
 arising during the execution of 'proc', if not caught locally, will
@@ -402,5 +379,4 @@ Here is an example of the use of await-generator-in-thread-pool!:
 	    (event-loop-block! #f))))
 (event-loop-run!)
 @end example
-This procedure is first available in version 0.12 of this library.
 @end deffn

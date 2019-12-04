@@ -14,10 +14,8 @@
 ;; License along with this library; if not, write to the Free Software
 ;; Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-;; monotonic-time.scm is generated from monotonic-time.scm.in by autoconf
-
 (define-module (a-sync monotonic-time))
 
 ;; this loads and exports the get-time and have-monotonic-time?
 ;; procedures in monotonic_time.c
-(load-extension "libguile-a-sync@GUILE_VER@-0" "init_a_sync_monotonic_time")
+(load-extension "libguile-a-sync3-0" "init_a_sync_monotonic_time")

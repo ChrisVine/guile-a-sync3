@@ -1,14 +1,14 @@
-This is guile-a-sync2.info, produced by makeinfo version 6.7 from
-guile-a-sync2.texi.
+This is guile-a-sync3.info, produced by makeinfo version 6.7 from
+guile-a-sync3.texi.
 
 
-File: guile-a-sync2.info,  Node: Top,  Next: overview,  Up: (dir)
+File: guile-a-sync3.info,  Node: Top,  Next: overview,  Up: (dir)
 
-guile-a-sync2 reference
+guile-a-sync3 reference
 ***********************
 
-This is the guile-a-sync2 library.  It provides both an asynchronous
-event loop for guile-2.2/3.0, and coroutines to enable an event loop
+This is the guile-a-sync3 library.  It provides both an asynchronous
+event loop for guile-3.0, and coroutines to enable an event loop
 (including other event loops such as the glib event loop) to be used
 with 'await' semantics to deal with inversion of control - otherwise
 known as "callback hell".
@@ -29,7 +29,7 @@ Modules
 * meeting::        (a-sync meeting) module - provides for synchronization between a-sync or compose-a-sync blocks
 
 
-File: guile-a-sync2.info,  Node: overview,  Next: coroutines,  Prev: Top
+File: guile-a-sync3.info,  Node: overview,  Next: coroutines,  Prev: Top
 
 *An overview of asynchronous programming with coroutines*
 
@@ -100,7 +100,7 @@ await-generator-in-thread!, await-generator-in-event-loop!  and
 await-generator-in-thread-pool!  procedures.
 
 
-File: guile-a-sync2.info,  Node: coroutines,  Next: event loop,  Prev: overview,  Up: Top
+File: guile-a-sync3.info,  Node: coroutines,  Next: event loop,  Prev: overview,  Up: Top
 
 The (a-sync coroutines) module provides the following procedures:
 
@@ -479,7 +479,7 @@ The (a-sync coroutines) module provides the following procedures:
      general overview: overview.
 
 
-File: guile-a-sync2.info,  Node: event loop,  Next: await ports,  Prev: overview,  Up: Top
+File: guile-a-sync3.info,  Node: event loop,  Next: await ports,  Prev: overview,  Up: Top
 
 The (a-sync event-loop) module provides an event loop for asynchronous
 operations.  The event loop does not of itself start any new threads.
@@ -509,7 +509,7 @@ select() system call.  This has two consequences.  First, in linux
 select() applied to sockets can give rise to spurious wake-ups, which
 means that it may be best with sockets to set the socket as non-blocking
 using the guile wrapper for the fcntl() system call in order to prevent
-a blocking read where it is not expected.  With guile-2.2/3.0 this means
+a blocking read where it is not expected.  With guile-3.0 this means
 that with such sockets, suspendable ports should be used with the
 await-read-suspendable!  or await-write-suspendable!  procedures in the
 *note (a-sync await-ports): await ports. module.  Secondly, with
@@ -576,8 +576,9 @@ await-ports) module) will not work correctly.
 
  -- Scheme Procedure: make-event-loop [throttle-threshold
           throttle-delay]
-     This constructs a new event loop object.  From version 0.2, this
-     procedure optionally takes two throttling arguments for
+     This procedure constructs a new event loop object.
+
+     This procedure optionally takes two throttling arguments for
      backpressure when applying the event-post!  procedure to the event
      loop.  The 'throttle-threshold' argument specifies the number of
      unexecuted tasks queued for execution, by virtue of calls to
@@ -613,12 +614,9 @@ await-ports) module) will not work correctly.
      event-loop-quit!, this procedure may be called again to restart the
      event loop, provided event-loop-close!  has not been applied to the
      loop.  If event-loop-close!  has previously been invoked, this
-     procedure will throw an 'event-loop-error exception.
-
-     From version 0.15, this procedure will also throw an
-     'event-loop-error exception if it is applied to an event loop which
-     is currently running (prior to version 0.15, doing so would fail in
-     a less helpful way).
+     procedure will throw an 'event-loop-error exception.  This
+     procedure will also throw an 'event-loop-error exception if it is
+     applied to an event loop which is currently running.
 
      If something else throws in the implementation or a callback
      throws, then this procedure will clean up the event loop as if
@@ -781,8 +779,6 @@ await-ports) module) will not work correctly.
      passed (or #f is passed), on the default event loop.  This
      procedure is thread safe - any thread may call it.
 
-     This procedure is first available in version 0.2 of this library.
-
  -- Scheme Procedure: event-loop-block! val [loop]
      By default, upon there being no more watches, timeouts and posted
      events for an event loop, event-loop-run!  will return, which is
@@ -878,8 +874,6 @@ await-ports) module) will not work correctly.
      This procedure should not throw an exception unless memory is
      exhausted.
 
-     This procedure is first available in version 0.13 of this library.
-
  -- Scheme Procedure: await-task-in-thread! await resume [loop] thunk
           [handler]
      The loop and handler arguments are optional.  The procedure will
@@ -897,8 +891,7 @@ await-ports) module) will not work correctly.
      and the return value of the handler would become the return value
      of this procedure; otherwise the program will terminate if an
      unhandled exception propagates out of 'thunk'.  'handler' should
-     take the same arguments as a guile catch handler (this is
-     implemented using catch).
+     take a single argument, which will be the thrown exception object.
 
      This procedure must (like the a-sync procedure) be called in the
      same thread as that in which the event loop runs, where the result
@@ -966,8 +959,6 @@ await-ports) module) will not work correctly.
      pthread has run out of resources.  Exceptions arising during
      execution of the task, if not caught locally, will propagate out of
      the event-loop-run!  procedure called for the 'worker' event loop.
-
-     This procedure is first available in version 0.2 of this library.
 
      Here is an example of the use of await-task-in-event-loop!:
           (set-default-event-loop!)     ;; if none has yet been set
@@ -1066,8 +1057,6 @@ await-ports) module) will not work correctly.
      This procedure should not throw any exceptions unless memory is
      exhausted.
 
-     This procedure is first available in version 0.7 of this library.
-
      Here is an example of the use of await-yield!:
           (set-default-event-loop!) ;; if none has yet been set
           (a-sync (lambda (await resume)
@@ -1094,8 +1083,8 @@ await-ports) module) will not work correctly.
      is provided, then that handler will be run in the event loop thread
      if 'generator' throws; otherwise the program will terminate if an
      unhandled exception propagates out of 'generator'.  'handler'
-     should take the same arguments as a guile catch handler (this is
-     implemented using catch).
+     should take a single argument, which will be the thrown exception
+     object.
 
      This procedure calls 'await' and will return when the generator has
      finished or, if 'handler' is provided, upon the generator throwing
@@ -1126,8 +1115,6 @@ await-ports) module) will not work correctly.
      program.  Exceptions thrown by the handler procedure will propagate
      out of event-loop-run!.  Exceptions thrown by 'proc', if not caught
      locally, will also propagate out of event-loop-run!.
-
-     This procedure is first available in version 0.4 of this library.
 
      Here is an example of the use of await-generator-in-thread!:
           (set-default-event-loop!) ;; if none has yet been set
@@ -1195,8 +1182,6 @@ await-ports) module) will not work correctly.
      caught locally, will propagate out of the event-loop-run!
      procedure called for the 'waiter' or default event loop, as the
      case may be.
-
-     This procedure is first available in version 0.4 of this library.
 
      Here is an example of the use of await-generator-in-event-loop!:
           (set-default-event-loop!)     ;; if none has yet been set
@@ -1268,8 +1253,6 @@ await-ports) module) will not work correctly.
      execution of the generator, if not caught locally, will propagate
      out of event-loop-run!.  Exceptions thrown by 'proc', if not caught
      locally, will propagate out of event-loop-run!.
-
-     This procedure is first available in version 0.4 of this library.
 
      Here is an example of the use of await-generator!:
           (set-default-event-loop!) ;; if none has yet been set
@@ -1347,8 +1330,6 @@ await-ports) module) will not work correctly.
      This procedure should not throw any exceptions unless memory is
      exhausted.
 
-     This procedure is first available in version 0.7 of this library.
-
      Here is an example of the use of await-sleep!:
           (set-default-event-loop!) ;; if none has yet been set
           (a-sync (lambda (await resume)
@@ -1361,12 +1342,11 @@ await-ports) module) will not work correctly.
 monotonic-time): monotonic time. module.
 
 
-File: guile-a-sync2.info,  Node: await ports,  Next: thread pool,  Prev: event loop,  Up: Top
+File: guile-a-sync3.info,  Node: await ports,  Next: thread pool,  Prev: event loop,  Up: Top
 
 The (a-sync await-ports) module provides procedures for using
-guile-2.2/3.0's suspendable ports with event loops, and a convenient way
-of using ports' normal input and output procedures with non-blocking
-ports.
+guile-3.0's suspendable ports with event loops, and a convenient way of
+using ports' normal input and output procedures with non-blocking ports.
 
    For this purpose, the 'normal input and output' procedures which may
 be used with await-read-suspendable!  and await-write-suspendable!
@@ -1404,7 +1384,7 @@ procedures must be made non-blocking using fcntl as follows:
  -- Scheme Procedure: await-read-suspendable! await resume [loop] port
           proc
      This procedure is provided to implement read file watches using
-     guile-2.2/3.0's suspendable ports.  'proc' is a procedure taking a
+     guile-3.0's suspendable ports.  'proc' is a procedure taking a
      single argument, to which the port will be passed when it is
      invoked.  The purpose of 'proc' is to carry out i/o operations on
      'port' using the port's normal read procedures.  'port' must be a
@@ -1428,8 +1408,7 @@ procedures must be made non-blocking using fcntl as follows:
      only out-of-band data on a TCP socket, or a pseudoterminal master
      in packet mode seeing state change in a slave.  In the absence of
      an exceptional condition, the value(s) returned by 'proc' will be
-     returned.  Prior to version 0.14, 'proc' could only return a single
-     value.  From version 0.14, 'proc' may return any number of values.
+     returned ('proc' may return any number of values).
 
      The 'loop' argument is optional: this procedure operates on the
      event loop passed in as an argument, or if none is passed (or #f is
@@ -1601,8 +1580,6 @@ procedures must be made non-blocking using fcntl as follows:
      See the documentation on the await-read-suspendable!  procedure for
      further particulars about this procedure.
 
-     This procedure is first available in version 0.6 of this library.
-
  -- Scheme Procedure: await-geteveryblock! await resume [loop] port size
           proc
      This procedure is provided mainly to retain compatibility with the
@@ -1640,8 +1617,6 @@ procedures must be made non-blocking using fcntl as follows:
 
      See the documentation on the await-read-suspendable!  procedure for
      further particulars about this procedure.
-
-     This procedure is first available in version 0.6 of this library.
 
  -- Scheme Procedure: await-getsomeblocks! await resume [loop] port size
           proc
@@ -1684,8 +1659,6 @@ procedures must be made non-blocking using fcntl as follows:
      See the documentation on the await-read-suspendable!  procedure for
      further particulars about this procedure.
 
-     This procedure is first available in version 0.6 of this library.
-
  -- Scheme Procedure: await-write-suspendable! await resume [loop] port
           proc
      This procedure is provided to implement write file watches using
@@ -1711,9 +1684,8 @@ procedures must be made non-blocking using fcntl as follows:
      'proc' may get there first and deal with it, or it may not.
      However exceptional conditions on write ports cannot normally
      occur.  In the absence of an exceptional condition, the value(s)
-     returned by 'proc' will be returned.  Prior to version 0.14, 'proc'
-     could only return a single value.  From version 0.14, 'proc' may
-     return any number of values.
+     returned by 'proc' will be returned ('proc' may return any number
+     of values).
 
      The 'loop' argument is optional: this procedure operates on the
      event loop passed in as an argument, or if none is passed (or #f is
@@ -1770,8 +1742,6 @@ procedures must be made non-blocking using fcntl as follows:
      See the documentation on the await-write-suspendable!  procedure
      for further particulars about this procedure.
 
-     This procedure is first available in version 0.6 of this library.
-
      As mentioned in relation to the await-write-suspendable!
      procedure, write exceptions will propagate out of this procedure in
      the first instance, and if not caught locally (say by placing a
@@ -1819,8 +1789,6 @@ procedures must be made non-blocking using fcntl as follows:
      See the documentation on the await-write-suspendable!  procedure
      for further particulars about this procedure.
 
-     This procedure is first available in version 0.5 of this library.
-
      As mentioned in relation to the await-write-suspendable!
      procedure, write exceptions will propagate out of this procedure in
      the first instance, and if not caught locally (say by placing a
@@ -1865,8 +1833,6 @@ procedures must be made non-blocking using fcntl as follows:
      See the documentation on the await-read-suspendable!  procedure for
      further particulars about this procedure.
 
-     This procedure is first available in version 0.7 of this library.
-
  -- Scheme Procedure: await-connect! await resume [loop] sock . args
      This procedure is provided mainly to retain compatibility with the
      guile-a-sync library for guile-2.0, because it is trivial to
@@ -1892,10 +1858,8 @@ procedures must be made non-blocking using fcntl as follows:
      See the documentation on the await-write-suspendable!  procedure
      for further particulars about this procedure.
 
-     This procedure is first available in version 0.7 of this library.
-
 
-File: guile-a-sync2.info,  Node: thread pool,  Next: monotonic time,  Prev: await ports,  Up: Top
+File: guile-a-sync3.info,  Node: thread pool,  Next: monotonic time,  Prev: await ports,  Up: Top
 
 This (a-sync thread-pool) module supplements the *note (a-sync
 event-loop): event loop. module.  (a-sync event-loop) provides
@@ -1983,13 +1947,9 @@ the already accumulated tasks has reduced.
      In such a case, any threads which have in fact started in the pool
      will be killed.
 
-     This procedure is first available in version 0.12 of this library.
-
  -- Scheme Procedure: thread-pool? obj
      This procedure indicates whether 'obj' is a thread pool object
      constructed by make-thread-pool.
-
-     This procedure is first available in version 0.12 of this library.
 
  -- Scheme Procedure: thread-pool-get-num-tasks pool
      This procedure returns the number of tasks which the thread pool
@@ -2000,23 +1960,17 @@ the already accumulated tasks has reduced.
      procedure to be applied more efficiently for rate limiting purposes
      but the result might at any one time be marginally out of date.
 
-     This procedure is first available in version 0.12 of this library.
-
  -- Scheme Procedure: thread-pool-get-num-threads pool
      This procedure returns the number of threads currently running in
      the thread pool.
 
      This procedure is thread safe (any thread may call it).
 
-     This procedure is first available in version 0.12 of this library.
-
  -- Scheme Procedure: thread-pool-get-max-threads pool
      This procedure returns the current maximum number of threads set
      for the thread pool.
 
      This procedure is thread safe (any thread may call it).
-
-     This procedure is first available in version 0.12 of this library.
 
  -- Scheme Procedure: thread-pool-change-max-threads! pool delta
      This procedure will increase, or if 'delta' is negative reduce, the
@@ -2064,16 +2018,12 @@ the already accumulated tasks has reduced.
      with a positive value (which can be preceded by a call with a
      negative value to prevent too many threads trying to start).
 
-     This procedure is first available in version 0.12 of this library.
-
  -- Scheme Procedure: thread-pool-get-non-blocking pool
      This procedure returns the current non-blocking status of the
      thread pool.  (See the documentation on the thread-pool-stop!
      procedure for more information about what that means.)
 
      This procedure is thread safe (any thread may call it).
-
-     This procedure is first available in version 0.12 of this library.
 
  -- Scheme Procedure: thread-pool-set-non-blocking! pool val
      This procedure sets the non-blocking status of the thread pool.  If
@@ -2083,19 +2033,16 @@ the already accumulated tasks has reduced.
 
      This procedure is thread safe (any thread may call it).
 
-     This procedure will throw a 'thread-pool-error exception if it is
-     invoked after the thread pool object concerned has been closed by a
-     call to thread-pool-stop!.
-
-     This procedure is first available in version 0.12 of this library.
+     This procedure will throw a compound &thread-pool-error exception
+     (also incorporating &origin and &message objects) if it is invoked
+     after the thread pool object concerned has been closed by a call to
+     thread-pool-stop!.
 
  -- Scheme Procedure: thread-pool-get-idle-time pool
      This procedure returns the current idle time setting for the thread
      pool, in milliseconds.
 
      This procedure is thread safe (any thread may call it).
-
-     This procedure is first available in version 0.12 of this library.
 
  -- Scheme Procedure: thread-pool-set-idle-time! pool millisecs
      This procedure sets the current idle time for the thread pool,
@@ -2107,8 +2054,6 @@ the already accumulated tasks has reduced.
 
      This procedure is thread safe (any thread may call it).
 
-     This procedure is first available in version 0.12 of this library.
-
  -- Scheme Procedure: thread-pool-stop! pool
      This procedure will cause the thread-pool object to stop running
      tasks.  However, all tasks already running or queued for execution
@@ -2119,15 +2064,14 @@ the already accumulated tasks has reduced.
 
      After this procedure has been called, any attempt to add further
      tasks with the thread-pool-add!  procedure will fail, and that
-     procedure will throw a 'thread-pool-error exception.  The same
-     exception will be thrown if this procedure is applied to a thread
-     pool to which this procedure has previously been applied.
+     procedure will throw a compound &thread-pool-error exception (also
+     incorporating &origin and &message objects).  The same exception
+     will be thrown if this procedure is applied to a thread pool to
+     which this procedure has previously been applied.
 
      This procedure is thread safe (any thread may call it) unless the
      non-blocking setting is #f, in which case no task running on the
      thread-pool object may call this procedure.
-
-     This procedure is first available in version 0.12 of this library.
 
  -- Scheme Procedure: thread-pool-add! pool task [fail-handler]
      This procedure adds a new task to the thread pool.  'task' must be
@@ -2143,20 +2087,18 @@ the already accumulated tasks has reduced.
      may call it, including any task running on the thread pool object).
 
      An optional handler procedure may be passed to 'fail-handler' which
-     will be invoked if the task throws an exception.  If a task throws
-     an exception and no handler procedure is provided, the program will
-     terminate.  The 'fail-handler' procedure will be passed the same
-     arguments as if it were a guile catch handler (it is implemented
-     using catch).
+     will be invoked if the task throws an exception.  The
+     'fail-handler' procedure will be passed the exception object which
+     was thrown.  If a task throws an exception and no handler procedure
+     is provided, the program will terminate.
 
      If this procedure starts a new thread (see above), it may throw an
      exception if the system is unable to start the thread correctly,
      and if it does so the task will not be added.  This procedure will
-     throw a 'thread-pool-error exception if it is invoked after the
-     thread pool object concerned has been closed by a call to
+     throw a compound &thread-pool-error exception (also incorporating
+     &origin and &message objects) if it is invoked after the thread
+     pool object concerned has been closed by a call to
      thread-pool-stop!.
-
-     This procedure is first available in version 0.12 of this library.
 
  -- Syntax: with-thread-pool-increment pool body0 body1 ...
      This macro is intended to be called by a task running on a thread
@@ -2170,8 +2112,6 @@ the already accumulated tasks has reduced.
      decrement, form the three branches of a dynamic-wind, so the
      decrement automatically occurs if control leaves body execution
      because of an exception or other jump.
-
-     This macro is first available in version 0.12 of this library.
 
  -- Scheme Procedure: await-task-in-thread-pool! await resume [loop]
           pool thunk [handler]
@@ -2207,11 +2147,12 @@ the already accumulated tasks has reduced.
 
      Exceptions may propagate out of this procedure if they arise while
      setting up, which shouldn't happen unless the thread pool given by
-     the 'pool' argument has been closed (in which case a
-     'thread-pool-error exception will arise), the thread pool tries to
-     start an additional native thread which the operating system fails
-     to supply (which would cause a system exception to arise) or memory
-     is exhausted.
+     the 'pool' argument has been closed (in which case a compound
+     &thread-pool-error exception, also incorporating &origin and
+     &message objects, will arise), the thread pool tries to start an
+     additional native thread which the operating system fails to supply
+     (which would cause a system exception to arise) or memory is
+     exhausted.
 
      Here is an example of the use of await-task-in-thread-pool!:
           (set-default-event-loop!) ;; if none has yet been set
@@ -2225,7 +2166,6 @@ the already accumulated tasks has reduced.
           							 (+ 1 1))))
           	    (event-loop-block! #f))))
           (event-loop-run!)
-     This procedure is first available in version 0.12 of this library.
 
  -- Scheme Procedure: await-generator-in-thread-pool! await resume
           [loop] pool generator proc [handler]
@@ -2271,12 +2211,13 @@ the already accumulated tasks has reduced.
 
      Exceptions may propagate out of this procedure if they arise while
      setting up, which shouldn't happen unless the thread loop given by
-     the 'pool' argument has been closed (in which case an
-     'thread-pool-error exception will arise), the thread pool tries to
-     start an additional native thread which the operating system fails
-     to supply (which would cause a system exception to arise) or memory
-     is exhausted.  Exceptions arising during the execution of 'proc',
-     if not caught locally, will propagate out of event-loop-run!  for
+     the 'pool' argument has been closed (in which case a compound
+     &thread-pool-error exception, also incorporating &origin and
+     &message objects, will arise), the thread pool tries to start an
+     additional native thread which the operating system fails to supply
+     (which would cause a system exception to arise) or memory is
+     exhausted.  Exceptions arising during the execution of 'proc', if
+     not caught locally, will propagate out of event-loop-run!  for
      'loop' or the default event loop (as the case may be).
 
      Here is an example of the use of await-generator-in-thread-pool!:
@@ -2296,10 +2237,9 @@ the already accumulated tasks has reduced.
           					       (newline)))
           	    (event-loop-block! #f))))
           (event-loop-run!)
-     This procedure is first available in version 0.12 of this library.
 
 
-File: guile-a-sync2.info,  Node: monotonic time,  Next: gnome glib,  Prev: thread pool,  Up: Top
+File: guile-a-sync3.info,  Node: monotonic time,  Next: gnome glib,  Prev: thread pool,  Up: Top
 
 The (a-sync monotonic-time) module provides two procedures.  It is
 loaded by the *note (a-sync event-loop): event loop. module.
@@ -2326,7 +2266,7 @@ loaded by the *note (a-sync event-loop): event loop. module.
      should always give the correct answer
 
 
-File: guile-a-sync2.info,  Node: gnome glib,  Next: compose,  Prev: monotonic time,  Up: Top
+File: guile-a-sync3.info,  Node: gnome glib,  Next: compose,  Prev: monotonic time,  Up: Top
 
 When using the scheme (gnome gtk) bindings of guile-gnome with guile, in
 order to provide await semantics on gtk+ callbacks it will normally be
@@ -2373,8 +2313,8 @@ procedures must be made non-blocking using fcntl as follows:
      in the default glib main loop if 'thunk' throws and its return
      value will be the return value of this procedure; otherwise the
      program will terminate if an unhandled exception propagates out of
-     'thunk'.  'handler' should take the same arguments as a guile catch
-     handler (this is implemented using catch).
+     'thunk'.  'handler' should take a single argument, which will be
+     the thrown exception object.
 
      This procedure must (like the a-sync procedure) be called in the
      same thread as that in which the default glib main loop runs, where
@@ -2463,8 +2403,6 @@ procedures must be made non-blocking using fcntl as follows:
      This procedure should not throw any exceptions unless memory is
      exhausted.
 
-     This procedure is first available in version 0.7 of this library.
-
      This procedure uses g-idle-add: see the introductory remarks about
      that.
 
@@ -2492,8 +2430,8 @@ procedures must be made non-blocking using fcntl as follows:
      is provided, then that handler will be run in the default glib main
      loop if 'generator' throws; otherwise the program will terminate if
      an unhandled exception propagates out of 'generator'.  'handler'
-     should take the same arguments as a guile catch handler (this is
-     implemented using catch).
+     should take a single argument, which will be the thrown exception
+     object.
 
      This procedure calls 'await' and will return when the generator has
      finished or, if 'handler' is provided, upon the generator throwing
@@ -2517,8 +2455,6 @@ procedures must be made non-blocking using fcntl as follows:
      program.  Exceptions thrown by the handler procedure will propagate
      out of g-main-loop-run.  Exceptions thrown by 'proc', if not caught
      locally, will also propagate out of g-main-loop-run.
-
-     This procedure is first available in version 0.4 of this library.
 
      This procedure uses g-idle-add: see the introductory remarks about
      that.
@@ -2571,8 +2507,6 @@ procedures must be made non-blocking using fcntl as follows:
      execution of the generator, if not caught locally, will propagate
      out of await-glib-generator.  Exceptions thrown by 'proc', if not
      caught locally, will propagate out of g-main-loop-run.
-
-     This procedure is first available in version 0.4 of this library.
 
      This procedure uses g-idle-add: see the introductory remarks about
      that.
@@ -2650,8 +2584,6 @@ procedures must be made non-blocking using fcntl as follows:
      This procedure should not throw any exceptions unless memory is
      exhausted.
 
-     This procedure is first available in version 0.7 of this library.
-
      Here is an example of the use of await-glib-sleep:
           (define main-loop (g-main-loop-new #f #f))
           (a-sync (lambda (await resume)
@@ -2717,10 +2649,8 @@ procedures must be made non-blocking using fcntl as follows:
      waitable procedure invoked by a-sync (which supplies the 'await'
      and 'resume' arguments).  'proc' must not itself explicitly apply
      'await' and 'resume' as those are potentially in use by the
-     suspendable port while 'proc' is executing.
-
-     Prior to version 0.14, 'proc' could only return a single value.
-     From version 0.14, 'proc' may return any number of values.
+     suspendable port while 'proc' is executing.  'proc' may return any
+     number of values.
 
      This procedure must (like the a-sync procedure) be called in the
      same thread as that in which the event loop runs.
@@ -2788,8 +2718,6 @@ procedures must be made non-blocking using fcntl as follows:
      See the documentation on the await-glib-read-suspendable procedure
      for further particulars about this procedure.
 
-     This procedure is first available in version 0.6 of this library.
-
  -- Scheme Procedure: await-glib-write-suspendable await resume port
           proc
      'proc' is a procedure taking a single argument, to which the port
@@ -2804,10 +2732,8 @@ procedures must be made non-blocking using fcntl as follows:
      procedure invoked by a-sync (which supplies the 'await' and
      'resume' arguments).  'proc' must not itself explicitly apply
      'await' and 'resume' as those are potentially in use by the
-     suspendable port while 'proc' is executing.
-
-     Prior to version 0.14, 'proc' could only return a single value.
-     From version 0.14, 'proc' may return any number of values.
+     suspendable port while 'proc' is executing.  'proc' may return any
+     number of values.
 
      This procedure must (like the a-sync procedure) be called in the
      same thread as that in which the event loop runs.
@@ -2843,8 +2769,6 @@ procedures must be made non-blocking using fcntl as follows:
 
      See the documentation on the await-glib-write-suspendable procedure
      for further particulars about this procedure.
-
-     This procedure is first available in version 0.6 of this library.
 
      As mentioned in relation to the await-glib-write-suspendable
      procedure, write exceptions will propagate out of this procedure in
@@ -2883,8 +2807,6 @@ procedures must be made non-blocking using fcntl as follows:
      See the documentation on the await-glib-write-suspendable procedure
      for further particulars about this procedure.
 
-     This procedure is first available in version 0.5 of this library.
-
      As mentioned in relation to the await-glib-write-suspendable
      procedure, write exceptions will propagate out of this procedure in
      the first instance, and if not caught locally (say by placing a
@@ -2907,7 +2829,7 @@ procedures must be made non-blocking using fcntl as follows:
           (g-main-loop-run main-loop)
 
 
-File: guile-a-sync2.info,  Node: compose,  Next: meeting,  Prev: gnome glib,  Up: Top
+File: guile-a-sync3.info,  Node: compose,  Next: meeting,  Prev: gnome glib,  Up: Top
 
 This (a-sync compose) module provides a compose-a-sync macro interface
 for the a-sync procedure provided by the *note (a-sync coroutines):
@@ -3057,7 +2979,7 @@ coroutines. module.
           (var ((no-await (+ a b))))
 
 
-File: guile-a-sync2.info,  Node: meeting,  Prev: compose,  Up: Top
+File: guile-a-sync3.info,  Node: meeting,  Prev: compose,  Up: Top
 
 As explained in the *note general overview: overview, each 'a-sync'
 block (see *note (a-sync coroutines): coroutines.) or 'compose-a-sync'
@@ -3157,13 +3079,9 @@ object.
      which the meeting will be held; so it is best if this procedure is
      called in the thread of that event loop.
 
-     This procedure is first available in version 0.9 of this library.
-
  -- Scheme Procedure: meeting? obj
      This procedure indicates whether 'obj' is a meeting object
      constructed by make-meeting.
-
-     This procedure is first available in version 0.9 of this library.
 
  -- Scheme Procedure: meeting-close meeting
      This closes a meeting object.  It's purpose is to wake up any
@@ -3175,16 +3093,12 @@ object.
      many items are to be sent), then this procedure does not need to be
      applied.  It is not needed in order to release resources.
 
-     This procedure is first available in version 0.9 of this library.
-
  -- Scheme Procedure: meeting-ready? meeting
      This indicates whether applying message-send or message-receive (as
      the case may be) to the meeting object 'meeting' will return
      immediately: in other words, this procedure will return #t if
      another a-sync or compose-a-sync block is already waiting on the
      object or the meeting object has been closed, otherwise #f.
-
-     This procedure is first available in version 0.9 of this library.
 
  -- Scheme Procedure: meeting-send await resume [loop] m0 [m1 ...] datum
      This sends a datum to a receiver which is running on the same event
@@ -3203,13 +3117,10 @@ object.
      invoked by a-sync (which supplies the 'await' and 'resume'
      arguments).
 
-     With version 0.9 of this library, a sender could not invoke this
-     procedure when another a-sync or compose-a-sync block running on
-     the event loop concerned was already waiting to send on the same
-     'meeting' object.  From version 0.10, multiple senders may wait on
-     a meeting object to permit fan in.  The provided datum of each
-     sender will be passed to a receiver (as and when a receiver becomes
-     available) in the order in which this procedure was invoked.
+     Multiple senders may wait on a meeting object to permit fan in.
+     The provided datum of each sender will be passed to a receiver (as
+     and when a receiver becomes available) in the order in which this
+     procedure was invoked.
 
      Here is an example of such a fan in:
 
@@ -3229,11 +3140,9 @@ object.
           	      (next (1+ count))))))
           (event-loop-run!)
 
-     In addition, with version 0.9 of this library, only a single
-     meeting object could be passed to this procedure.  From version
-     0.10 this procedure has 'select'-like behavior: multiple meeting
-     objects may be passed and this procedure will send to the first one
-     which becomes available to receive the datum.
+     In addition, this procedure has 'select'-like behavior: multiple
+     meeting objects may be passed and this procedure will send to the
+     first one which becomes available to receive the datum.
 
      Here is an example of selecting on send (here, meeting-send will
      send to the first meeting which becomes available for receiving,
@@ -3271,8 +3180,6 @@ object.
      procedure is waiting where this procedure is selecting on more than
      one meeting object.
 
-     This procedure is first available in version 0.9 of this library.
-
  -- Scheme Procedure: meeting-receive await resume [loop] m0 [m1 ...]
      This receives a datum from a sender running on the same event loop
      as the receiver, via one or more meeting objects 'm0 m1 ...'.  If
@@ -3290,13 +3197,9 @@ object.
      invoked by a-sync (which supplies the 'await' and 'resume'
      arguments).
 
-     With version 0.9 of this library, a receiver could not invoke this
-     procedure when another a-sync or compose-a-sync block running on
-     the event loop concerned was already waiting to receive from the
-     same 'meeting' object.  From version 0.10, multiple receivers may
-     wait on a meeting object to permit fan out.  The waiting receivers
-     will be released (as and when a sender provides a datum) in the
-     order in which this procedure was invoked.
+     Multiple receivers may wait on a meeting object to permit fan out.
+     The waiting receivers will be released (as and when a sender
+     provides a datum) in the order in which this procedure was invoked.
 
      Here is an example of such a fan out:
 
@@ -3317,11 +3220,9 @@ object.
           	      (next (1+ count))))))
           (event-loop-run!)
 
-     In addition, with version 0.9 of this library, only a single
-     meeting object could be passed to this procedure.  From version
-     0.10 this procedure has 'select'-like behavior: multiple meeting
-     objects may be passed and this procedure will receive from the
-     first one which sends a datum.
+     In addition, this procedure has 'select'-like behavior: multiple
+     meeting objects may be passed and this procedure will receive from
+     the first one which sends a datum.
 
      Here is an example of selecting on receive:
 
@@ -3362,21 +3263,19 @@ object.
      meeting object on which this procedure is waiting where this
      procedure is selecting on more than one meeting object.
 
-     This procedure is first available in version 0.9 of this library.
-
 
 
 Tag Table:
 Node: Top87
-Node: overview1449
-Node: coroutines4753
-Node: event loop23145
-Node: await ports70564
-Node: thread pool98073
-Node: monotonic time119523
-Node: gnome glib120959
-Node: compose149984
-Node: meeting157972
+Node: overview1445
+Node: coroutines4749
+Node: event loop23141
+Node: await ports69836
+Node: thread pool96655
+Node: monotonic time117281
+Node: gnome glib118717
+Node: compose147028
+Node: meeting155016
 
 End Tag Table
 

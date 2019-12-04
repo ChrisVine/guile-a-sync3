@@ -50,8 +50,6 @@
 ;; called in other than the thread of the event loop with respect to
 ;; which the meeting will be held; so it is best if this procedure is
 ;; called in the thread of that event loop.
-;;
-;; This procedure is first available in version 0.9 of this library.
 (define* (make-meeting #:optional loop)
   (let ((loop (or loop (get-default-event-loop))))
     (when (not loop)
@@ -66,8 +64,6 @@
 ;; Where that is not necessary (say, the receiver already knows how
 ;; many items are to be sent), then this procedure does not need to be
 ;; applied.  It is not needed in order to release resources.
-;;
-;; This procedure is first available in version 0.9 of this library.
 (define (meeting-close m)
   (let ((res (resumptions-get m))
 	(loop (loop-get m)))
@@ -85,8 +81,6 @@
 ;; in other words, this procedure will return #t if another a-sync or
 ;; compose-a-sync block is already waiting on the object or the
 ;; meeting object has been closed, otherwise #f.
-;;
-;; This procedure is first available in version 0.9 of this library.
 (define (meeting-ready? m)
   (or (not (q-empty? (resumptions-get m)))
       (eq? (status-get m) 'closed)))
@@ -111,19 +105,14 @@
 ;; invoked by a-sync (which supplies the 'await' and 'resume'
 ;; arguments).
 ;;
-;; With version 0.9 of this library, a sender could not invoke this
-;; procedure when another a-sync or compose-a-sync block running on
-;; the event loop concerned was already waiting to send on the same
-;; 'meeting' object.  From version 0.10, multiple senders may wait on
-;; a meeting object to permit fan in.  The provided datum of each
-;; sender will be passed to a receiver (as and when a receiver becomes
-;; available) in the order in which this procedure was invoked.
+;; Multiple senders may wait on a meeting object to permit fan in.
+;; The provided datum of each sender will be passed to a receiver (as
+;; and when a receiver becomes available) in the order in which this
+;; procedure was invoked.
 ;;
-;; In addition, with version 0.9 of this library, only a single
-;; meeting object could be passed to this procedure.  From version
-;; 0.10 this procedure has 'select'-like behavior: multiple meeting
-;; objects may be passed and this procedure will send to the first one
-;; which becomes available to receive the datum.
+;; In addition, this procedure has 'select'-like behavior: multiple
+;; meeting objects may be passed and this procedure will send to the
+;; first one which becomes available to receive the datum.
 ;;
 ;; Once a datum exchange has taken place, the meeting object(s) can be
 ;; reused for making another exchange (provided the meeting objects
@@ -143,8 +132,6 @@
 ;; usually a bad idea to close a meeting object on which this
 ;; procedure is waiting where this procedure is selecting on more than
 ;; one meeting object.
-;;
-;; This procedure is first available in version 0.9 of this library.
 (define (meeting-send await resume . rest)
   (cond
    ((null? rest)
@@ -247,19 +234,13 @@
 ;; invoked by a-sync (which supplies the 'await' and 'resume'
 ;; arguments).
 ;;
-;; With version 0.9 of this library, a receiver could not invoke this
-;; procedure when another a-sync or compose-a-sync block running on
-;; the event loop concerned was already waiting to receive from the
-;; same 'meeting' object.  From version 0.10, multiple receivers may
-;; wait on a meeting object to permit fan out.  The waiting receivers
-;; will be released (as and when a sender provides a datum) in the
-;; order in which this procedure was invoked.
+;; Multiple receivers may wait on a meeting object to permit fan out.
+;; The waiting receivers will be released (as and when a sender
+;; provides a datum) in the order in which this procedure was invoked.
 ;;
-;; In addition, with version 0.9 of this library, only a single
-;; meeting object could be passed to this procedure.  From version
-;; 0.10 this procedure has 'select'-like behavior: multiple meeting
-;; objects may be passed and this procedure will receive from the
-;; first one which sends a datum.
+;; In addition, this procedure has 'select'-like behavior: multiple
+;; meeting objects may be passed and this procedure will receive from
+;; the first one which sends a datum.
 ;;
 ;; Once a datum exchange has taken place, the meeting object(s) can be
 ;; reused for making another exchange (provided the meeting objects
@@ -279,8 +260,6 @@
 ;; any wait will be abandonned.  It is usually a bad idea to close a
 ;; meeting object on which this procedure is waiting where this
 ;; procedure is selecting on more than one meeting object.
-;;
-;; This procedure is first available in version 0.9 of this library.
 (define (meeting-receive await resume . rest)
   (cond
    ((null? rest)

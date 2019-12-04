@@ -1,17 +1,17 @@
 \input texinfo
 @c -*-texinfo-*-
 @c %**start of header
-@settitle guile-a-sync2
-@setfilename guile-a-sync2.info
+@settitle guile-a-sync3
+@setfilename guile-a-sync3.info
 @c %**end of header
 
 @ifnottex
 @node Top,overview,,
-@top guile-a-sync2 reference
+@top guile-a-sync3 reference
 @end ifnottex
 
-This is the guile-a-sync2 library.  It provides both an asynchronous
-event loop for guile-2.2/3.0, and coroutines to enable an event loop
+This is the guile-a-sync3 library.  It provides both an asynchronous
+event loop for guile-3.0, and coroutines to enable an event loop
 (including other event loops such as the glib event loop) to be used
 with 'await' semantics to deal with inversion of control -- otherwise
 known as ``callback hell''.

@@ -3,10 +3,10 @@
 <!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<title>thread pool (guile-a-sync2)</title>
+<title>thread pool (guile-a-sync3)</title>
 
-<meta name="description" content="thread pool (guile-a-sync2)">
-<meta name="keywords" content="thread pool (guile-a-sync2)">
+<meta name="description" content="thread pool (guile-a-sync3)">
+<meta name="keywords" content="thread pool (guile-a-sync3)">
 <meta name="resource-type" content="document">
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
@@ -124,16 +124,12 @@ to the pool.
 start the number of threads given as the #:min-threads argument.  In
 such a case, any threads which have in fact started in the pool will
 be killed.
-</p>
-<p>This procedure is first available in version 0.12 of this library.
 </p></dd></dl>
 
 <dl>
 <dt id="index-thread_002dpool_003f">Scheme Procedure: <strong>thread-pool?</strong> <em>obj</em></dt>
 <dd><p>This procedure indicates whether &rsquo;obj&rsquo; is a thread pool object
 constructed by make-thread-pool.
-</p>
-<p>This procedure is first available in version 0.12 of this library.
 </p></dd></dl>
 
 <dl>
@@ -145,8 +141,6 @@ although it accesses the task number field outside the pool mutex and
 therefore with relaxed memory ordering.  That enables this procedure
 to be applied more efficiently for rate limiting purposes but the
 result might at any one time be marginally out of date.
-</p>
-<p>This procedure is first available in version 0.12 of this library.
 </p></dd></dl>
 
 <dl>
@@ -155,8 +149,6 @@ result might at any one time be marginally out of date.
 thread pool.
 </p>
 <p>This procedure is thread safe (any thread may call it).
-</p>
-<p>This procedure is first available in version 0.12 of this library.
 </p></dd></dl>
 
 <dl>
@@ -165,8 +157,6 @@ thread pool.
 the thread pool.
 </p>
 <p>This procedure is thread safe (any thread may call it).
-</p>
-<p>This procedure is first available in version 0.12 of this library.
 </p></dd></dl>
 
 <dl>
@@ -213,8 +203,6 @@ addressed, then the thread pool can be brought back into use by
 calling this procedure again with a positive value (which can be
 preceded by a call with a negative value to prevent too many threads
 trying to start).
-</p>
-<p>This procedure is first available in version 0.12 of this library.
 </p></dd></dl>
 
 <dl>
@@ -224,8 +212,6 @@ pool.  (See the documentation on the thread-pool-stop! procedure for
 more information about what that means.)
 </p>
 <p>This procedure is thread safe (any thread may call it).
-</p>
-<p>This procedure is first available in version 0.12 of this library.
 </p></dd></dl>
 
 <dl>
@@ -237,11 +223,10 @@ more information about this.)
 </p>
 <p>This procedure is thread safe (any thread may call it).
 </p>
-<p>This procedure will throw a &rsquo;thread-pool-error exception if it is
-invoked after the thread pool object concerned has been closed by a
-call to thread-pool-stop!.
-</p>
-<p>This procedure is first available in version 0.12 of this library.
+<p>This procedure will throw a compound &amp;thread-pool-error exception
+(also incorporating &amp;origin and &amp;message objects) if it is invoked
+after the thread pool object concerned has been closed by a call to
+thread-pool-stop!.
 </p></dd></dl>
 
 <dl>
@@ -250,8 +235,6 @@ call to thread-pool-stop!.
 pool, in milliseconds.
 </p>
 <p>This procedure is thread safe (any thread may call it).
-</p>
-<p>This procedure is first available in version 0.12 of this library.
 </p></dd></dl>
 
 <dl>
@@ -263,8 +246,6 @@ waiting for new tasks.  This will only have effect for threads in the
 pool which begin waiting for new tasks after this procedure is called.
 </p>
 <p>This procedure is thread safe (any thread may call it).
-</p>
-<p>This procedure is first available in version 0.12 of this library.
 </p></dd></dl>
 
 <dl>
@@ -278,15 +259,14 @@ returning, and if #t it will return straight away.
 </p>
 <p>After this procedure has been called, any attempt to add further tasks
 with the thread-pool-add! procedure will fail, and that procedure will
-throw a &rsquo;thread-pool-error exception.  The same exception will be
-thrown if this procedure is applied to a thread pool to which this
-procedure has previously been applied.
+throw a compound &amp;thread-pool-error exception (also incorporating
+&amp;origin and &amp;message objects).  The same exception will be thrown if
+this procedure is applied to a thread pool to which this procedure has
+previously been applied.
 </p>
 <p>This procedure is thread safe (any thread may call it) unless the
 non-blocking setting is #f, in which case no task running on the
 thread-pool object may call this procedure.
-</p>
-<p>This procedure is first available in version 0.12 of this library.
 </p></dd></dl>
 
 <dl>
@@ -304,19 +284,17 @@ thread safe (any thread may call it, including any task running on the
 thread pool object).
 </p>
 <p>An optional handler procedure may be passed to &rsquo;fail-handler&rsquo; which
-will be invoked if the task throws an exception.  If a task throws
-an exception and no handler procedure is provided, the program will
-terminate.  The &rsquo;fail-handler&rsquo; procedure will be passed the same
-arguments as if it were a guile catch handler (it is implemented
-using catch).
+will be invoked if the task throws an exception.  The &rsquo;fail-handler&rsquo;
+procedure will be passed the exception object which was thrown.  If a
+task throws an exception and no handler procedure is provided, the
+program will terminate.
 </p>
 <p>If this procedure starts a new thread (see above), it may throw an
 exception if the system is unable to start the thread correctly, and
 if it does so the task will not be added.  This procedure will throw a
-&rsquo;thread-pool-error exception if it is invoked after the thread pool
-object concerned has been closed by a call to thread-pool-stop!.
-</p>
-<p>This procedure is first available in version 0.12 of this library.
+compound &amp;thread-pool-error exception (also incorporating &amp;origin and
+&amp;message objects) if it is invoked after the thread pool object
+concerned has been closed by a call to thread-pool-stop!.
 </p></dd></dl>
 
 <dl>
@@ -332,8 +310,6 @@ clauses has completed.
 decrement, form the three branches of a dynamic-wind, so the decrement
 automatically occurs if control leaves body execution because of an
 exception or other jump.
-</p>
-<p>This macro is first available in version 0.12 of this library.
 </p></dd></dl>
 
 <dl>
@@ -369,8 +345,9 @@ make-event-loop procedure for further information).
 </p>
 <p>Exceptions may propagate out of this procedure if they arise while
 setting up, which shouldn&rsquo;t happen unless the thread pool given by the
-&rsquo;pool&rsquo; argument has been closed (in which case a &rsquo;thread-pool-error
-exception will arise), the thread pool tries to start an additional
+&rsquo;pool&rsquo; argument has been closed (in which case a compound
+&amp;thread-pool-error exception, also incorporating &amp;origin and &amp;message
+objects, will arise), the thread pool tries to start an additional
 native thread which the operating system fails to supply (which would
 cause a system exception to arise) or memory is exhausted.
 </p>
@@ -388,8 +365,7 @@ cause a system exception to arise) or memory is exhausted.
 	    (event-loop-block! #f))))
 (event-loop-run!)
 </pre></div>
-<p>This procedure is first available in version 0.12 of this library.
-</p></dd></dl>
+</dd></dl>
 
 <dl>
 <dt id="index-await_002dgenerator_002din_002dthread_002dpool_0021">Scheme Procedure: <strong>await-generator-in-thread-pool!</strong> <em>await resume [loop] pool generator proc [handler]</em></dt>
@@ -433,8 +409,9 @@ make-event-loop procedure for further information).
 </p>
 <p>Exceptions may propagate out of this procedure if they arise while
 setting up, which shouldn&rsquo;t happen unless the thread loop given by the
-&rsquo;pool&rsquo; argument has been closed (in which case an &rsquo;thread-pool-error
-exception will arise), the thread pool tries to start an additional
+&rsquo;pool&rsquo; argument has been closed (in which case a compound
+&amp;thread-pool-error exception, also incorporating &amp;origin and &amp;message
+objects, will arise), the thread pool tries to start an additional
 native thread which the operating system fails to supply (which would
 cause a system exception to arise) or memory is exhausted.  Exceptions
 arising during the execution of &rsquo;proc&rsquo;, if not caught locally, will
@@ -460,8 +437,7 @@ propagate out of event-loop-run! for &rsquo;loop&rsquo; or the default event loo
 	    (event-loop-block! #f))))
 (event-loop-run!)
 </pre></div>
-<p>This procedure is first available in version 0.12 of this library.
-</p></dd></dl>
+</dd></dl>
 <hr>
 <div class="header">
 <p>

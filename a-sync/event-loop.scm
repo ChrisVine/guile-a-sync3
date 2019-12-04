@@ -1,4 +1,4 @@
-;; Copyright (C) 2014 to 2018 Chris Vine
+;; Copyright (C) 2014 to 2019 Chris Vine
 
 ;; This library is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU Lesser General Public
@@ -19,6 +19,7 @@
   #:use-module (ice-9 match)
   #:use-module (ice-9 threads)         ;; for with-mutex and call-with-new-thread
   #:use-module (ice-9 suspendable-ports)
+  #:use-module (ice-9 exceptions)      ;; for raise-exception and with-exception-handler
   #:use-module (srfi srfi-1)           ;; for reduce, delete, member and delete-duplicates
   #:use-module (srfi srfi-9)
   #:use-module (rnrs bytevectors)      ;; for make-bytevector, bytevector-copy!
@@ -52,11 +53,11 @@
 	    await-sleep!))
 
 
-;; with guile-2.2, the event loop must always be used in conjunction
+;; with guile-3.0, the event loop must always be used in conjunction
 ;; with suspendable ports - see _write-with-EAGAIN for an explanation
 (install-suspendable-ports!)
 
-;; by default, in guile-2-2 (and unlike in guile-2.0), if EAGAIN
+;; by default, in guile-2.2/3.0 (and unlike in guile-2.0), if EAGAIN
 ;; occurs on a write, the write operation will block until writing
 ;; becomes available.  That is wrong when writing to the internal
 ;; event loop pipe - for that we must skip a write to a full pipe.
@@ -64,13 +65,16 @@
 ;; This procedure returns #t if EAGAIN did not occur, or #f if it did.
 (define (_write-with-EAGAIN proc)
   (define (write-waiter p)
-    (throw 'EAGAIN))
+    (raise-exception 'EAGAIN))
   (parameterize ((current-write-waiter write-waiter))
-    (catch 'EAGAIN
+    (with-exception-handler
+      (lambda (exc)
+	(if (eq? exc 'EAGAIN)
+	    #f
+	    (raise-exception exc)))
       (lambda ()
-	(proc)
-	#t)
-      (lambda args #f))))
+	(proc) #t)
+      #:unwind? #t)))
 
 ;; this variable is not exported - use the accessors below
 (define ***default-event-loop*** #f)
@@ -132,8 +136,9 @@
   (delay _delay-get)
   (loop-thread _loop-thread-get _loop-thread-set!))
 
-;; This procedure constructs an event loop object.  From version 0.2,
-;; this procedure optionally takes two throttling arguments for
+;; This procedure constructs an event loop object.
+;;
+;; This procedure optionally takes two throttling arguments for
 ;; backpressure when applying the event-post! procedure to the event
 ;; loop.  The 'throttle-threshold' argument specifies the number of
 ;; unexecuted tasks queued for execution, by virtue of calls to
@@ -335,12 +340,9 @@
 ;; this procedure may be called again to restart the event loop,
 ;; provided event-loop-close! has not been applied to the loop.  If
 ;; event-loop-close! has previously been invoked, this procedure will
-;; throw an 'event-loop-error exception.
-;;
-;; From version 0.15, this procedure will also throw an
-;; 'event-loop-error exception if it is applied to an event loop which
-;; is currently running (prior to version 0.15, doing so would fail in
-;; a less helpful way).
+;; throw an 'event-loop-error exception.  This procedure will also
+;; throw an 'event-loop-error exception if it is applied to an event
+;; loop which is currently running.
 ;;
 ;; If something else throws in the implementation or a callback
 ;; throws, then this procedure will clean up the event loop as if
@@ -376,8 +378,15 @@
        (_loop-thread-set! el (current-thread))
        (_mode-set! el 'running))))
 
-  (catch
-    #t
+  (with-exception-handler
+    (lambda (exc)
+      ;; something threw, probably a callback.  Put the event loop in
+      ;; a valid state and rethrow
+      (with-mutex mutex
+	(_event-loop-reset! el)
+	(when (not (eq? (_mode-get el) 'closed))
+	  (_mode-set! el #f))
+	(raise-exception exc)))
     (lambda ()
       (let loop1 ()
 	;; we don't need to use the mutex in this procedure to access
@@ -398,6 +407,10 @@
 			(with-mutex mutex (and (q-empty? q)
 					       (not (_block-get el))))))
 	  (let* ((current-timeout (_current-timeout-get el))
+		 ;; TODO: convert to use 'with-exception-handler'.  Use
+		 ;; 'catch' instead to catch system-error at the moment,
+		 ;; until guile-3.0 settles down - I think system-error-errno
+		 ;; only works with a catch handler's arguments at the moment
 		 (res (catch 'system-error
 			(lambda ()
 			  (select (cons event-fd read-files)
@@ -493,14 +506,7 @@
 	  ;; now reset the operating mode when not closed
 	  (when (not (eq? mode 'closed))
 	    (_mode-set! el #f)))))
-    (lambda args
-      ;; something threw, probably a callback.  Put the event loop in
-      ;; a valid state and rethrow
-      (with-mutex mutex
-	(_event-loop-reset! el)
-	(when (not (eq? (_mode-get el) 'closed))
-	  (_mode-set! el #f))
-	(apply throw args)))))
+    #:unwind? #t))
 
 ;; This procedure is only called in the event loop thread, by
 ;; event-loop-run!  It must be called while holding the event loop
@@ -821,8 +827,6 @@
 ;; on the event loop passed in as an argument, or if none is passed
 ;; (or #f is passed), on the default event loop.  This procedure is
 ;; thread safe - any thread may call it.
-;;
-;; This procedure is first available in version 0.2 of this library.
 (define* (event-loop-tasks #:optional el)
   (let ((el (or el (get-default-event-loop))))
     (when (not el) 
@@ -962,8 +966,6 @@
 ;;
 ;; This procedure should not throw an exception unless memory is
 ;; exhausted.
-;;
-;; This procedure is first available in version 0.13 of this library.
 (define* (event-loop-close! #:optional el)
   (let ((el (or el (get-default-event-loop))))
     (when (not el) 
@@ -1015,9 +1017,8 @@
 ;; will be run in the event loop thread if 'thunk' throws and the
 ;; return value of the handler would become the return value of this
 ;; procedure; otherwise the program will terminate if an unhandled
-;; exception propagates out of 'thunk'.  'handler' should take the
-;; same arguments as a guile catch handler (this is implemented using
-;; catch).
+;; exception propagates out of 'thunk'.  'handler' should take a
+;; single argument, which will be the thrown exception object.
 ;;
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the event loop runs, where the result
@@ -1060,15 +1061,15 @@
     (if handler
 	(call-with-new-thread
 	 (lambda ()
-	   (catch
-	     #t
+	   (with-exception-handler
+	     (lambda (exc)
+	       (event-post! (lambda () (resume (handler exc)))
+			    loop))
 	     (lambda ()
 	       (let ((res (thunk)))
 		 (event-post! (lambda () (resume res))
 			      loop)))
-	     (lambda args
-	       (event-post! (lambda () (resume (apply handler args)))
-			    loop)))))
+	     #:unwind? #t)))
 	(call-with-new-thread
 	 (lambda ()
 	   (let ((res (thunk)))
@@ -1116,8 +1117,6 @@
 ;; pthread has run out of resources.  Exceptions arising during
 ;; execution of the task, if not caught locally, will propagate out of
 ;; the event-loop-run! procedure called for the 'worker' event loop.
-;;
-;; This procedure is first available in version 0.2 of this library.
 (define await-task-in-event-loop!
   (case-lambda
     ((await resume worker thunk)
@@ -1214,8 +1213,6 @@
 ;;
 ;; This procedure should not throw any exceptions unless memory is
 ;; exhausted.
-;;
-;; This procedure is first available in version 0.7 of this library.
 (define await-yield!
   (case-lambda
     ((await resume)
@@ -1246,8 +1243,8 @@
 ;; is provided, then that handler will be run in the event loop thread
 ;; if 'generator' throws; otherwise the program will terminate if an
 ;; unhandled exception propagates out of 'generator'.  'handler'
-;; should take the same arguments as a guile catch handler (this is
-;; implemented using catch).
+;; should take a single argument, which will be the thrown exception
+;; object.
 ;;
 ;; This procedure calls 'await' and will return when the generator has
 ;; finished or, if 'handler' is provided, upon the generator throwing
@@ -1278,8 +1275,6 @@
 ;; program.  Exceptions thrown by the handler procedure will propagate
 ;; out of event-loop-run!.  Exceptions thrown by 'proc', if not caught
 ;; locally, will also propagate out of event-loop-run!.
-;;
-;; This procedure is first available in version 0.4 of this library.
 (define (await-generator-in-thread! await resume . rest)
   (match rest
     ((loop generator proc handler)
@@ -1302,8 +1297,12 @@
     (if handler
 	(call-with-new-thread
 	 (lambda ()
-	   (catch
-	     #t
+	   (with-exception-handler
+	     (lambda (exc)
+	       (event-post! (lambda ()
+			      (handler exc)
+			      (resume 'guile-a-sync-thread-error))
+			    loop))
 	     (lambda ()
 	       (let ((iter (make-iterator generator)))
 		 (let next ((res (iter)))
@@ -1311,11 +1310,7 @@
 				loop)
 		   (when (not (eq? res 'stop-iteration))
 		     (next (iter))))))
-	     (lambda args
-	       (event-post! (lambda ()
-			      (apply handler args)
-			      (resume 'guile-a-sync-thread-error))
-			    loop)))))
+	     #:unwind? #t)))
 	(call-with-new-thread
 	 (lambda ()
 	   (let ((iter (make-iterator generator)))
@@ -1385,8 +1380,6 @@
 ;; loop.  Exceptions arising during the execution of 'proc', if not
 ;; caught locally, will propagate out of the event-loop-run! procedure
 ;; called for the 'waiter' or default event loop, as the case may be.
-;;
-;; This procedure is first available in version 0.4 of this library.
 (define await-generator-in-event-loop!
   (case-lambda
     ((await resume worker generator proc)
@@ -1456,8 +1449,6 @@
 ;; execution of the generator, if not caught locally, will propagate
 ;; out of event-loop-run!.  Exceptions thrown by 'proc', if not caught
 ;; locally, will propagate out of event-loop-run!.
-;;
-;; This procedure is first available in version 0.4 of this library.
 (define await-generator!
   (case-lambda
     ((await resume generator proc)
@@ -1539,8 +1530,6 @@
 ;;
 ;; This procedure should not throw any exceptions unless memory is
 ;; exhausted.
-;;
-;; This procedure is first available in version 0.7 of this library.
 (define await-sleep!
   (case-lambda
     ((await resume msecs)

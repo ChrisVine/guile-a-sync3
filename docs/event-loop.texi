@@ -29,14 +29,13 @@ select() applied to sockets can give rise to spurious wake-ups, which
 means that it may be best with sockets to set the socket as
 non-blocking using the guile wrapper for the fcntl() system call in
 order to prevent a blocking read where it is not expected.  With
-guile-2.2/3.0 this means that with such sockets, suspendable ports
-should be used with the await-read-suspendable! or
-await-write-suspendable!  procedures in the @ref{await ports,,(a-sync
-await-ports)} module.  Secondly, with select() the file descriptor
-value of a port passed to the watch should not exceed FD_SETSIZE.
-Normally, by default the maximum soft user limit for open files is the
-same as FD_SETSIZE, and it is best if this situation is retained by
-user code.
+guile-3.0 this means that with such sockets, suspendable ports should
+be used with the await-read-suspendable! or await-write-suspendable!
+procedures in the @ref{await ports,,(a-sync await-ports)} module.
+Secondly, with select() the file descriptor value of a port passed to
+the watch should not exceed FD_SETSIZE.  Normally, by default the
+maximum soft user limit for open files is the same as FD_SETSIZE, and
+it is best if this situation is retained by user code.
 
 Where a file watch on a file descriptor or port has been added with
 event-loop-add-read-watch! or event-loop-add-write-watch!, the event
@@ -95,19 +94,20 @@ procedure, or #f if none has been set.
 @end deffn
 
 @deffn {Scheme Procedure} make-event-loop [throttle-threshold throttle-delay]
-This constructs a new event loop object.  From version 0.2, this
-procedure optionally takes two throttling arguments for backpressure
-when applying the event-post! procedure to the event loop.  The
-'throttle-threshold' argument specifies the number of unexecuted tasks
-queued for execution, by virtue of calls to event-post!, at which
-throttling will first be applied.  Where the threshold is exceeded,
-throttling proceeds by adding a wait to any thread which calls the
-event-post! procedure, equal to the cube of the number of times (if
-any) by which the number of queued tasks exceeds the threshold
-multiplied by the value of 'throttle-delay'.  The value of
-'throttle-delay' should be given in microseconds.  Throttling is only
-applied where the call to event-post! is made in a thread other than
-the one in which the event loop runs.
+This procedure constructs a new event loop object.
+
+This procedure optionally takes two throttling arguments for
+backpressure when applying the event-post! procedure to the event
+loop.  The 'throttle-threshold' argument specifies the number of
+unexecuted tasks queued for execution, by virtue of calls to
+event-post!, at which throttling will first be applied.  Where the
+threshold is exceeded, throttling proceeds by adding a wait to any
+thread which calls the event-post! procedure, equal to the cube of the
+number of times (if any) by which the number of queued tasks exceeds
+the threshold multiplied by the value of 'throttle-delay'.  The value
+of 'throttle-delay' should be given in microseconds.  Throttling is
+only applied where the call to event-post! is made in a thread other
+than the one in which the event loop runs.
 
 So if the threshold given is 10000 tasks and the delay given is 1000
 microseconds, upon 10000 unexecuted tasks accumulating a delay of 1000
@@ -134,11 +134,9 @@ returned, including after a call to event-loop-quit!, this procedure
 may be called again to restart the event loop, provided
 event-loop-close! has not been applied to the loop.  If
 event-loop-close! has previously been invoked, this procedure will
-throw an 'event-loop-error exception.
-
-From version 0.15, this procedure will also throw an 'event-loop-error
-exception if it is applied to an event loop which is currently running
-(prior to version 0.15, doing so would fail in a less helpful way).
+throw an 'event-loop-error exception.  This procedure will also throw
+an 'event-loop-error exception if it is applied to an event loop which
+is currently running.
 
 If something else throws in the implementation or a callback throws,
 then this procedure will clean up the event loop as if
@@ -304,8 +302,6 @@ The 'loop' (event loop) argument is optional: this procedure operates
 on the event loop passed in as an argument, or if none is passed (or
 #f is passed), on the default event loop.  This procedure is thread
 safe - any thread may call it.
-
-This procedure is first available in version 0.2 of this library.
 @end deffn
 
 @deffn {Scheme Procedure} event-loop-block! val [loop]
@@ -401,8 +397,6 @@ which are executing have returned.
 
 This procedure should not throw an exception unless memory is
 exhausted.
-
-This procedure is first available in version 0.13 of this library.
 @end deffn
 
 @deffn {Scheme Procedure} await-task-in-thread! await resume [loop] thunk [handler]
@@ -420,8 +414,8 @@ optional 'handler' argument is provided, then that handler will be run
 in the event loop thread if 'thunk' throws and the return value of the
 handler would become the return value of this procedure; otherwise the
 program will terminate if an unhandled exception propagates out of
-'thunk'.  'handler' should take the same arguments as a guile catch
-handler (this is implemented using catch).
+'thunk'.  'handler' should take a single argument, which will be the
+thrown exception object.
 
 This procedure must (like the a-sync procedure) be called in the same
 thread as that in which the event loop runs, where the result of
@@ -490,8 +484,6 @@ setting up, which shouldn't happen unless memory is exhausted or
 pthread has run out of resources.  Exceptions arising during execution
 of the task, if not caught locally, will propagate out of the
 event-loop-run! procedure called for the 'worker' event loop.
-
-This procedure is first available in version 0.2 of this library.
 
 Here is an example of the use of await-task-in-event-loop!:
 @example
@@ -595,8 +587,6 @@ about that.
 This procedure should not throw any exceptions unless memory is
 exhausted.
 
-This procedure is first available in version 0.7 of this library.
-
 Here is an example of the use of await-yield!:
 @example
 (set-default-event-loop!) ;; if none has yet been set
@@ -624,8 +614,7 @@ value yielded by the generator.  If the optional 'handler' argument is
 provided, then that handler will be run in the event loop thread if
 'generator' throws; otherwise the program will terminate if an
 unhandled exception propagates out of 'generator'.  'handler' should
-take the same arguments as a guile catch handler (this is implemented
-using catch).
+take a single argument, which will be the thrown exception object.
 
 This procedure calls 'await' and will return when the generator has
 finished or, if 'handler' is provided, upon the generator throwing an
@@ -656,8 +645,6 @@ a handler procedure, will terminate the program.  Exceptions thrown by
 the handler procedure will propagate out of event-loop-run!.
 Exceptions thrown by 'proc', if not caught locally, will also
 propagate out of event-loop-run!.
-
-This procedure is first available in version 0.4 of this library.
 
 Here is an example of the use of await-generator-in-thread!:
 @example
@@ -725,8 +712,6 @@ event-loop-run! procedure called for the 'worker' event loop.
 Exceptions arising during the execution of 'proc', if not caught
 locally, will propagate out of the event-loop-run! procedure called
 for the 'waiter' or default event loop, as the case may be.
-
-This procedure is first available in version 0.4 of this library.
 
 Here is an example of the use of await-generator-in-event-loop!:
 @example
@@ -799,8 +784,6 @@ unless memory is exhausted.  Exceptions arising during execution of
 the generator, if not caught locally, will propagate out of
 event-loop-run!.  Exceptions thrown by 'proc', if not caught locally,
 will propagate out of event-loop-run!.
-
-This procedure is first available in version 0.4 of this library.
 
 Here is an example of the use of await-generator!:
 @example
@@ -881,8 +864,6 @@ thread as that in which the event loop runs.
 
 This procedure should not throw any exceptions unless memory is
 exhausted.
-
-This procedure is first available in version 0.7 of this library.
 
 Here is an example of the use of await-sleep!:
 @example

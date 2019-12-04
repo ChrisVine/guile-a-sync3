@@ -3,10 +3,10 @@
 <!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<title>meeting (guile-a-sync2)</title>
+<title>meeting (guile-a-sync3)</title>
 
-<meta name="description" content="meeting (guile-a-sync2)">
-<meta name="keywords" content="meeting (guile-a-sync2)">
+<meta name="description" content="meeting (guile-a-sync3)">
+<meta name="keywords" content="meeting (guile-a-sync3)">
 <meta name="resource-type" content="document">
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
@@ -143,16 +143,12 @@ the user would have to provide her own synchronization if called in
 other than the thread of the event loop with respect to which the
 meeting will be held; so it is best if this procedure is called in the
 thread of that event loop.
-</p>
-<p>This procedure is first available in version 0.9 of this library.
 </p></dd></dl>
 
 <dl>
 <dt id="index-meeting_003f">Scheme Procedure: <strong>meeting?</strong> <em>obj</em></dt>
 <dd><p>This procedure indicates whether &rsquo;obj&rsquo; is a meeting object constructed
 by make-meeting.
-</p>
-<p>This procedure is first available in version 0.9 of this library.
 </p></dd></dl>
 
 <dl>
@@ -165,8 +161,6 @@ return with a &rsquo;stop-iteration value.
 <p>Where that is not necessary (say, the receiver already knows how many
 items are to be sent), then this procedure does not need to be
 applied.  It is not needed in order to release resources.
-</p>
-<p>This procedure is first available in version 0.9 of this library.
 </p></dd></dl>
 
 <dl>
@@ -176,8 +170,6 @@ the case may be) to the meeting object &rsquo;meeting&rsquo; will return
 immediately: in other words, this procedure will return #t if another
 a-sync or compose-a-sync block is already waiting on the object or the
 meeting object has been closed, otherwise #f.
-</p>
-<p>This procedure is first available in version 0.9 of this library.
 </p></dd></dl>
 
 <dl>
@@ -197,13 +189,10 @@ passed to make-meeting on constructing the &rsquo;meeting&rsquo; objects.
 <p>This procedure is intended to be called within a waitable procedure
 invoked by a-sync (which supplies the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments).
 </p>
-<p>With version 0.9 of this library, a sender could not invoke this
-procedure when another a-sync or compose-a-sync block running on the
-event loop concerned was already waiting to send on the same &rsquo;meeting&rsquo;
-object.  From version 0.10, multiple senders may wait on a meeting
-object to permit fan in.  The provided datum of each sender will be
-passed to a receiver (as and when a receiver becomes available) in the
-order in which this procedure was invoked.
+<p>Multiple senders may wait on a meeting object to permit fan in.  The
+provided datum of each sender will be passed to a receiver (as and
+when a receiver becomes available) in the order in which this
+procedure was invoked.
 </p>
 <p>Here is an example of such a fan in:
 </p>
@@ -225,11 +214,9 @@ order in which this procedure was invoked.
 (event-loop-run!)
 </pre></div>
 
-<p>In addition, with version 0.9 of this library, only a single meeting
-object could be passed to this procedure.  From version 0.10 this
-procedure has &rsquo;select&rsquo;-like behavior: multiple meeting objects may be
-passed and this procedure will send to the first one which becomes
-available to receive the datum.
+<p>In addition, this procedure has &rsquo;select&rsquo;-like behavior: multiple
+meeting objects may be passed and this procedure will send to the
+first one which becomes available to receive the datum.
 </p>
 <p>Here is an example of selecting on send (here, meeting-send will send
 to the first meeting which becomes available for receiving, which is
@@ -267,8 +254,6 @@ of them is then closed, this procedure will return &rsquo;stop-iteration and
 any wait will be abandonned.  It is usually a bad idea to close a
 meeting object on which this procedure is waiting where this procedure
 is selecting on more than one meeting object.
-</p>
-<p>This procedure is first available in version 0.9 of this library.
 </p></dd></dl>
 
 <dl>
@@ -288,13 +273,9 @@ passed to make-meeting on constructing the &rsquo;meeting&rsquo; objects.
 <p>This procedure is intended to be called within a waitable procedure
 invoked by a-sync (which supplies the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments).
 </p>
-<p>With version 0.9 of this library, a receiver could not invoke this
-procedure when another a-sync or compose-a-sync block running on the
-event loop concerned was already waiting to receive from the same
-&rsquo;meeting&rsquo; object.  From version 0.10, multiple receivers may wait on a
-meeting object to permit fan out.  The waiting receivers will be
-released (as and when a sender provides a datum) in the order in which
-this procedure was invoked.
+<p>Multiple receivers may wait on a meeting object to permit fan out.
+The waiting receivers will be released (as and when a sender provides
+a datum) in the order in which this procedure was invoked.
 </p>
 <p>Here is an example of such a fan out:
 </p>
@@ -317,11 +298,9 @@ this procedure was invoked.
 (event-loop-run!)
 </pre></div>
 
-<p>In addition, with version 0.9 of this library, only a single meeting
-object could be passed to this procedure.  From version 0.10 this
-procedure has &rsquo;select&rsquo;-like behavior: multiple meeting objects may be
-passed and this procedure will receive from the first one which sends
-a datum.
+<p>In addition, this procedure has &rsquo;select&rsquo;-like behavior: multiple
+meeting objects may be passed and this procedure will receive from the
+first one which sends a datum.
 </p>
 <p>Here is an example of selecting on receive:
 </p>
@@ -363,8 +342,6 @@ this procedure will return &rsquo;stop-iteration and any wait will be
 abandonned.  It is usually a bad idea to close a meeting object on
 which this procedure is waiting where this procedure is selecting on
 more than one meeting object.
-</p>
-<p>This procedure is first available in version 0.9 of this library.
 </p></dd></dl>
 
 <hr>

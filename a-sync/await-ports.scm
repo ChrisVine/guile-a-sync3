@@ -1,4 +1,4 @@
-;; Copyright (C) 2016 to 2018 Chris Vine
+;; Copyright (C) 2016 to 2019 Chris Vine
 
 ;; This library is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU Lesser General Public
@@ -20,6 +20,7 @@
   #:use-module (ice-9 binary-ports)    ;; for get-u8
   #:use-module (ice-9 control)         ;; for call/ec
   #:use-module (ice-9 suspendable-ports)
+  #:use-module (ice-9 exceptions)      ;; for raise-exception and with-exception-handler
   #:use-module (a-sync event-loop)     ;; for event loop
   #:use-module (rnrs bytevectors)      ;; for bytevectors
   #:export (await-read-suspendable!
@@ -87,8 +88,7 @@
 ;; only out-of-band data on a TCP socket, or a pseudoterminal master
 ;; in packet mode seeing state change in a slave.  In the absence of
 ;; an exceptional condition, the value(s) returned by 'proc' will be
-;; returned.  Prior to version 0.14, 'proc' could only return a single
-;; value.  From version 0.14, 'proc' may return any number of values.
+;; returned ('proc' may return any number of values).
 ;;
 ;; The 'loop' argument is optional: this procedure operates on the
 ;; event loop passed in as an argument, or if none is passed (or #f is
@@ -127,21 +127,22 @@
 				     loop))
        ;;(display "Awaiting\n")
        (when (eq? (await) 'except)
-	 (throw 'except)))
+	 (raise-exception 'except)))
      (call-with-values
        (lambda ()
 	 (parameterize ((current-read-waiter read-waiter))
-	   (catch #t
-	     (lambda ()
-	       (proc port))
-	     (lambda args
-	       (if (eq? (car args) 'except)
+	   (with-exception-handler
+	     (lambda (exc)
+	       (if (eq? exc 'except)
 		   #f
 		   (begin
 		     (when watch-installed
 		       (event-loop-remove-read-watch! (fileno port) loop)
 		       (release-port-handle port))
-		     (apply throw args)))))))
+		     (raise-exception exc))))
+	     (lambda ()
+	       (proc port))
+	     #:unwind? #t)))
        (lambda args
 	 (when watch-installed
 	   (event-loop-remove-read-watch! (fileno port) loop)
@@ -276,8 +277,6 @@
 ;;
 ;; See the documentation on the await-read-suspendable! procedure for
 ;; further particulars about this procedure.
-;;
-;; This procedure is first available in version 0.6 of this library.
 (define await-getblock!
   (case-lambda
     ((await resume port size)
@@ -336,8 +335,6 @@
 ;;
 ;; See the documentation on the await-read-suspendable! procedure for
 ;; further particulars about this procedure.
-;;
-;; This procedure is first available in version 0.6 of this library.
 (define await-geteveryblock!
   (case-lambda
     ((await resume port size proc) (await-geteveryblock! await resume #f port size proc))
@@ -400,8 +397,6 @@
 ;;
 ;; See the documentation on the await-read-suspendable! procedure for
 ;; further particulars about this procedure.
-;;
-;; This procedure is first available in version 0.6 of this library.
 (define await-getsomeblocks!
   (case-lambda
     ((await resume port size proc) (await-getsomeblocks! await resume #f port size proc))
@@ -450,9 +445,8 @@
 ;; 'proc' may get there first and deal with it, or it may not.
 ;; However exceptional conditions on write ports cannot normally
 ;; occur.  In the absence of an exceptional condition, the value(s)
-;; returned by 'proc' will be returned.  Prior to version 0.14, 'proc'
-;; could only return a single value.  From version 0.14, 'proc' may
-;; return any number of values.
+;; returned by 'proc' will be returned ('proc' may return any number
+;; of values).
 ;;
 ;; The 'loop' argument is optional: this procedure operates on the
 ;; event loop passed in as an argument, or if none is passed (or #f is
@@ -492,21 +486,22 @@
 				      loop))
        ;;(display "Awaiting\n")
        (when (eq? (await) 'except)
-	 (throw 'except)))
+	 (raise-exception 'except)))
      (call-with-values
        (lambda ()
 	 (parameterize ((current-write-waiter write-waiter))
-	   (catch #t
-	     (lambda ()
-	       (proc port))
-	     (lambda args
-	       (if (eq? (car args) 'except)
+	   (with-exception-handler
+	     (lambda (exc)
+	       (if (eq? exc 'except)
 		   #f
 		   (begin
 		     (when watch-installed
 		       (event-loop-remove-write-watch! (fileno port) loop)
 		       (release-port-handle port))
-		     (apply throw args)))))))
+		     (raise-exception exc))))
+	     (lambda ()
+	       (proc port))
+	     #:unwind? #t)))
        (lambda args
 	 (when watch-installed
 	   (event-loop-remove-write-watch! (fileno port) loop)
@@ -534,8 +529,6 @@
 ;;
 ;; See the documentation on the await-write-suspendable! procedure for
 ;; further particulars about this procedure.
-;;
-;; This procedure is first available in version 0.6 of this library.
 (define await-put-bytevector!
   (case-lambda
     ((await resume port bv) (await-put-bytevector! await resume #f port bv))
@@ -573,8 +566,6 @@
 ;;
 ;; See the documentation on the await-write-suspendable! procedure for
 ;; further particulars about this procedure.
-;;
-;; This procedure is first available in version 0.5 of this library.
 (define await-put-string!
   (case-lambda
     ((await resume port text) (await-put-string! await resume #f port text))
@@ -606,8 +597,6 @@
 ;;
 ;; See the documentation on the await-read-suspendable! procedure for
 ;; further particulars about this procedure.
-;;
-;; This procedure is first available in version 0.7 of this library.
 (define await-accept!
   (case-lambda
     ((await resume sock)
@@ -640,8 +629,6 @@
 ;;
 ;; See the documentation on the await-write-suspendable! procedure for
 ;; further particulars about this procedure.
-;;
-;; This procedure is first available in version 0.7 of this library.
 (define (await-connect! await resume next . rest)
   (if (event-loop? next)
       (apply await-connect-impl! await resume next rest)
