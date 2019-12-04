@@ -8,7 +8,7 @@ This includes tasks running on other threads.  It also provides a
 coroutines interface (coroutines.scm) which provides await semantics
 on such events, so as to avoid inversion of control (aka "callback
 hell"), in conjunction with guile-2.2/3.0's suspendable ports
-(await-ports.scm).
+(await-ports.scm).  It requires guile >= 2.9.5.
 
 This library has been forked from guile-a-sync2 to allow use of
 guile-3.0's exception objects: this results in a few minor
