@@ -191,7 +191,8 @@
 	      ((= count min-threads))
 	    (call-with-new-thread (lambda () (thread-loop pool #t)))
 	    (num-threads-set! pool (1+ (num-threads-get pool))))))
-      #:unwind? #t)
+      ;; as the handler always rethrows, we do not need to unwind here
+      #:unwind? #f)
     pool))
 
 ;; This is the thread loop which each thread will execute, taking
@@ -413,7 +414,8 @@
 		(raise-exception exc)))
 	    (lambda ()
 	      (call-with-new-thread (lambda () (thread-loop pool #f))))
-	    #:unwind? #t))))))
+	    ;; as the handler always rethrows, we do not need to unwind here
+	    #:unwind? #f))))))
 
 ;; This procedure returns the current non-blocking status of the
 ;; thread pool.  (See the documentation on the thread-pool-stop!
@@ -630,7 +632,8 @@
 	      (raise-exception exc))
 	    (lambda ()
 	      (a-queue-push! (aq-get pool) (cons task fail-handler)))
-	    #:unwind? #t)))))
+	    ;; as the handler always rethrows, we do not need to unwind here
+	    #:unwind? #f)))))
 
 ;; This macro is intended to be called by a task running on a thread
 ;; pool which is about to make a blocking (non-asynchronous) call.  It

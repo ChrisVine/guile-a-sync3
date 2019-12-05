@@ -506,7 +506,8 @@
 	  ;; now reset the operating mode when not closed
 	  (when (not (eq? mode 'closed))
 	    (_mode-set! el #f)))))
-    #:unwind? #t))
+    ;; as the handler always rethrows, we do not need to unwind here
+    #:unwind? #f))
 
 ;; This procedure is only called in the event loop thread, by
 ;; event-loop-run!  It must be called while holding the event loop
