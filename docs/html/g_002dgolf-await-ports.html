@@ -1,0 +1,304 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>g-golf await ports (guile-a-sync3)</title>
+
+<meta name="description" content="g-golf await ports (guile-a-sync3)">
+<meta name="keywords" content="g-golf await ports (guile-a-sync3)">
+<meta name="resource-type" content="document">
+<meta name="distribution" content="global">
+<meta name="Generator" content="makeinfo">
+<link href="index.html" rel="start" title="Top">
+<link href="g_002dgolf.html" rel="up" title="g-golf">
+<link href="g_002dgolf-meeting.html" rel="next" title="g-golf meeting">
+<link href="g_002dgolf-base.html" rel="prev" title="g-golf base">
+<style type="text/css">
+<!--
+a.summary-letter {text-decoration: none}
+blockquote.indentedblock {margin-right: 0em}
+div.display {margin-left: 3.2em}
+div.example {margin-left: 3.2em}
+div.lisp {margin-left: 3.2em}
+kbd {font-style: oblique}
+pre.display {font-family: inherit}
+pre.format {font-family: inherit}
+pre.menu-comment {font-family: serif}
+pre.menu-preformatted {font-family: serif}
+span.nolinebreak {white-space: nowrap}
+span.roman {font-family: initial; font-weight: normal}
+span.sansserif {font-family: sans-serif; font-weight: normal}
+ul.no-bullet {list-style: none}
+-->
+</style>
+
+
+</head>
+
+<body lang="en">
+<span id="g_002dgolf-await-ports"></span><div class="header">
+<p>
+Next: <a href="g_002dgolf-meeting.html" accesskey="n" rel="next">g-golf meeting</a>, Previous: <a href="g_002dgolf-base.html" accesskey="p" rel="prev">g-golf base</a>, Up: <a href="g_002dgolf.html" accesskey="u" rel="up">g-golf</a> &nbsp; </p>
+</div>
+<hr>
+<h4 class="node-heading">g-golf await ports</h4>
+
+<p>Most of the scheme files provided by this library are by default
+compiled by this library to bytecode.  That is not the case with this
+module, so as not to create a hard dependency on g-golf.
+</p>
+<p>Including this module will automatically enable suspendable ports in
+order to support the await-g-read-suspendable,
+await-g-write-suspendable and await-g-getline procedures.  To disable
+suspendable ports again, uninstall-suspendable-ports! can be called,
+but this means that those procedures can no longer be used while
+suspendable ports are disabled.  In addition, any port using those
+procedures must be made non-blocking using fcntl as follows:
+</p>
+<div class="example">
+<pre class="example">(fcntl [port] F_SETFL (logior O_NONBLOCK
+                      (fcntl [port] F_GETFL)))
+</pre></div>
+
+<p>The (a-sync g-golf await-ports) module provides the following procedures:
+</p>
+<dl>
+<dt id="index-await_002dg_002dread_002dsuspendable">Scheme Procedure: <strong>await-g-read-suspendable</strong> <em>await resume port proc</em></dt>
+<dd><p>&rsquo;proc&rsquo; is a procedure taking a single argument, to which the port will
+be passed when it is invoked.  The purpose of &rsquo;proc&rsquo; is to carry out
+i/o operations on &rsquo;port&rsquo; using the port&rsquo;s normal read procedures.
+&rsquo;port&rsquo; must be a suspendable non-blocking port.  This procedure will
+return when &rsquo;proc&rsquo; returns, as if by blocking read operations, with
+the value returned by &rsquo;proc&rsquo;.  However, the glib main loop will not be
+blocked by this procedure even if only individual characters or bytes
+comprising part characters are available at any one time.  It is
+intended to be called in a waitable procedure invoked by a-sync (which
+supplies the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments).  &rsquo;proc&rsquo; must not itself
+explicitly apply &rsquo;await&rsquo; and &rsquo;resume&rsquo; as those are potentially in use
+by the suspendable port while &rsquo;proc&rsquo; is executing.
+</p>
+<p>If an exceptional condition (&rsquo;pri) is encountered by the
+implementation, #f will be returned by this procedure and the read
+operations to be performed by &rsquo;proc&rsquo; will be abandonned; there is
+however no guarantee that any exceptional condition that does arise
+will be encountered by the implementation - the user procedure &rsquo;proc&rsquo;
+may get there first and deal with it, or it may not.  However
+exceptional conditions are very rare, usually comprising only
+out-of-band data on a TCP socket, or a pseudoterminal master in packet
+mode seeing state change in a slave.  In the absence of an exceptional
+condition, the value(s) returned by &rsquo;proc&rsquo; will be returned.
+</p>
+<p>This procedure must (like the a-sync procedure) be called in the same
+thread as that in which the default glib main loop runs.
+</p>
+<p>Exceptions (say, from &rsquo;proc&rsquo; because of port or conversion errors)
+will propagate out of this procedure in the first instance, and if not
+caught locally will then propagate out of g-main-loop-run.
+</p>
+<p>Unlike the await-* procedures in the (a-sync g-golf base) module, this
+procedure will not call &rsquo;await&rsquo; if the read operation(s) in &rsquo;proc&rsquo; can
+be effected immediately without waiting: instead, after reading this
+procedure would return straight away without invoking the glib main
+loop.
+</p>
+<p>As an example of how to use await-g-read-suspendable, here is the
+implementation of await-g-getline:
+</p>
+<div class="example">
+<pre class="example">(define (await-g-getline await resume port)
+  (await-g-read-suspendable await resume port
+			    (lambda (p)
+			      (read-line p))))
+</pre></div>
+</dd></dl>
+
+<dl>
+<dt id="index-await_002dg_002dgetline">Scheme Procedure: <strong>await-g-getline</strong> <em>await resume port</em></dt>
+<dd><p>This procedure is provided mainly to retain compatibility with the
+guile-a-sync library for guile-2.0, because it is trivial to implement
+with await-g-read-suspendable (and is implemented by
+await-g-read-suspendable).
+</p>
+<p>It is intended to be called in a waitable procedure invoked by a-sync,
+and reads a line of text from a non-blocking suspendable port and
+returns it (without the terminating &rsquo;\n&rsquo; character).  See the
+documentation on the await-g-read-suspendable procedure for further
+particulars about this procedure.
+</p>
+<p>Here is an example of the use of await-g-getline:
+</p><div class="example">
+<pre class="example">(define main-loop (g-main-loop-new #f #f))
+(a-sync (lambda (await resume)
+          (display &quot;Enter a line of text at the keyboard\n&quot;)
+	  (let ((port (open &quot;/dev/tty&quot; O_RDONLY)))
+	    (fcntl port F_SETFL (logior O_NONBLOCK
+				(fcntl port F_GETFL)))
+	    (simple-format #t
+			   &quot;The line was: ~A\n&quot;
+			   (await-g-getline await resume
+					    port)))
+	  (g-main-loop-quit main-loop)))
+(g-main-loop-run main-loop)
+</pre></div>
+</dd></dl>
+
+<dl>
+<dt id="index-await_002dg_002dgetblock">Scheme Procedure: <strong>await-g-getblock</strong> <em>await resume port size</em></dt>
+<dd><p>This procedure is provided mainly to retain compatibility with the
+guile-a-sync library for guile-2.0, because an implementation is
+trivial to implement with await-g-read-suspendable (and is implemented
+by await-g-read-suspendable).
+</p>
+<p>It is intended to be called in a waitable procedure invoked by a-sync,
+and reads a block of data, such as a binary record, of size &rsquo;size&rsquo;
+from a non-blocking suspendable port &rsquo;port&rsquo;.  This procedure will
+return a pair, normally comprising as its car a bytevector of length
+&rsquo;size&rsquo; containing the data, and as its cdr the number of bytes
+received and placed in the bytevector (which will be the same as
+&rsquo;size&rsquo; unless an end-of-file object was encountered part way through
+receiving the data).  If an end-of-file object is encountered without
+any bytes of data, a pair with eof-object as car and #f as cdr will be
+returned.
+</p>
+<p>See the documentation on the await-g-read-suspendable procedure for
+further particulars about this procedure.
+</p></dd></dl>
+
+<dl>
+<dt id="index-await_002dg_002dwrite_002dsuspendable">Scheme Procedure: <strong>await-g-write-suspendable</strong> <em>await resume port proc</em></dt>
+<dd><p>&rsquo;proc&rsquo; is a procedure taking a single argument, to which the port will
+be passed when it is invoked.  The purpose of &rsquo;proc&rsquo; is to carry out
+i/o operations on &rsquo;port&rsquo; using the port&rsquo;s normal write procedures.
+&rsquo;port&rsquo; must be a suspendable non-blocking port.  This procedure will
+return when &rsquo;proc&rsquo; returns, as if by blocking write operations, with
+the value returned by &rsquo;proc&rsquo;.  However, the glib main loop will not be
+blocked by this procedure even if only individual characters or bytes
+comprising part characters can be written at any one time.  It is
+intended to be called in a waitable procedure invoked by a-sync (which
+supplies the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments).  &rsquo;proc&rsquo; must not itself
+explicitly apply &rsquo;await&rsquo; and &rsquo;resume&rsquo; as those are potentially in use
+by the suspendable port while &rsquo;proc&rsquo; is executing.
+</p>
+<p>If an exceptional condition (&rsquo;pri) is encountered by the
+implementation, #f will be returned by this procedure and the write
+operations to be performed by &rsquo;proc&rsquo; will be abandonned; there is
+however no guarantee that any exceptional condition that does arise
+will be encountered by the implementation - the user procedure &rsquo;proc&rsquo;
+may get there first and deal with it, or it may not.  However
+exceptional conditions on write ports cannot normally occur.  In the
+absence of an exceptional condition, the value(s) returned by &rsquo;proc&rsquo;
+will be returned.
+</p>
+<p>This procedure must (like the a-sync procedure) be called in the same
+thread as that in which the default glib main loop runs.
+</p>
+<p>Exceptions (say, from &rsquo;proc&rsquo; because of port or conversion errors)
+will propagate out of this procedure in the first instance, and if not
+caught locally will then propagate out of g-main-loop-run.
+</p>
+<p>Unlike the await-* procedures in the (a-sync g-golf base) module, this
+procedure will not call &rsquo;await&rsquo; if the write operation(s) in &rsquo;proc&rsquo;
+can be effected immediately without waiting: instead, after writing
+this procedure would return straight away without invoking the glib
+main loop.
+</p>
+<p>As an example of how to use await-g-write-suspendable, here is the
+implementation of await-g-put-string:
+</p>
+<div class="example">
+<pre class="example">(define (await-g-put-string await resume port text)
+  (await-g-write-suspendable await resume port
+			     (lambda (p)
+			       (put-string p text)
+			       ;; enforce a flush when the current
+			       ;; write-waiter is still in operation
+			       (force-output p))))
+</pre></div>
+</dd></dl>
+
+<dl>
+<dt id="index-await_002dg_002dput_002dbytevector">Scheme Procedure: <strong>await-g-put-bytevector</strong> <em>await resume port bv</em></dt>
+<dd><p>This procedure is provided mainly to retain compatibility with the
+guile-a-sync library for guile-2.0, because it is trivial to implement
+with await-g-write-suspendable (and is implemented by
+await-g-write-suspendable).
+</p>
+<p>It is intended to be called in a waitable procedure invoked by a-sync,
+and will write a bytevector to the port.
+</p>
+<p>See the documentation on the await-g-write-suspendable procedure for
+further particulars about this procedure.
+</p>
+<p>As mentioned in relation to the await-g-write-suspendable procedure,
+write exceptions will propagate out of this procedure in the first
+instance, and if not caught locally (say by placing a catch block
+immediately around this procedure) will then propagate out of
+g-main-loop-run.  So one way of testing for EPIPE is as follows:
+</p><div class="example">
+<pre class="example">(define main-loop (g-main-loop-new #f #f))
+(a-sync (lambda (await resume)
+	  (catch 'system-error
+		 (lambda ()
+		   (await-g-put-bytevector await resume port bv))
+		 (lambda args
+		   (if (= (system-error-errno args) EPIPE)
+		       (begin
+			 ... do something to cater for EPIPE ...)
+		       (begin
+			 ;; possibly rethrow the exception
+			 (apply throw args)))))
+	  (g-main-loop-quit main-loop)))
+(g-main-loop-run main-loop)
+</pre></div>
+</dd></dl>
+
+<dl>
+<dt id="index-await_002dg_002dput_002dstring">Scheme Procedure: <strong>await-g-put-string</strong> <em>await resume port text</em></dt>
+<dd><p>This procedure is provided mainly to retain compatibility with the
+guile-a-sync library for guile-2.0, because it is trivial to implement
+with await-g-write-suspendable (and is implemented by
+await-g-write-suspendable).
+</p>
+<p>It is intended to be called in a waitable procedure invoked by a-sync,
+and will write a string to the port.
+</p>
+<p>If CR-LF line endings are to be written when outputting the string,
+the &rsquo;\r&rsquo; character (as well as the &rsquo;\n&rsquo; character) must be embedded in
+the string.
+</p>
+<p>See the documentation on the await-g-write-suspendable procedure for
+further particulars about this procedure.
+</p>
+<p>As mentioned in relation to the await-g-write-suspendable procedure,
+write exceptions will propagate out of this procedure in the first
+instance, and if not caught locally (say by placing a catch block
+immediately around this procedure) will then propagate out of
+g-main-loop-run.  So one way of testing for EPIPE is as follows:
+</p><div class="example">
+<pre class="example">(define main-loop (g-main-loop-new #f #f))
+(a-sync (lambda (await resume)
+	  (catch 'system-error
+		 (lambda ()
+		   (await-g-put-string await resume port &quot;test&quot;))
+		 (lambda args
+		   (if (= (system-error-errno args) EPIPE)
+		       (begin
+			 ... do something to cater for EPIPE ...)
+		       (begin
+			 ;; possibly rethrow the exception
+			 (apply throw args)))))
+	  (g-main-loop-quit main-loop)))
+(g-main-loop-run main-loop)
+</pre></div>
+</dd></dl>
+<hr>
+<div class="header">
+<p>
+Next: <a href="g_002dgolf-meeting.html" accesskey="n" rel="next">g-golf meeting</a>, Previous: <a href="g_002dgolf-base.html" accesskey="p" rel="prev">g-golf base</a>, Up: <a href="g_002dgolf.html" accesskey="u" rel="up">g-golf</a> &nbsp; </p>
+</div>
+
+
+
+</body>
+</html>

@@ -1,4 +1,4 @@
-@node meeting,,compose,Top
+@node meeting,g-golf,compose,Top
 
 As explained in the @ref{overview,,general overview}, each 'a-sync'
 block (see @ref{coroutines,,(a-sync coroutines)}) or 'compose-a-sync'

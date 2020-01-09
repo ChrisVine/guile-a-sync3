@@ -33,7 +33,7 @@
 ;; guile-gnome, so this file uses its own glib-add-watch procedure
 ;; which is exported publicly in case it is useful to users.
 ;;
-;; All the other scheme files provided by this library are by default
+;; Most of the scheme files provided by this library are by default
 ;; compiled by this library to bytecode.  That is not the case with
 ;; this file, so as not to create a hard dependency on guile-gnome.
 
@@ -395,7 +395,7 @@
 ;; procedures.  'port' must be a suspendable non-blocking port.  This
 ;; procedure will return when 'proc' returns, as if by blocking read
 ;; operations, with the value returned by 'proc'.  However, the glib
-;; event loop will not be blocked by this procedure even if only
+;; main loop will not be blocked by this procedure even if only
 ;; individual characters or bytes comprising part characters are
 ;; available at any one time.  It is intended to be called in a
 ;; waitable procedure invoked by a-sync (which supplies the 'await'
@@ -405,7 +405,7 @@
 ;; number of values.
 ;;
 ;; This procedure must (like the a-sync procedure) be called in the
-;; same thread as that in which the event loop runs.
+;; same thread as that in which the default glib main loop runs.
 ;;
 ;; Exceptions (say, from 'proc' because of port or conversion errors)
 ;; will propagate out of this procedure in the first instance, and if
@@ -504,7 +504,7 @@
 ;; procedures.  'port' must be a suspendable non-blocking port.  This
 ;; procedure will return when 'proc' returns, as if by blocking write
 ;; operations, with the value returned by 'proc'.  However, the glib
-;; event loop will not be blocked by this procedure even if only
+;; main loop will not be blocked by this procedure even if only
 ;; individual characters or bytes comprising part characters can be
 ;; written at any one time.  It is intended to be called in a waitable
 ;; procedure invoked by a-sync (which supplies the 'await' and
@@ -514,7 +514,7 @@
 ;; number of values.
 ;;
 ;; This procedure must (like the a-sync procedure) be called in the
-;; same thread as that in which the event loop runs.
+;; same thread as that in which the default glib main loop runs.
 ;;
 ;; Exceptions (say, from 'proc' because of port or conversion errors)
 ;; will propagate out of this procedure in the first instance, and if

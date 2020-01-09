@@ -26,9 +26,10 @@ Modules
 * await ports::    (a-sync await-ports) module - provides procedures for suspendable ports
 * thread pool::    (a-sync thread-pool) module - provides a thread pool with asychonous procedures
 * monotonic time:: (a-sync monotonic-time) module - enables monotonic time to be used for timeouts
-* gnome glib::     (a-sync gnome-glib) module - provides some convenience await procedures for the glib main loop
+* gnome glib::     (a-sync gnome-glib) module - provides some convenience await procedures for the glib main loop using guile-gnome
 * compose::        (a-sync compose) module - provides the compose-a-sync macro interface for the a-sync coroutine
 * meeting::        (a-sync meeting) module - provides for synchronization between a-sync or compose-a-sync blocks
+* g-golf::         provides some convenience await procedures for the glib main loop using g-golf
 @end menu
 
 @include overview.texi
@@ -40,5 +41,6 @@ Modules
 @include gnome-glib.texi
 @include compose.texi
 @include meeting.texi
+@include g-golf.texi
 
 @bye

@@ -62,7 +62,7 @@ eventually segfault.  g-io-add-watch is also broken in guile-gnome, so
 this library uses its own glib-add-watch procedure which is exported
 publicly in case it is useful to users.
 </p>
-<p>All the other scheme files provided by this library are by default
+<p>Most of the scheme files provided by this library are by default
 compiled by this library to bytecode.  That is not the case with this
 module, so as not to create a hard dependency on guile-gnome.
 </p>
@@ -439,17 +439,16 @@ be passed when it is invoked.  The purpose of &rsquo;proc&rsquo; is to carry out
 i/o operations on &rsquo;port&rsquo; using the port&rsquo;s normal read procedures.
 &rsquo;port&rsquo; must be a suspendable non-blocking port.  This procedure will
 return when &rsquo;proc&rsquo; returns, as if by blocking read operations, with
-the value returned by &rsquo;proc&rsquo;.  However, the glib event loop will not
-be blocked by this procedure even if only individual characters or
-bytes comprising part characters are available at any one time.  It is
+the value returned by &rsquo;proc&rsquo;.  However, the glib main loop will not be
+blocked by this procedure even if only individual characters or bytes
+comprising part characters are available at any one time.  It is
 intended to be called in a waitable procedure invoked by a-sync (which
 supplies the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments).  &rsquo;proc&rsquo; must not itself
 explicitly apply &rsquo;await&rsquo; and &rsquo;resume&rsquo; as those are potentially in use
-by the suspendable port while &rsquo;proc&rsquo; is executing.  &rsquo;proc&rsquo; may return
-any number of values.
+by the suspendable port while &rsquo;proc&rsquo; is executing.
 </p>
 <p>This procedure must (like the a-sync procedure) be called in the same
-thread as that in which the event loop runs.
+thread as that in which the default glib main loop runs.
 </p>
 <p>Exceptions (say, from &rsquo;proc&rsquo; because of port or conversion errors)
 will propagate out of this procedure in the first instance, and if not
@@ -530,17 +529,16 @@ be passed when it is invoked.  The purpose of &rsquo;proc&rsquo; is to carry out
 i/o operations on &rsquo;port&rsquo; using the port&rsquo;s normal write procedures.
 &rsquo;port&rsquo; must be a suspendable non-blocking port.  This procedure will
 return when &rsquo;proc&rsquo; returns, as if by blocking write operations, with
-the value returned by &rsquo;proc&rsquo;.  However, the glib event loop will not
-be blocked by this procedure even if only individual characters or
-bytes comprising part characters can be written at any one time.  It
-is intended to be called in a waitable procedure invoked by a-sync
-(which supplies the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments).  &rsquo;proc&rsquo; must not
-itself explicitly apply &rsquo;await&rsquo; and &rsquo;resume&rsquo; as those are potentially
-in use by the suspendable port while &rsquo;proc&rsquo; is executing.  &rsquo;proc&rsquo; may
-return any number of values.
+the value returned by &rsquo;proc&rsquo;.  However, the glib main loop will not be
+blocked by this procedure even if only individual characters or bytes
+comprising part characters can be written at any one time.  It is
+intended to be called in a waitable procedure invoked by a-sync (which
+supplies the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments).  &rsquo;proc&rsquo; must not itself
+explicitly apply &rsquo;await&rsquo; and &rsquo;resume&rsquo; as those are potentially in use
+by the suspendable port while &rsquo;proc&rsquo; is executing.
 </p>
 <p>This procedure must (like the a-sync procedure) be called in the same
-thread as that in which the event loop runs.
+thread as that in which the default glib main loop runs.
 </p>
 <p>Exceptions (say, from &rsquo;proc&rsquo; because of port or conversion errors)
 will propagate out of this procedure in the first instance, and if not

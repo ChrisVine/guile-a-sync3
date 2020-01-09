@@ -1,0 +1,12 @@
+@node g-golf,g-golf base,,Top
+
+@menu
+
+* g-golf base::        (a-sync g-golf base) module - provides base procedures for use with g-golf
+* g-golf await ports:: (a-sync g-golf await-ports) module - provides procedures for using suspendable ports with g-golf
+* g-golf meeting::     (a-sync g-golf meeting) - provides for synchronization between a-sync or compose-a-sync blocks when using g-golf
+@end menu
+
+@include g-golf-base.texi
+@include g-golf-await-ports.texi
+@include g-golf-meeting.texi
