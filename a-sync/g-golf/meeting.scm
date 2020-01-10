@@ -59,8 +59,6 @@
 ;; called in other than the thread of the event loop with respect to
 ;; which the meeting will be held; so it is best if this procedure is
 ;; called in the thread of that event loop.
-;;
-;; This procedure is first available in version 0.19 of this library.
 (define (make-g-meeting)
   (_make-g-meeting (make-q) 'unset))
 
@@ -72,8 +70,6 @@
 ;; Where that is not necessary (say, the receiver already knows how
 ;; many items are to be sent), then this procedure does not need to be
 ;; applied.  It is not needed in order to release resources.
-;;
-;; This procedure is first available in version 0.19 of this library.
 (define (g-meeting-close m)
   (let ((res (resumptions-get m)))
     (when (not (q-empty? res))
@@ -92,8 +88,6 @@
 ;; immediately: in other words, this procedure will return #t if
 ;; another a-sync or compose-a-sync block is already waiting on the
 ;; object or the g-meeting object has been closed, otherwise #f.
-;;
-;; This procedure is first available in version 0.19 of this library.
 (define (g-meeting-ready? m)
   (or (not (q-empty? (resumptions-get m)))
       (eq? (status-get m) 'closed)))
@@ -139,8 +133,6 @@
 ;; usually a bad idea to close a g-meeting object on which this
 ;; procedure is waiting where this procedure is selecting on more than
 ;; one g-meeting object.
-;;
-;; This procedure is first available in version 0.19 of this library.
 (define (g-meeting-send await resume . rest)
   (when (null? rest)
     (error "arity error for g-meeting-send procedure"))
@@ -243,8 +235,6 @@
 ;; bad idea to close a g-meeting object on which this procedure is
 ;; waiting where this procedure is selecting on more than one
 ;; g-meeting object.
-;;
-;; This procedure is first available in version 0.19 of this library.
 (define (g-meeting-receive await resume . meetings)
   (when (null? meetings)
     (error "no g-meeting objects passed to g-meeting-receive procedure"))

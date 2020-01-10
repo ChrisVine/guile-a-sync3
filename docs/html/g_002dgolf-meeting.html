@@ -116,16 +116,12 @@ threads the user would have to provide her own synchronization if
 called in other than the thread of the event loop with respect to
 which the meeting will be held; so it is best if this procedure is
 called in the thread of that event loop.
-</p>
-<p>This procedure is first available in version 0.19 of this library.
 </p></dd></dl>
 
 <dl>
 <dt id="index-g_002dmeeting_003f">Scheme Procedure: <strong>g-meeting?</strong> <em>obj</em></dt>
 <dd><p>This procedure indicates whether &rsquo;obj&rsquo; is a g-meeting object
 constructed by make-g-meeting.
-</p>
-<p>This procedure is first available in version 0.19 of this library.
 </p></dd></dl>
 
 <dl>
@@ -138,8 +134,6 @@ return with a &rsquo;stop-iteration value.
 <p>Where that is not necessary (say, the receiver already knows how many
 items are to be sent), then this procedure does not need to be
 applied.  It is not needed in order to release resources.
-</p>
-<p>This procedure is first available in version 0.19 of this library.
 </p></dd></dl>
 
 <dl>
@@ -149,8 +143,6 @@ g-meeting-receive (as the case may be) to the g-meeting object
 &rsquo;meeting&rsquo; will return immediately: in other words, this procedure will
 return #t if another a-sync or compose-a-sync block is already waiting
 on the object or the g-meeting object has been closed, otherwise #f.
-</p>
-<p>This procedure is first available in version 0.19 of this library.
 </p></dd></dl>
 
 <dl>
@@ -189,8 +181,6 @@ procedure and one of them is then closed, this procedure will return
 &rsquo;stop-iteration and any wait will be abandonned.  It is usually a bad
 idea to close a g-meeting object on which this procedure is waiting
 where this procedure is selecting on more than one g-meeting object.
-</p>
-<p>This procedure is first available in version 0.19 of this library.
 </p></dd></dl>
 
 <dl>
@@ -229,8 +219,6 @@ them is then closed, this procedure will return &rsquo;stop-iteration and
 any wait will be abandonned.  It is usually a bad idea to close a
 g-meeting object on which this procedure is waiting where this
 procedure is selecting on more than one g-meeting object.
-</p>
-<p>This procedure is first available in version 0.19 of this library.
 </p></dd></dl>
 
 <hr>

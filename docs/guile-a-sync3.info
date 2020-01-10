@@ -3869,13 +3869,9 @@ g-meeting form:
      which the meeting will be held; so it is best if this procedure is
      called in the thread of that event loop.
 
-     This procedure is first available in version 0.19 of this library.
-
  -- Scheme Procedure: g-meeting? obj
      This procedure indicates whether 'obj' is a g-meeting object
      constructed by make-g-meeting.
-
-     This procedure is first available in version 0.19 of this library.
 
  -- Scheme Procedure: g-meeting-close meeting
      This closes a g-meeting object.  It's purpose is to wake up any
@@ -3887,16 +3883,12 @@ g-meeting form:
      many items are to be sent), then this procedure does not need to be
      applied.  It is not needed in order to release resources.
 
-     This procedure is first available in version 0.19 of this library.
-
  -- Scheme Procedure: g-meeting-ready? meeting
      This indicates whether applying g-meeting-send or g-meeting-receive
      (as the case may be) to the g-meeting object 'meeting' will return
      immediately: in other words, this procedure will return #t if
      another a-sync or compose-a-sync block is already waiting on the
      object or the g-meeting object has been closed, otherwise #f.
-
-     This procedure is first available in version 0.19 of this library.
 
  -- Scheme Procedure: g-meeting-send await resume m0 [m1 ...] datum
      This sends a datum to a receiver via one or more g-meeting objects
@@ -3937,8 +3929,6 @@ g-meeting form:
      procedure is waiting where this procedure is selecting on more than
      one g-meeting object.
 
-     This procedure is first available in version 0.19 of this library.
-
  -- Scheme Procedure: g-meeting-receive await resume m0 [m1 ...]
      This receives a datum from a sender via one or more g-meeting
      objects 'm0 m1 ...'.  If no sender is waiting to pass the datum,
@@ -3977,8 +3967,6 @@ g-meeting form:
      bad idea to close a g-meeting object on which this procedure is
      waiting where this procedure is selecting on more than one
      g-meeting object.
-
-     This procedure is first available in version 0.19 of this library.
 
 
 
