@@ -1,4 +1,185 @@
 @node g-golf meeting,,g-golf await ports,g-golf
 
-Still to do.
+As explained in the @ref{overview,,general overview}, each 'a-sync'
+block (see @ref{coroutines,,(a-sync coroutines)}) or 'compose-a-sync'
+block (see @ref{compose,,(a-sync compose)}) is a separate unit of
+computation which appears within itself to proceed sequentially but
+which also appears to execute concurrently with other 'a-sync' or
+'compose-a-sync' blocks running on the same event loop.  Each 'a-sync'
+or 'compose-a-sync' block is therefore in some sense analogous to a
+thread of execution.
 
+This (a-sync g-golf meeting) module provides a 'g-meeting' type which
+can be used to synchronize between such "pseudo-threads" (that is,
+between a-sync or compose-a-sync blocks) running on the default glib
+main loop.  A 'g-meeting' object is, in terms of communicating
+sequential processes, an unbuffered (synchronous) channel.  Unbuffered
+channels in the CSP style are a natural fit for use with coroutines
+running on a single native thread (but not necessarily for native
+threads running in parallel unless combined with work stealing).  They
+are therefore a natural fit for synchronizing the "pseudo-threads"
+provided by this library.
+
+Look at the @ref{meeting,,(a-sync meeting)} documentation for examples
+of the use of meeting objects and how and when synchronization takes
+place, which applies also to g-meeting objects: this is not repeated
+again here, save to translate the parallel-map example to g-meeting
+form:
+
+@example
+(use-modules (a-sync g-golf base)
+	     (a-sync g-golf meeting)
+	     (a-sync coroutines)
+	     (a-sync compose)
+	     (g-golf glib main-event-loop)
+	     (ice-9 match))
+
+(define main-loop (g-main-loop-new #f #f))
+
+(define (parallel-map await resume proc lst)
+  (match lst
+    (() '())
+    ((head . tail)
+     (let ((m1 (make-g-meeting)))
+       (compose-a-sync ((hd (await-g-task-in-thread (lambda () (proc head)))))
+		       (g-meeting-send m1 hd))
+       (let* ((tl (parallel-map await resume proc tail))
+	      (hd (g-meeting-receive await resume m1)))
+	 (cons hd tl))))))
+
+;; simulate a computational task which takes 1 second to complete
+(define (do-work i) (sleep 1) (* i 2)) 
+
+(a-sync
+ (lambda (await resume)
+   (let ((lst (parallel-map await resume do-work (list 1 2 3 4 5))))
+     (display lst)(newline)
+     (g-main-loop-quit main-loop))))
+(g-main-loop-run main-loop)
+@end example
+
+The (a-sync meeting) module provides the following procedures:
+
+@deffn {Scheme Procedure} make-g-meeting
+This procedure makes and returns a g-meeting object.  g-meetings
+are objects on which a-sync or compose-a-sync blocks running on the
+default glib main loop can synchronize by one passing a datum to
+another.
+
+Strictly speaking this procedure can be called in any native OS
+thread, but since it carries out no synchronization of native
+threads the user would have to provide her own synchronization if
+called in other than the thread of the event loop with respect to
+which the meeting will be held; so it is best if this procedure is
+called in the thread of that event loop.
+
+This procedure is first available in version 0.19 of this library.
+@end deffn
+
+@deffn {Scheme Procedure} g-meeting? obj
+This procedure indicates whether 'obj' is a g-meeting object
+constructed by make-g-meeting.
+
+This procedure is first available in version 0.19 of this library.
+@end deffn
+
+@deffn {Scheme Procedure} g-meeting-close meeting
+This closes a g-meeting object.  It's purpose is to wake up any
+"pseudo-thread" (that is, any a-sync or compose-a-sync block) waiting
+in g-meeting-send or g-meeting-receive by causing either procedure to
+return with a 'stop-iteration value.
+
+Where that is not necessary (say, the receiver already knows how many
+items are to be sent), then this procedure does not need to be
+applied.  It is not needed in order to release resources.
+
+This procedure is first available in version 0.19 of this library.
+@end deffn
+
+@deffn {Scheme Procedure} g-meeting-ready? meeting
+This indicates whether applying g-meeting-send or
+g-meeting-receive (as the case may be) to the g-meeting object
+'meeting' will return immediately: in other words, this procedure will
+return #t if another a-sync or compose-a-sync block is already waiting
+on the object or the g-meeting object has been closed, otherwise #f.
+
+This procedure is first available in version 0.19 of this library.
+@end deffn
+
+@deffn {Scheme Procedure} g-meeting-send await resume m0 [m1 ...] datum
+This sends a datum to a receiver via one or more g-meeting objects 'm0
+m1 ...'.  If no receiver is waiting for the datum, this procedure
+waits until a receiver calls g-meeting-receive on one of the g-meeting
+objects to request the datum.  If a receiver is already waiting, this
+procedure passes on the datum and returns immediately.
+
+This procedure is intended to be called within a waitable procedure
+invoked by a-sync (which supplies the 'await' and 'resume' arguments).
+
+Multiple senders may wait on a g-meeting object to permit fan in.  The
+provided datum of each sender will be passed to a receiver (as and
+when a receiver becomes available) in the order in which this
+procedure was invoked.  In addition, this procedure has 'select'-like
+behavior: multiple g-meeting objects may be passed and this procedure
+will send to the first one which becomes available to receive the
+datum.
+
+Once a datum exchange has taken place, the g-meeting object(s) can be
+reused for making another exchange (provided the g-meeting objects
+have not been closed).
+
+This procedure must be called in the native OS thread in which the
+default glib main loop runs.  To have other native OS threads
+communicate with that loop, use await-g-task-in-thread,
+await-g-generator-in-thread, await-g-task-in-thread-pool or
+await-g-generator-in-thread-pool.
+
+This procedure always returns #f unless g-meeting-close has been
+applied to a g-meeting object, in which case 'stop-iteration is
+returned.  Note that if multiple g-meeting objects are passed to this
+procedure and one of them is then closed, this procedure will return
+'stop-iteration and any wait will be abandonned.  It is usually a bad
+idea to close a g-meeting object on which this procedure is waiting
+where this procedure is selecting on more than one g-meeting object.
+
+This procedure is first available in version 0.19 of this library.
+@end deffn
+
+@deffn {Scheme Procedure} g-meeting-receive await resume m0 [m1 ...]
+This receives a datum from a sender via one or more g-meeting objects
+'m0 m1 ...'.  If no sender is waiting to pass the datum, this
+procedure waits until a sender calls g-meeting-send on one of the
+g-meeting objects to provide the datum.  If a sender is already
+waiting, this procedure returns immediately with the datum supplied.
+
+This procedure is intended to be called within a waitable procedure
+invoked by a-sync (which supplies the 'await' and 'resume' arguments).
+
+Multiple receivers may wait on a g-meeting object to permit fan out.
+The waiting receivers will be released (as and when a sender provides
+a datum) in the order in which this procedure was invoked.  In
+addition, this procedure has 'select'-like behavior: multiple
+g-meeting objects may be passed and this procedure will receive from
+the first one which sends a datum.
+
+Once a datum exchange has taken place, the g-meeting object(s) can be
+reused for making another exchange (provided the g-meeting objects
+have not been closed).
+
+This procedure must be called in the native OS thread in which the
+default glib main loop runs.  To have other native OS threads
+communicate with that loop, use await-g-task-in-thread,
+await-g-generator-in-thread, await-g-task-in-thread-pool or
+await-g-generator-in-thread-pool.
+
+This procedure always returns the datum value supplied by
+g-meeting-send unless g-meeting-close has been applied to a g-meeting
+object, in which case 'stop-iteration is returned.  Note that if
+multiple g-meeting objects are passed to this procedure and one of
+them is then closed, this procedure will return 'stop-iteration and
+any wait will be abandonned.  It is usually a bad idea to close a
+g-meeting object on which this procedure is waiting where this
+procedure is selecting on more than one g-meeting object.
+
+This procedure is first available in version 0.19 of this library.
+@end deffn

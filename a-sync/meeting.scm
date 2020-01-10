@@ -71,12 +71,14 @@
       (let lp ((elt (deq! res)))
 	(event-post! (lambda () ((vector-ref elt 0) 'stop-iteration))
 		     loop)
-	((vector-ref elt 2)) ;; clean up all other meeting objects waiting with this one
+	;; clean up all other meeting objects on which an affected
+	;; waiter is selecting
+	((vector-ref elt 2))
 	(when (not (q-empty? res))
 	  (lp (deq! res)))))
     (status-set! m 'closed)))
 
-;; This indicates whether applying message-send or message-receive (as
+;; This indicates whether applying meeting-send or meeting-receive (as
 ;; the case may be) to the meeting object 'm' will return immediately:
 ;; in other words, this procedure will return #t if another a-sync or
 ;; compose-a-sync block is already waiting on the object or the
@@ -121,8 +123,9 @@
 ;; This procedure must be called in the native OS thread in which the
 ;; event loop concerned runs.  To have other native OS threads
 ;; communicate with an event-loop, use await-task-in-thread!,
-;; await-task-in-event-loop!, await-generator-in-thread! or
-;; await-generator-in-event-loop!.
+;; await-task-in-event-loop!, await-task-in-thread-pool!,
+;; await-generator-in-thread!, await-generator-in-event-loop! or
+;; await-generator-in-thread-pool!.
 ;;
 ;; This procedure always returns #f unless meeting-close has been
 ;; applied to a meeting object, in which case 'stop-iteration is
@@ -249,8 +252,9 @@
 ;; This procedure must be called in the native OS thread in which the
 ;; event loop concerned runs.  To have other native OS threads
 ;; communicate with an event-loop, use await-task-in-thread!,
-;; await-task-in-event-loop!, await-generator-in-thread! or
-;; await-generator-in-event-loop!.
+;; await-task-in-event-loop!, await-task-in-thread-pool!,
+;; await-generator-in-thread!, await-generator-in-event-loop! or
+;; await-generator-in-thread-pool!.
 ;;
 ;; This procedure always returns the datum value supplied by
 ;; meeting-send unless meeting-close has been applied to a meeting
@@ -276,7 +280,7 @@
     (when (not loop) 
       (error "No default event loop set for call to meeting-receive"))
     ;; We can only enter this procedure with repect to a meeting
-    ;; object under two circumstances: either the status for at leasts
+    ;; object under two circumstances: either the status for at least
     ;; one meeting is 'set and resumptions for it is not empty, in
     ;; which case a sender is waiting and we can proceed, or status is
     ;; 'unset for all of them, which means that no sender is waiting
