@@ -34,6 +34,7 @@
   #:use-module (ice-9 threads)         ;; for with-mutex and call-with-new-thread
   #:use-module (g-golf hl-api glib)
   #:use-module (a-sync coroutines)     ;; for make-iterator
+  #:use-module (a-sync thread-pool)
   #:export (await-g-task-in-thread
 	    await-g-task
 	    await-g-yield
@@ -328,3 +329,127 @@
 		   (resume)
 		   #f))
   (await))
+
+;; This is a convenience procedure for use with a glib main loop,
+;; which will run 'thunk' in the thread pool specified by the 'pool'
+;; argument.  The result of executing 'thunk' will then be posted to
+;; the default glib main loop, and will comprise this procedure's
+;; return value.  This procedure is intended to be called within a
+;; waitable procedure invoked by a-sync (which supplies the 'await'
+;; and 'resume' arguments).
+;;
+;; If the optional 'handler' argument is provided, then that handler
+;; will run if 'thunk' throws, and the return value of the handler
+;; would become the return value of this procedure; otherwise the
+;; program will terminate if an unhandled exception propagates out of
+;; 'thunk'.  'handler' should take a single argument, which will be
+;; the thrown exception object.  Note that unlike a handler passed to
+;; the thread-pool-add!  procedure, 'handler' will run in the default
+;; glib main loop thread and not in a thread pool thread.  Exceptions
+;; thrown by the handler procedure will propagate out of
+;; g-main-loop-run.
+;;
+;; This procedure calls 'await' and must (like the a-sync procedure)
+;; be called in the same thread as that in which the default glib main
+;; loop runs.
+;;
+;; Exceptions may propagate out of this procedure if they arise while
+;; setting up, which shouldn't happen unless the thread pool given by
+;; the 'pool' argument has been closed (in which case a compound
+;; &thread-pool-error exception, also incorporating &origin and
+;; &message objects, will arise), the thread pool tries to start an
+;; additional native thread which the operating system fails to supply
+;; (which would cause a system exception to arise) or memory is
+;; exhausted.
+(define* (await-g-task-in-thread-pool await resume pool thunk #:optional handler)
+  (if handler
+      (thread-pool-add! pool
+			(lambda ()
+			  (let ((res (thunk)))
+			    (g-idle-add (lambda () (resume res) #f)
+					'default)))
+			(lambda (exc)
+			  (g-idle-add (lambda () (resume (handler exc)) #f)
+				      'default)))
+      (thread-pool-add! pool
+			(lambda ()
+			  (let ((res (thunk)))
+			    (g-idle-add (lambda () (resume res) #f)
+					'default)))))
+    (await))
+
+;; The 'generator' argument is a procedure taking one argument, namely
+;; a yield argument (see the documentation on the make-iterator
+;; procedure for further details).  This
+;; await-g-generator-in-thread-pool procedure will cause 'generator'
+;; to run as a task in the 'pool' thread pool, and whenever
+;; 'generator' yields a value this will cause 'proc' to execute in the
+;; default glib main loop.  'proc' should be a procedure taking a
+;; single argument, namely the value yielded by the generator.
+;;
+;; This procedure is intended to be called within a waitable procedure
+;; invoked by a-sync (which supplies the 'await' and 'resume'
+;; arguments).
+;;
+;; If the optional 'handler' argument is provided, then that handler
+;; will run if 'generator' throws an exception; otherwise the program
+;; will terminate if an unhandled exception propagates out of
+;; 'generator'.  'handler' should take a single argument, which will
+;; be the thrown exception object..  Note that unlike a handler passed
+;; to the thread-pool-add! procedure, 'handler' will run in the
+;; default glib main loop thread and not in a thread pool thread.
+;; This procedure will return #f if the generator completes normally,
+;; or 'guile-a-sync-thread-error if the generator throws an exception
+;; and 'handler' is run (the 'guile-a-sync-thread-error symbol is
+;; reserved to the implementation and should not be yielded by the
+;; generator).  Exceptions thrown by the handler procedure will
+;; propagate out of g-main-loop-run.
+;;
+;; This procedure calls 'await' and will return when the generator has
+;; finished or, if 'handler' is provided, upon the generator raising
+;; an exception.  This procedure must (like the a-sync procedure) be
+;; called in the same thread as that in which the default glib main
+;; loop runs.
+;;
+;; Exceptions may propagate out of this procedure if they arise while
+;; setting up, which shouldn't happen unless the thread loop given by
+;; the 'pool' argument has been closed (in which case a compound
+;; &thread-pool-error exception, also incorporating &origin and
+;; &message objects, will arise), the thread pool tries to start an
+;; additional native thread which the operating system fails to supply
+;; (which would cause a system exception to arise) or memory is
+;; exhausted.  Exceptions arising during the execution of 'proc', if
+;; not caught locally, will propagate out of g-main-loop-run.
+(define* (await-g-generator-in-thread-pool await resume pool generator proc #:optional handler)
+  (if handler
+      (thread-pool-add! pool
+			(lambda ()
+			  (let ((iter (make-iterator generator)))
+			    (let next ((res (iter)))
+			      (g-idle-add (lambda () (resume res) #f)
+					  'default)
+			      (when (not (eq? res 'stop-iteration))
+				(next (iter))))))
+			(lambda (exc)
+			  (g-idle-add (lambda ()
+					(handler exc)
+					(resume 'guile-a-sync-thread-error)
+					#f)
+				      'default)))
+      (thread-pool-add! pool
+			(lambda ()
+			  (let ((iter (make-iterator generator)))
+			    (let next ((res (iter)))
+			      (g-idle-add (lambda () (resume res) #f)
+					  'default)
+			      (when (not (eq? res 'stop-iteration))
+				(next (iter))))))))
+  (let next ((res (await)))
+    (cond
+     ((eq? res 'stop-iteration)
+      #f)
+     ((eq? res 'guile-a-sync-thread-error)
+      'guile-a-sync-thread-error)
+     (else 
+      (proc res)
+      (next (await))))))

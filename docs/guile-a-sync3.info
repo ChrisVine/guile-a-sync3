@@ -2133,10 +2133,12 @@ the already accumulated tasks has reduced.
      will run if 'thunk' throws, and the return value of the handler
      would become the return value of this procedure; otherwise the
      program will terminate if an unhandled exception propagates out of
-     'thunk'.  Note that unlike a handler passed to the thread-pool-add!
-     procedure, 'handler' will run in the event loop thread and not in a
-     thread pool thread.  Exceptions thrown by the handler procedure
-     will propagate out of event-loop-run!  for the 'loop' event loop.
+     'thunk'.  'handler' should take a single argument, which will be
+     the thrown exception object.  Note that unlike a handler passed to
+     the thread-pool-add!  procedure, 'handler' will run in the event
+     loop thread and not in a thread pool thread.  Exceptions thrown by
+     the handler procedure will propagate out of event-loop-run!  for
+     the 'loop' event loop.
 
      This procedure calls 'await' and must (like the a-sync procedure)
      be called in the same thread as that in which the 'loop' or default
@@ -2173,13 +2175,14 @@ the already accumulated tasks has reduced.
      The loop argument is optional.  The 'generator' argument is a
      procedure taking one argument, namely a yield argument (see the
      documentation on the make-iterator procedure for further details).
-     This await-generator-in-pool procedure will cause 'generator' to
-     run as a task in the 'pool' thread pool, and whenever 'generator'
-     yields a value this will cause 'proc' to execute in the event loop
-     specified by the 'loop' argument, or in the default event loop if
-     no 'loop' argument is provided or if #f is provided as the 'loop'
-     argument.  'proc' should be a procedure taking a single argument,
-     namely the value yielded by the generator.
+     This await-generator-in-thread-pool!  procedure will cause
+     'generator' to run as a task in the 'pool' thread pool, and
+     whenever 'generator' yields a value this will cause 'proc' to
+     execute in the event loop specified by the 'loop' argument, or in
+     the default event loop if no 'loop' argument is provided or if #f
+     is provided as the 'loop' argument.  'proc' should be a procedure
+     taking a single argument, namely the value yielded by the
+     generator.
 
      This procedure is intended to be called within a waitable procedure
      invoked by a-sync (which supplies the 'await' and 'resume'
@@ -2190,10 +2193,11 @@ the already accumulated tasks has reduced.
      If the optional 'handler' argument is provided, then that handler
      will run if 'generator' throws an exception; otherwise the program
      will terminate if an unhandled exception propagates out of
-     'generator'.  Note that unlike a handler passed to the
-     thread-pool-add!  procedure, 'handler' will run in the event loop
-     thread and not in a thread pool thread.  This procedure will return
-     #f if the generator completes normally, or
+     'generator'.  'handler' should take a single argument, which will
+     be the thrown exception object.  Note that unlike a handler passed
+     to the thread-pool-add!  procedure, 'handler' will run in the event
+     loop thread and not in a thread pool thread.  This procedure will
+     return #f if the generator completes normally, or
      'guile-a-sync-thread-error if the generator throws an exception and
      'handler' is run (the 'guile-a-sync-thread-error symbol is reserved
      to the implementation and should not be yielded by the generator).
@@ -2211,7 +2215,7 @@ the already accumulated tasks has reduced.
      for the make-event-loop procedure for further information).
 
      Exceptions may propagate out of this procedure if they arise while
-     setting up, which shouldn't happen unless the thread loop given by
+     setting up, which shouldn't happen unless the thread pool given by
      the 'pool' argument has been closed (in which case a compound
      &thread-pool-error exception, also incorporating &origin and
      &message objects, will arise), the thread pool tries to start an
@@ -3561,6 +3565,117 @@ module, so as not to create a hard dependency on g-golf.
           	  (g-main-loop-quit main-loop)))
           (g-main-loop-run main-loop)
 
+ -- Scheme Procedure: await-g-task-in-thread-pool await resume pool
+          thunk [handler]
+     This is a convenience procedure for use with a glib main loop,
+     which will run 'thunk' in the thread pool specified by the 'pool'
+     argument (see *note (a-sync thread-pool): thread pool.).  The
+     result of executing 'thunk' will then be posted to the default glib
+     main loop, and will comprise this procedure's return value.  This
+     procedure is intended to be called within a waitable procedure
+     invoked by a-sync (which supplies the 'await' and 'resume'
+     arguments).
+
+     If the optional 'handler' argument is provided, then that handler
+     will run if 'thunk' throws, and the return value of the handler
+     would become the return value of this procedure; otherwise the
+     program will terminate if an unhandled exception propagates out of
+     'thunk'.  'handler' should take a single argument, which will be
+     the thrown exception object.  Note that unlike a handler passed to
+     the thread-pool-add!  procedure, 'handler' will run in the default
+     glib main loop thread and not in a thread pool thread.  Exceptions
+     thrown by the handler procedure will propagate out of
+     g-main-loop-run.
+
+     This procedure calls 'await' and must (like the a-sync procedure)
+     be called in the same thread as that in which the default glib main
+     loop runs.
+
+     Exceptions may propagate out of this procedure if they arise while
+     setting up, which shouldn't happen unless the thread pool given by
+     the 'pool' argument has been closed (in which case a compound
+     &thread-pool-error exception, also incorporating &origin and
+     &message objects, will arise), the thread pool tries to start an
+     additional native thread which the operating system fails to supply
+     (which would cause a system exception to arise) or memory is
+     exhausted.
+
+     Here is an example of the use of await-g-task-in-thread-pool:
+          (define main-loop (g-main-loop-new #f #f))
+          (let ((pool (make-thread-pool #:max-threads 4)))
+            (a-sync (lambda (await resume)
+          	    (simple-format #t "1 + 1 is ~A\n"
+          			   (await-g-task-in-thread-pool await resume
+          						        pool
+          						        (lambda ()
+          							  (+ 1 1))))
+          	    (g-main-loop-quit main-loop))))
+          (g-main-loop-run main-loop)
+
+ -- Scheme Procedure: await-g-generator-in-thread-pool await resume pool
+          generator proc [handler]
+     The 'generator' argument is a procedure taking one argument, namely
+     a yield argument (see the documentation on the make-iterator
+     procedure for further details).  This
+     await-g-generator-in-thread-pool procedure will cause 'generator'
+     to run as a task in the 'pool' thread pool (see *note (a-sync
+     thread-pool): thread pool.), and whenever 'generator' yields a
+     value this will cause 'proc' to execute in the default glib main
+     loop.  'proc' should be a procedure taking a single argument,
+     namely the value yielded by the generator.
+
+     This procedure is intended to be called within a waitable procedure
+     invoked by a-sync (which supplies the 'await' and 'resume'
+     arguments).
+
+     If the optional 'handler' argument is provided, then that handler
+     will run if 'generator' throws an exception; otherwise the program
+     will terminate if an unhandled exception propagates out of
+     'generator'.  'handler' should take a single argument, which will
+     be the thrown exception object.  Note that unlike a handler passed
+     to the thread-pool-add!  procedure, 'handler' will run in the
+     default glib main loop thread and not in a thread pool thread.
+     This procedure will return #f if the generator completes normally,
+     or 'guile-a-sync-thread-error if the generator throws an exception
+     and 'handler' is run (the 'guile-a-sync-thread-error symbol is
+     reserved to the implementation and should not be yielded by the
+     generator).  Exceptions thrown by the handler procedure will
+     propagate out of g-main-loop-run.
+
+     This procedure calls 'await' and will return when the generator has
+     finished or, if 'handler' is provided, upon the generator raising
+     an exception.  This procedure must (like the a-sync procedure) be
+     called in the same thread as that in which the default glib main
+     loop runs.
+
+     Exceptions may propagate out of this procedure if they arise while
+     setting up, which shouldn't happen unless the thread loop given by
+     the 'pool' argument has been closed (in which case a compound
+     &thread-pool-error exception, also incorporating &origin and
+     &message objects, will arise), the thread pool tries to start an
+     additional native thread which the operating system fails to supply
+     (which would cause a system exception to arise) or memory is
+     exhausted.  Exceptions arising during the execution of 'proc', if
+     not caught locally, will propagate out of g-main-loop-run.
+
+     Here is an example of the use of await-g-generator-in-thread-pool:
+          (define main-loop (g-main-loop-new #f #f))
+          (let ((pool (make-thread-pool #:max-threads 4)))
+            (event-loop-block! #t) ;; because the generator runs in another thread
+            (a-sync (lambda (await resume)
+          	    (await-g-generator-in-thread-pool await resume
+          					      pool
+          					      (lambda (yield)
+          						(let loop ((count 0))
+          						  (when (< count 5)
+          						    (yield (* 2 count))
+          						    (loop (1+ count)))))
+          					      (lambda (val)
+          						(display val)
+          						(newline)))
+          	    (g-main-loop-quit main-loop))))
+          (g-main-loop-run main-loop)
+
 
 File: guile-a-sync3.info,  Node: g-golf await ports,  Next: g-golf meeting,  Prev: g-golf base,  Up: g-golf
 
@@ -3977,14 +4092,14 @@ Node: coroutines4865
 Node: event loop23257
 Node: await ports69952
 Node: thread pool96771
-Node: monotonic time117397
-Node: gnome glib118833
-Node: compose146879
-Node: meeting154867
-Node: g-golf168360
-Node: g-golf base168798
-Node: g-golf await ports183433
-Node: g-golf meeting195086
+Node: monotonic time117597
+Node: gnome glib119033
+Node: compose147079
+Node: meeting155067
+Node: g-golf168560
+Node: g-golf base168998
+Node: g-golf await ports189450
+Node: g-golf meeting201103
 
 End Tag Table
 
