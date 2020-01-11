@@ -41,7 +41,9 @@
 	    await-g-generator-in-thread
 	    await-g-generator
 	    await-g-timeout
-	    await-g-sleep))
+	    await-g-sleep
+	    await-g-task-in-thread-pool
+	    await-g-generator-in-thread-pool))
 
 ;; This is a convenience procedure which will run 'thunk' in its own
 ;; thread, and then post an event to the default glib main loop when
