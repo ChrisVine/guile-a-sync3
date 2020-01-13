@@ -99,7 +99,7 @@
   (define (read-waiter p)
     (when (not id)
       (set! id (g-unix-fd-add (port->fdes port)
-			      '(in hup err)
+			      '(in hup err pri)
 			      (lambda (fd condition)
 				(if (memq 'pri condition)
 				    (resume 'excpt)
@@ -356,24 +356,14 @@
 ;; carry out i/o operations on 'port' using the port's normal write
 ;; procedures.  'port' must be a suspendable non-blocking port.  This
 ;; procedure will return when 'proc' returns, as if by blocking write
-;; operations, with the value returned by 'proc'.  However, the glib
-;; main loop will not be blocked by this procedure even if only
+;; operations, with the value(s) returned by 'proc'.  However, the
+;; glib main loop will not be blocked by this procedure even if only
 ;; individual characters or bytes comprising part characters can be
 ;; written at any one time.  It is intended to be called in a waitable
 ;; procedure invoked by a-sync (which supplies the 'await' and
 ;; 'resume' arguments).  'proc' must not itself explicitly apply
 ;; 'await' and 'resume' as those are potentially in use by the
 ;; suspendable port while 'proc' is executing.
-;;
-;; If an exceptional condition ('pri) is encountered by the
-;; implementation, #f will be returned by this procedure and the write
-;; operations to be performed by 'proc' will be abandonned; there is
-;; however no guarantee that any exceptional condition that does arise
-;; will be encountered by the implementation - the user procedure
-;; 'proc' may get there first and deal with it, or it may not.
-;; However exceptional conditions on write ports cannot normally
-;; occur.  In the absence of an exceptional condition, the value(s)
-;; returned by 'proc' will be returned.
 ;;
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the default glib main loop runs.
@@ -394,27 +384,22 @@
       (set! id (g-unix-fd-add (port->fdes port)
 			      '(out err)
 			      (lambda (fd condition)
-				(if (memq 'pri condition)
-				    (resume 'excpt)
-				    (resume))
+				(resume)
 				#t))))
-    (when (eq? (await) 'except)
-      (throw 'except)))
+    (await))
   (call-with-values
     (lambda ()
       (parameterize ((current-write-waiter write-waiter))
 	(with-exception-handler
 	  (lambda (exc)
-	    (if (eq? exc 'except)
-		#f
-		(begin
-		  (when id
-		    (g-source-remove id)
-		    (release-port-handle port))
-		  (raise-exception exc))))
+	    (when id
+	      (g-source-remove id)
+	      (release-port-handle port))
+	    (raise-exception exc))
 	  (lambda ()
 	    (proc port))
-	  #:unwind? #t)))
+	  ;; as the handler always rethrows, we do not need to unwind here
+	  #:unwind? #f)))
     (lambda args
       (when id
 	(g-source-remove id)
