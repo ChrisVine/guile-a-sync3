@@ -441,7 +441,8 @@
 	    (raise-exception exc))
 	  (lambda ()
 	    (proc port))
-	  #:unwind? true)))
+	  ;; as the handler always rethrows, we do not need to unwind here
+	  #:unwind? #f)))
     (lambda args
       (when id
 	(g-source-remove id)
@@ -550,7 +551,8 @@
 	    (raise-exception exc))
 	  (lambda ()
 	    (proc port))
-	  #:unwind? #t)))
+	  ;; as the handler always rethrows, we do not need to unwind here
+	  #:unwind? #f)))
     (lambda args
       (when id
 	(g-source-remove id)
