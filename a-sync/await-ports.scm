@@ -634,9 +634,9 @@
       (apply await-connect-impl! await resume next rest)
       (apply await-connect-impl! await resume #f next rest)))
 
-(define (await-connect-impl! await resume loop sock . rest)
+(define (await-connect-impl! await resume loop sock . args)
   (await-write-suspendable! await resume loop sock
 			    (lambda (s)
-			      (apply connect s rest)
+			      (apply connect s args)
 			      #t)))
 

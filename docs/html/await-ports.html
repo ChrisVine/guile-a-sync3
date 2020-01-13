@@ -210,7 +210,7 @@ keyboard has no end-of-file, use Ctrl-C to exit this code snippet):
 </p><div class="example">
 <pre class="example">(set-default-event-loop!) ;; if none has yet been set
 (a-sync (lambda (await resume)
-	(display &quot;Enter lines of text at the keyboard, ^C to finish\n&quot;)
+	  (display &quot;Enter lines of text at the keyboard, ^C to finish\n&quot;)
 	  (let ((port (open &quot;/dev/tty&quot; O_RDONLY)))
 	    (fcntl port F_SETFL (logior O_NONBLOCK
 				(fcntl port F_GETFL)))
@@ -255,7 +255,7 @@ further particulars about this procedure.
 </p><div class="example">
 <pre class="example">(set-default-event-loop!) ;; if none has yet been set
 (a-sync (lambda (await resume)
-	(display &quot;Enter lines of text at the keyboard, enter an empty line to finish\n&quot;)
+	  (display &quot;Enter lines of text at the keyboard, enter an empty line to finish\n&quot;)
 	  (let ((port (open &quot;/dev/tty&quot; O_RDONLY)))
 	    (fcntl port F_SETFL (logior O_NONBLOCK
 				(fcntl port F_GETFL)))

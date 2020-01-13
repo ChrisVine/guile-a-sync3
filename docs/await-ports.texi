@@ -163,7 +163,7 @@ keyboard has no end-of-file, use Ctrl-C to exit this code snippet):
 @example
 (set-default-event-loop!) ;; if none has yet been set
 (a-sync (lambda (await resume)
-	(display "Enter lines of text at the keyboard, ^C to finish\n")
+	  (display "Enter lines of text at the keyboard, ^C to finish\n")
 	  (let ((port (open "/dev/tty" O_RDONLY)))
 	    (fcntl port F_SETFL (logior O_NONBLOCK
 				(fcntl port F_GETFL)))
@@ -207,7 +207,7 @@ Here is an example of the use of await-getsomelines!:
 @example
 (set-default-event-loop!) ;; if none has yet been set
 (a-sync (lambda (await resume)
-	(display "Enter lines of text at the keyboard, enter an empty line to finish\n")
+	  (display "Enter lines of text at the keyboard, enter an empty line to finish\n")
 	  (let ((port (open "/dev/tty" O_RDONLY)))
 	    (fcntl port F_SETFL (logior O_NONBLOCK
 				(fcntl port F_GETFL)))

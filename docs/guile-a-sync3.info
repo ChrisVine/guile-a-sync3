@@ -1499,7 +1499,7 @@ procedures must be made non-blocking using fcntl as follows:
      keyboard has no end-of-file, use Ctrl-C to exit this code snippet):
           (set-default-event-loop!) ;; if none has yet been set
           (a-sync (lambda (await resume)
-          	(display "Enter lines of text at the keyboard, ^C to finish\n")
+          	  (display "Enter lines of text at the keyboard, ^C to finish\n")
           	  (let ((port (open "/dev/tty" O_RDONLY)))
           	    (fcntl port F_SETFL (logior O_NONBLOCK
           				(fcntl port F_GETFL)))
@@ -1541,7 +1541,7 @@ procedures must be made non-blocking using fcntl as follows:
      Here is an example of the use of await-getsomelines!:
           (set-default-event-loop!) ;; if none has yet been set
           (a-sync (lambda (await resume)
-          	(display "Enter lines of text at the keyboard, enter an empty line to finish\n")
+          	  (display "Enter lines of text at the keyboard, enter an empty line to finish\n")
           	  (let ((port (open "/dev/tty" O_RDONLY)))
           	    (fcntl port F_SETFL (logior O_NONBLOCK
           				(fcntl port F_GETFL)))
@@ -3683,13 +3683,11 @@ Most of the scheme files provided by this library are by default
 compiled by this library to bytecode.  That is not the case with this
 module, so as not to create a hard dependency on g-golf.
 
-   Including this module will automatically enable suspendable ports in
-order to support the await-g-read-suspendable, await-g-write-suspendable
-and await-g-getline procedures.  To disable suspendable ports again,
-uninstall-suspendable-ports!  can be called, but this means that those
-procedures can no longer be used while suspendable ports are disabled.
-In addition, any port using those procedures must be made non-blocking
-using fcntl as follows:
+   Including this module will automatically enable suspendable ports.
+To disable suspendable ports again, uninstall-suspendable-ports!  can be
+called, but this means that those procedures can no longer be used while
+suspendable ports are disabled.  In addition, any port using those
+procedures must be made non-blocking using fcntl as follows:
 
      (fcntl [port] F_SETFL (logior O_NONBLOCK
                            (fcntl [port] F_GETFL)))
@@ -3763,11 +3761,91 @@ procedures:
                     (display "Enter a line of text at the keyboard\n")
           	  (let ((port (open "/dev/tty" O_RDONLY)))
           	    (fcntl port F_SETFL (logior O_NONBLOCK
-          				(fcntl port F_GETFL)))
+          					(fcntl port F_GETFL)))
           	    (simple-format #t
           			   "The line was: ~A\n"
           			   (await-g-getline await resume
           					    port)))
+          	  (g-main-loop-quit main-loop)))
+          (g-main-loop-run main-loop)
+
+ -- Scheme Procedure: await-g-geteveryline await resume port proc
+     This procedure is provided mainly to retain compatibility with the
+     guile-a-sync library for guile-2.0, because it is trivial to
+     implement with await-g-read-suspendable (and is implemented by
+     await-g-read-suspendable).
+
+     It is intended to be called within a waitable procedure invoked by
+     a-sync (which supplies the 'await' and 'resume' arguments), and
+     will apply 'proc' to every complete line of text received (without
+     the terminating '\n' character).  The watch will not end until
+     end-of-file or an exceptional condition ('pri) is reached.  In the
+     event of that happening, this procedure will end and return an
+     end-of-file object or #f respectively.
+
+     When 'proc' executes, 'await' and 'resume' will still be in use by
+     this procedure, so they may not be reused by 'proc' (even though
+     'proc' runs in the event loop thread).
+
+     See the documentation on the await-g-read-suspendable procedure for
+     further particulars about this procedure.
+
+     Here is an example of the use of await-g-geteveryline (because the
+     keyboard has no end-of-file, use Ctrl-C to exit this code snippet):
+          (define main-loop (g-main-loop-new #f #f))
+          (a-sync (lambda (await resume)
+          	  (display "Enter lines of text at the keyboard, ^C to finish\n")
+          	  (let ((port (open "/dev/tty" O_RDONLY)))
+          	    (fcntl port F_SETFL (logior O_NONBLOCK
+          					(fcntl port F_GETFL)))
+          	    (await-g-geteveryline await resume
+          				  port
+          				  (lambda (line)
+          				    (simple-format #t
+          						   "The line was: ~A\n"
+          						   line))))
+          	  (g-main-loop-quit main-loop)))
+          (g-main-loop-run main-loop)
+
+ -- Scheme Procedure: await-g-getsomelines await resume port proc
+     This procedure is intended to be called within a waitable procedure
+     invoked by a-sync (which supplies the 'await' and 'resume'
+     arguments), and does the same as await-g-geteveryline, except that
+     it provides a second argument to 'proc', namely an escape
+     continuation which can be invoked by 'proc' to cause the procedure
+     to return before end-of-file is reached.  Behavior is identical to
+     await-g-geteveryline if the continuation is not invoked.
+
+     This procedure will apply 'proc' to every complete line of text
+     received (without the terminating '\n' character).  The watch will
+     not end until end-of-file or an exceptional condition ('pri) is
+     reached, which would cause this procedure to end and return an
+     end-of-file object or #f respectively, or until the escape
+     continuation is invoked, in which case the value passed to the
+     escape continuation will be returned.
+
+     When 'proc' executes, 'await' and 'resume' will still be in use by
+     this procedure, so they may not be reused by 'proc' (even though
+     'proc' runs in the event loop thread).
+
+     See the documentation on the await-g-read-suspendable procedure for
+     further particulars about this procedure.
+
+     Here is an example of the use of await-g-getsomelines:
+          (define main-loop (g-main-loop-new #f #f))
+          (a-sync (lambda (await resume)
+          	  (display "Enter lines of text at the keyboard, enter an empty line to finish\n")
+          	  (let ((port (open "/dev/tty" O_RDONLY)))
+          	    (fcntl port F_SETFL (logior O_NONBLOCK
+          					(fcntl port F_GETFL)))
+          	    (await-g-getsomelines await resume
+          				  port
+          				  (lambda (line k)
+          				    (when (string=? line "")
+          				      (k #f))
+          				    (simple-format #t
+          						   "The line was: ~A\n"
+          						   line))))
           	  (g-main-loop-quit main-loop)))
           (g-main-loop-run main-loop)
 
@@ -3787,6 +3865,74 @@ procedures:
      through receiving the data).  If an end-of-file object is
      encountered without any bytes of data, a pair with eof-object as
      car and #f as cdr will be returned.
+
+     See the documentation on the await-g-read-suspendable procedure for
+     further particulars about this procedure.
+
+ -- Scheme Procedure: await-g-geteveryblock await resume port size proc
+     This procedure is provided mainly to retain compatibility with the
+     guile-a-sync library for guile-2.0, because it is trivial to
+     implement this kind of functionality with await-g-read-suspendable
+     (and is implemented by await-g-read-suspendable).
+
+     It is intended to be called within a waitable procedure invoked by
+     a-sync (which supplies the 'await' and 'resume' arguments), and
+     will apply 'proc' to any block of data received, such as a binary
+     record.  'proc' should be a procedure taking two arguments, first a
+     bytevector of length 'size' containing the block of data read and
+     second the size of the block of data placed in the bytevector.  The
+     value passed as the size of the block of data placed in the
+     bytevector will always be the same as 'size' unless end-of-file has
+     been encountered after receiving only a partial block of data.  The
+     watch will not end until end-of-file or an exceptional condition
+     ('pri) is reached.  In the event of that happening, this procedure
+     will end and return an end-of-file object or #f respectively.
+
+     For efficiency reasons, this procedure passes its internal
+     bytevector buffer to 'proc' as proc's first argument and, when
+     'proc' returns, re-uses it.  Therefore, if 'proc' stores its first
+     argument for use after 'proc' has returned, it should store it by
+     copying it.
+
+     When 'proc' executes, 'await' and 'resume' will still be in use by
+     this procedure, so they may not be reused by 'proc' (even though
+     'proc' runs in the event loop thread).
+
+     See the documentation on the await-g-read-suspendable procedure for
+     further particulars about this procedure.
+
+ -- Scheme Procedure: await-g-getsomeblocks await resume port size proc
+     This procedure is intended to be called within a waitable procedure
+     invoked by a-sync (which supplies the 'await' and 'resume'
+     arguments), and does the same as await-g-geteveryblock, except that
+     it provides a third argument to 'proc', namely an escape
+     continuation which can be invoked by 'proc' to cause the procedure
+     to return before end-of-file is reached.  Behavior is identical to
+     await-g-geteveryblock if the continuation is not invoked.
+
+     This procedure will apply 'proc' to any block of data received,
+     such as a binary record.  'proc' should be a procedure taking three
+     arguments, first a bytevector of length 'size' containing the block
+     of data read, second the size of the block of data placed in the
+     bytevector and third an escape continuation.  The value passed as
+     the size of the block of data placed in the bytevector will always
+     be the same as 'size' unless end-of-file has been encountered after
+     receiving only a partial block of data.  The watch will not end
+     until end-of-file or an exceptional condition ('pri) is reached,
+     which would cause this procedure to end and return an end-of-file
+     object or #f respectively, or until the escape continuation is
+     invoked, in which case the value passed to the escape continuation
+     will be returned.
+
+     For efficiency reasons, this procedure passes its internal
+     bytevector buffer to 'proc' as proc's first argument and, when
+     'proc' returns, re-uses it.  Therefore, if 'proc' stores its first
+     argument for use after 'proc' has returned, it should store it by
+     copying it.
+
+     When 'proc' executes, 'await' and 'resume' will still be in use by
+     this procedure, so they may not be reused by 'proc' (even though
+     'proc' runs in the event loop thread).
 
      See the documentation on the await-g-read-suspendable procedure for
      further particulars about this procedure.
@@ -3909,6 +4055,47 @@ procedures:
           			 (apply throw args)))))
           	  (g-main-loop-quit main-loop)))
           (g-main-loop-run main-loop)
+
+ -- Scheme Procedure: await-g-accept await resume sock
+     This procedure is provided mainly to retain compatibility with the
+     guile-a-sync library for guile-2.0, because it is trivial to
+     implement with await-g-read-suspendable (and is implemented by
+     await-g-read-suspendable).
+
+     This procedure will start a watch on listening socket 'sock' for a
+     connection.  'sock' must be a non-blocking socket port.  This
+     procedure wraps the guile 'accept' procedure and therefore returns
+     a pair, comprising as car a connection socket, and as cdr a socket
+     address object containing particulars of the address of the remote
+     connection.  This procedure is intended to be called within a
+     waitable procedure invoked by a-sync (which supplies the 'await'
+     and 'resume' arguments).
+
+     See the documentation on the await-g-read-suspendable procedure for
+     further particulars about this procedure.
+
+ -- Scheme Procedure: await-g-connect await resume sock . args
+     This procedure is provided mainly to retain compatibility with the
+     guile-a-sync library for guile-2.0, because it is trivial to
+     implement with await-g-write-suspendable (and is implemented by
+     await-g-write-suspendable).
+
+     This procedure will connect socket 'sock' to a remote host.
+     Particulars of the remote host are given by 'args' which are the
+     arguments (other than 'sock') taken by guile's 'connect' procedure,
+     which this procedure wraps.  'sock' must be a non-blocking socket
+     port.  This procedure is intended to be called in a waitable
+     procedure invoked by a-sync (which supplies the 'await' and
+     'resume' arguments).
+
+     There are cases where it will not be helpful to use this procedure.
+     Where a connection request is immediately followed by a write to
+     the remote server (say, a get request), the call to 'connect' and
+     to 'put-string' can be combined in a single procedure passed to
+     await-g-write-suspendable.
+
+     See the documentation on the await-g-write-suspendable procedure
+     for further particulars about this procedure.
 
 
 File: guile-a-sync3.info,  Node: g-golf meeting,  Prev: g-golf await ports,  Up: g-golf
@@ -4091,15 +4278,15 @@ Node: overview1561
 Node: coroutines4865
 Node: event loop23257
 Node: await ports69952
-Node: thread pool96771
-Node: monotonic time117597
-Node: gnome glib119033
-Node: compose147079
-Node: meeting155067
-Node: g-golf168560
-Node: g-golf base168998
-Node: g-golf await ports189450
-Node: g-golf meeting201103
+Node: thread pool96775
+Node: monotonic time117601
+Node: gnome glib119037
+Node: compose147083
+Node: meeting155071
+Node: g-golf168564
+Node: g-golf base169002
+Node: g-golf await ports189454
+Node: g-golf meeting210828
 
 End Tag Table
 
