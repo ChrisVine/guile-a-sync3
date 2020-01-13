@@ -1,4 +1,4 @@
-;; Copyright (C) 2020 Chris Vine
+;; Copyright (C) 2016 to 2020 Chris Vine
 
 ;; This library is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU Lesser General Public
@@ -35,15 +35,15 @@
   #:use-module (g-golf hl-api glib)
   #:use-module (a-sync coroutines)     ;; for make-iterator
   #:use-module (a-sync thread-pool)
-  #:export (await-g-task-in-thread
-	    await-g-task
-	    await-g-yield
-	    await-g-generator-in-thread
-	    await-g-generator
-	    await-g-timeout
-	    await-g-sleep
-	    await-g-task-in-thread-pool
-	    await-g-generator-in-thread-pool))
+  #:export (await-glib-task-in-thread
+	    await-glib-task
+	    await-glib-yield
+	    await-glib-generator-in-thread
+	    await-glib-generator
+	    await-glib-timeout
+	    await-glib-sleep
+	    await-glib-task-in-thread-pool
+	    await-glib-generator-in-thread-pool))
 
 ;; This is a convenience procedure which will run 'thunk' in its own
 ;; thread, and then post an event to the default glib main loop when
@@ -69,7 +69,7 @@
 ;; not caught by a handler procedure, will terminate the program.
 ;; Exceptions thrown by the handler procedure will propagate out of
 ;; g-main-loop-run.
-(define* (await-g-task-in-thread await resume thunk #:optional handler)
+(define* (await-glib-task-in-thread await resume thunk #:optional handler)
   (if handler
       (call-with-new-thread
        (lambda ()
@@ -99,18 +99,19 @@
 ;; 'thunk' in the default glib main loop.  This procedure calls
 ;; 'await' and will return the thunk's return value.  It is intended
 ;; to be called in a waitable procedure invoked by a-sync.  It is the
-;; single-threaded corollary of await-g-task-in-thread.  This means
-;; that (unlike with await-g-task-in-thread) while 'thunk' is running
-;; other events in the main loop will not make progress, so blocking
-;; calls should not be made in 'thunk'.
+;; single-threaded corollary of await-glib-task-in-thread.  This means
+;; that (unlike with await-glib-task-in-thread) while 'thunk' is
+;; running other events in the main loop will not make progress, so
+;; blocking calls should not be made in 'thunk'.
 ;;
 ;; When 'thunk' is executed, this procedure is waiting on 'await', so
 ;; 'await' and 'resume' cannot be used again in 'thunk' (although
 ;; 'thunk' can call a-sync to start another series of asynchronous
 ;; operations with a new await-resume pair).  For that reason,
-;; await-g-yield is usually more convenient for composing asynchronous
-;; tasks.  In retrospect, this procedure offers little over
-;; await-g-yield, apart from symmetry with await-g-task-in-thread.
+;; await-glib-yield is usually more convenient for composing
+;; asynchronous tasks.  In retrospect, this procedure offers little
+;; over await-glib-yield, apart from symmetry with
+;; await-glib-task-in-thread.
 ;;
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the default glib main loop runs.
@@ -120,7 +121,7 @@
 ;; happen unless memory is exhausted.  Exceptions arising during
 ;; execution of the task, if not caught locally, will propagate out of
 ;; g-main-loop-run.
-(define (await-g-task await resume thunk)
+(define (await-glib-task await resume thunk)
   (g-idle-add (lambda ()
 		(resume (thunk))
 		#f)
@@ -130,12 +131,12 @@
 ;; This is a convenience procedure for use with glib, which will
 ;; surrender execution to the default glib main loop, so that code in
 ;; other a-sync or compose-a-sync blocks can run.  The remainder of
-;; the code after the call to await-g-yield in the current a-sync or
-;; compose-a-sync block will execute on the next iteration through the
-;; loop.  It is intended to be called within a waitable procedure
+;; the code after the call to await-glib-yield in the current a-sync
+;; or compose-a-sync block will execute on the next iteration through
+;; the loop.  It is intended to be called within a waitable procedure
 ;; invoked by a-sync (which supplies the 'await' and 'resume'
-;; arguments).  It's effect is similar to calling await-g-task with a
-;; task that does nothing.
+;; arguments).  It's effect is similar to calling await-glib-task with
+;; a task that does nothing.
 ;;
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the default glib main loop runs.
@@ -144,7 +145,7 @@
 ;; exhausted.
 ;;
 ;; This procedure is first available in version 0.19 of this library.
-(define (await-g-yield await resume)
+(define (await-glib-yield await resume)
   (g-idle-add (lambda ()
 		(resume)
 		#f)
@@ -155,9 +156,9 @@
 ;; yielded by generator procedures.  The 'generator' argument is a
 ;; procedure taking one argument, namely a yield argument (see the
 ;; documentation on the make-iterator procedure for further details).
-;; This await-g-generator-in-thread procedure will run 'generator' in
-;; its own worker thread, and whenever 'generator' yields a value will
-;; cause 'proc' to execute in the default glib main loop.
+;; This await-glib-generator-in-thread procedure will run 'generator'
+;; in its own worker thread, and whenever 'generator' yields a value
+;; will cause 'proc' to execute in the default glib main loop.
 ;;
 ;; 'proc' should be a procedure taking a single argument, namely the
 ;; value yielded by the generator.  If the optional 'handler' argument
@@ -189,7 +190,7 @@
 ;; program.  Exceptions thrown by the handler procedure will propagate
 ;; out of g-main-loop-run.  Exceptions thrown by 'proc', if not caught
 ;; locally, will also propagate out of g-main-loop-run.
-(define* (await-g-generator-in-thread await resume generator proc #:optional handler)
+(define* (await-glib-generator-in-thread await resume generator proc #:optional handler)
   (if handler
       (call-with-new-thread
        (lambda ()
@@ -234,17 +235,17 @@
 ;; yielded by generator procedures.  The 'generator' argument is a
 ;; procedure taking one argument, namely a yield argument (see the
 ;; documentation on the make-iterator procedure for further details).
-;; This await-g-generator procedure will run 'generator', and whenever
-;; 'generator' yields a value will cause 'proc' to execute in the
-;; default glib main loop - each time 'proc' runs it will do so as a
-;; separate event in the main loop and so be multi-plexed with other
+;; This await-glib-generator procedure will run 'generator', and
+;; whenever 'generator' yields a value will cause 'proc' to execute in
+;; the default glib main loop - each time 'proc' runs it will do so as
+;; a separate event in the main loop and so be multi-plexed with other
 ;; events.  'proc' should be a procedure taking a single argument,
 ;; namely the value yielded by the generator.
 ;;
 ;; This procedure is intended to be called in a waitable procedure
 ;; invoked by a-sync.  It is the single-threaded corollary of
-;; await-g-generator-in-thread.  This means that (unlike with
-;; await-g-generator-in-thread) while 'generator' is running other
+;; await-glib-generator-in-thread.  This means that (unlike with
+;; await-glib-generator-in-thread) while 'generator' is running other
 ;; events in the main loop will not make progress, so blocking calls
 ;; (other than to the yield procedure) should not be made in
 ;; 'generator'.
@@ -260,9 +261,9 @@
 ;; setting up (that is, before the task starts), which shouldn't
 ;; happen unless memory is exhausted.  Exceptions arising during
 ;; execution of the generator, if not caught locally, will propagate
-;; out of await-g-generator.  Exceptions thrown by 'proc', if not
+;; out of await-glib-generator.  Exceptions thrown by 'proc', if not
 ;; caught locally, will propagate out of g-main-loop-run.
-(define (await-g-generator await resume generator proc)
+(define (await-glib-generator await resume generator proc)
   (let ((iter (make-iterator generator)))
     (let next ((res (iter)))
       (g-idle-add (lambda ()
@@ -284,13 +285,13 @@
 ;; soon as 'thunk' has run once and completed, the timeout will be
 ;; removed from the event loop.
 ;;
-;; In practice, calling await-g-sleep may often be more convenient for
-;; composing asynchronous code than using this procedure.  That is
+;; In practice, calling await-glib-sleep may often be more convenient
+;; for composing asynchronous code than using this procedure.  That is
 ;; because, when 'thunk' is executed, this procedure is waiting on
 ;; 'await', so 'await' and 'resume' cannot be used again in 'thunk'
 ;; (although 'thunk' can call a-sync to start another series of
 ;; asynchronous operations with a new await-resume pair).  In
-;; retrospect, this procedure offers little over await-g-sleep.
+;; retrospect, this procedure offers little over await-glib-sleep.
 ;;
 ;; This procedure must (like the a-sync procedure) be called in the
 ;; same thread as that in which the default glib main loop runs.
@@ -300,7 +301,7 @@
 ;; which shouldn't happen unless memory is exhausted.  Exceptions
 ;; thrown by 'thunk', if not caught locally, will propagate out of
 ;; g-main-loop-run.
-(define (await-g-timeout await resume msecs thunk)
+(define (await-glib-timeout await resume msecs thunk)
   (g-timeout-add msecs
 		 (lambda ()
 		   (resume (thunk))
@@ -316,7 +317,7 @@
 ;; called within a waitable procedure invoked by a-sync (which
 ;; supplies the 'await' and 'resume' arguments).
 ;;
-;; Calling this procedure is equivalent to calling await-g-timeout
+;; Calling this procedure is equivalent to calling await-glib-timeout
 ;; with a 'proc' argument comprising a lambda expression that does
 ;; nothing.
 ;;
@@ -325,7 +326,7 @@
 ;;
 ;; This procedure should not throw any exceptions unless memory is
 ;; exhausted.
-(define (await-g-sleep await resume msecs)
+(define (await-glib-sleep await resume msecs)
   (g-timeout-add msecs
 		 (lambda ()
 		   (resume)
@@ -363,7 +364,7 @@
 ;; additional native thread which the operating system fails to supply
 ;; (which would cause a system exception to arise) or memory is
 ;; exhausted.
-(define* (await-g-task-in-thread-pool await resume pool thunk #:optional handler)
+(define* (await-glib-task-in-thread-pool await resume pool thunk #:optional handler)
   (if handler
       (thread-pool-add! pool
 			(lambda ()
@@ -383,11 +384,12 @@
 ;; The 'generator' argument is a procedure taking one argument, namely
 ;; a yield argument (see the documentation on the make-iterator
 ;; procedure for further details).  This
-;; await-g-generator-in-thread-pool procedure will cause 'generator'
-;; to run as a task in the 'pool' thread pool, and whenever
-;; 'generator' yields a value this will cause 'proc' to execute in the
-;; default glib main loop.  'proc' should be a procedure taking a
-;; single argument, namely the value yielded by the generator.
+;; await-glib-generator-in-thread-pool procedure will cause
+;; 'generator' to run as a task in the 'pool' thread pool, and
+;; whenever 'generator' yields a value this will cause 'proc' to
+;; execute in the default glib main loop.  'proc' should be a
+;; procedure taking a single argument, namely the value yielded by the
+;; generator.
 ;;
 ;; This procedure is intended to be called within a waitable procedure
 ;; invoked by a-sync (which supplies the 'await' and 'resume'
@@ -422,7 +424,7 @@
 ;; (which would cause a system exception to arise) or memory is
 ;; exhausted.  Exceptions arising during the execution of 'proc', if
 ;; not caught locally, will propagate out of g-main-loop-run.
-(define* (await-g-generator-in-thread-pool await resume pool generator proc #:optional handler)
+(define* (await-glib-generator-in-thread-pool await resume pool generator proc #:optional handler)
   (if handler
       (thread-pool-add! pool
 			(lambda ()
