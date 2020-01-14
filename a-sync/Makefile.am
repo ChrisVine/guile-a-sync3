@@ -5,7 +5,7 @@ SUBDIRS = g-golf
 SOURCES = monotonic-time.scm coroutines.scm event-loop.scm compose.scm await-ports.scm meeting.scm thread-pool.scm
 
 moduledir = $(GUILE30_SITEDIR)/a-sync
-module_DATA = $(SOURCES) gnome-glib.scm
+module_DATA = $(SOURCES) gnome-glib.scm g-golf.scm
 
 if COMPILE_TO_BYTECODE
 GOBJECTS = $(SOURCES:%.scm=%.go)
@@ -34,4 +34,4 @@ install-data-hook:
 	for files in $(GOBJECTS); do touch -c $(gobjectsdir)/$$files; done
 endif
 
-EXTRA_DIST = $(SOURCES) gnome-glib.scm a-sync-compile.sh
+EXTRA_DIST = $(SOURCES) gnome-glib.scm g-golf.scm a-sync-compile.sh

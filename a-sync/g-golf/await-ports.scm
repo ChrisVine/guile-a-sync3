@@ -46,7 +46,7 @@
 	    await-glib-getblock
 	    await-glib-geteveryblock
 	    await-glib-getsomeblocks
-	    await-glib-g-write-suspendable
+	    await-glib-write-suspendable
 	    await-glib-put-bytevector
 	    await-glib-put-string
 	    await-glib-accept

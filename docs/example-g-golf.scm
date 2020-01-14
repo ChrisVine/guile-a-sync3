@@ -24,8 +24,9 @@
 ;; SOFTWARE.
 
 
-(use-modules (a-sync g-golf base) (a-sync g-golf await-ports)
-	     (a-sync coroutines) (a-sync compose)
+(use-modules (a-sync g-golf)
+	     (a-sync coroutines)
+	     (a-sync compose)
 	     (g-golf glib main-event-loop))
 
 (define main-loop (g-main-loop-new #f #f))
