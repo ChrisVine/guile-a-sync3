@@ -1,0 +1,12 @@
+@node guile-gi,guile-gi base,,Top
+
+@menu
+
+* guile-gi base::        (a-sync guile-gi base) module - provides base procedures for use with guile-gi
+* guile-gi await ports:: (a-sync guile-gi await-ports) module - provides procedures for using suspendable ports with guile-gi
+* guile-gi meeting::     (a-sync guile-gi meeting) - provides for synchronization between a-sync or compose-a-sync blocks when using guile-gi
+@end menu
+
+@include guile-gi-base.texi
+@include guile-gi-await-ports.texi
+@include guile-gi-meeting.texi

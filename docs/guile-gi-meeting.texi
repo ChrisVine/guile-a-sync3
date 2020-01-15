@@ -1,4 +1,4 @@
-@node g-golf meeting,,g-golf await ports,g-golf
+@node guile-gi meeting,,guile-gi await ports,guile-gi
 
 As explained in the @ref{overview,,general overview}, each 'a-sync'
 block (see @ref{coroutines,,(a-sync coroutines)}) or 'compose-a-sync'
@@ -9,7 +9,7 @@ which also appears to execute concurrently with other 'a-sync' or
 or 'compose-a-sync' block is therefore in some sense analogous to a
 thread of execution.
 
-This (a-sync g-golf meeting) module provides a 'glib-meeting' type
+This (a-sync guile-gi meeting) module provides a 'glib-meeting' type
 which can be used to synchronize between such "pseudo-threads" (that
 is, between a-sync or compose-a-sync blocks) running on the default
 glib main loop.  A 'glib-meeting' object is, in terms of communicating
@@ -27,14 +27,18 @@ repeated again here, save to translate the parallel-map example to
 glib-meeting form:
 
 @example
-(use-modules (a-sync g-golf base)
-	     (a-sync g-golf meeting)
+(use-modules (a-sync guile-gi base)
+	     (a-sync guile-gi meeting)
 	     (a-sync coroutines)
 	     (a-sync compose)
-	     (g-golf glib main-event-loop)
-	     (ice-9 match))
+	     (ice-9 match)
+	     (gi)
+	     (gi repository))
 
-(define main-loop (g-main-loop-new #f #f))
+(require "GLib" "2.0")
+(load-by-name "GLib" "MainLoop")
+
+(define main-loop (main-loop:new #f #f))
 
 (define (parallel-map await resume proc lst)
   (match lst
@@ -54,11 +58,11 @@ glib-meeting form:
  (lambda (await resume)
    (let ((lst (parallel-map await resume do-work (list 1 2 3 4 5))))
      (display lst)(newline)
-     (g-main-loop-quit main-loop))))
-(g-main-loop-run main-loop)
+     (quit main-loop))))
+(run main-loop)
 @end example
 
-The (a-sync g-golf meeting) module provides the following procedures:
+The (a-sync guile-gi meeting) module provides the following procedures:
 
 @deffn {Scheme Procedure} make-glib-meeting
 This procedure makes and returns a glib-meeting object.  glib-meetings

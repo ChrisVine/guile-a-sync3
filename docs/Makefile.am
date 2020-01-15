@@ -7,7 +7,8 @@ docs:
 	rm -rf html
 	mv guile-a-sync3 html
 
-doc_DATA = example.scm example-glib.scm example-client.scm example-server.scm
+doc_DATA = example.scm example-glib.scm example-g-golf.scm \
+	   example-guile-gi.scm example-client.scm example-server.scm
 
 infofiledir = $(infodir)
 infofile_DATA = guile-a-sync3.info

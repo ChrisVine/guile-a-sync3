@@ -1,4 +1,4 @@
-@node event loop,await ports,overview,Top
+@node event loop,await ports,coroutines,Top
 
 The (a-sync event-loop) module provides an event loop for asynchronous
 operations.  The event loop does not of itself start any new threads.

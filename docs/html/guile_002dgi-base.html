@@ -3,17 +3,17 @@
 <!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<title>g-golf base (guile-a-sync3)</title>
+<title>guile-gi base (guile-a-sync3)</title>
 
-<meta name="description" content="g-golf base (guile-a-sync3)">
-<meta name="keywords" content="g-golf base (guile-a-sync3)">
+<meta name="description" content="guile-gi base (guile-a-sync3)">
+<meta name="keywords" content="guile-gi base (guile-a-sync3)">
 <meta name="resource-type" content="document">
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
 <link href="index.html" rel="start" title="Top">
-<link href="g_002dgolf.html" rel="up" title="g-golf">
-<link href="g_002dgolf-await-ports.html" rel="next" title="g-golf await ports">
-<link href="g_002dgolf.html" rel="prev" title="g-golf">
+<link href="guile_002dgi.html" rel="up" title="guile-gi">
+<link href="guile_002dgi-await-ports.html" rel="next" title="guile-gi await ports">
+<link href="guile_002dgi.html" rel="prev" title="guile-gi">
 <style type="text/css">
 <!--
 a.summary-letter {text-decoration: none}
@@ -37,32 +37,32 @@ ul.no-bullet {list-style: none}
 </head>
 
 <body lang="en">
-<span id="g_002dgolf-base"></span><div class="header">
+<span id="guile_002dgi-base"></span><div class="header">
 <p>
-Next: <a href="g_002dgolf-await-ports.html" accesskey="n" rel="next">g-golf await ports</a>, Up: <a href="g_002dgolf.html" accesskey="u" rel="up">g-golf</a> &nbsp; </p>
+Next: <a href="guile_002dgi-await-ports.html" accesskey="n" rel="next">guile-gi await ports</a>, Up: <a href="guile_002dgi.html" accesskey="u" rel="up">guile-gi</a> &nbsp; </p>
 </div>
 <hr>
-<h4 class="node-heading">g-golf base</h4>
+<h4 class="node-heading">guile-gi base</h4>
 
-<p>When using the g-golf bindings for gtk+, in order to provide await
+<p>When using the guile-gi bindings for gtk+, in order to provide await
 semantics on gtk+ callbacks it will normally be necessary to use the
 &rsquo;await&rsquo; and &rsquo;resume&rsquo; procedures provided by the a-sync procedure in
 the <a href="coroutines.html">(a-sync coroutines)</a> module directly (calling
 &rsquo;resume&rsquo; in the gtk+ callback when ready, and waiting on that callback
 using &rsquo;await&rsquo;).  However when launching timeouts, file watches or
-other events on the glib main loop using g-golf, convenience
+other events on the glib main loop using guile-gi, convenience
 procedures are possible similar to those provided for the event loop
 in the <a href="event-loop.html">(a-sync event-loop)</a> module.  These are set
-out in these (a-sync g-golf ...) modules.
+out in these (a-sync guile-gi ...) modules.
 </p>
 <p>Most of the scheme files provided by this library are by default
 compiled by this library to bytecode.  That is not the case with this
-module, so as not to create a hard dependency on g-golf.
+module, so as not to create a hard dependency on guile-gi.
 </p>
-<p>The (a-sync g-golf base) module provides the following procedures:
+<p>The (a-sync guile-gi base) module provides the following procedures:
 </p>
 <dl>
-<dt id="index-await_002dglib_002dtask_002din_002dthread-1">Scheme Procedure: <strong>await-glib-task-in-thread</strong> <em>await resume thunk [handler]</em></dt>
+<dt id="index-await_002dglib_002dtask_002din_002dthread-2">Scheme Procedure: <strong>await-glib-task-in-thread</strong> <em>await resume thunk [handler]</em></dt>
 <dd><p>This is a convenience procedure which will run &rsquo;thunk&rsquo; in its own
 thread, and then post an event to the default glib main loop when
 &rsquo;thunk&rsquo; has finished.  This procedure calls &rsquo;await&rsquo; in the default
@@ -85,23 +85,23 @@ setting up (that is, before the worker thread starts), which shouldn&rsquo;t
 happen unless memory is exhausted or pthread has run out of resources.
 Exceptions arising during execution of the task, if not caught by a
 handler procedure, will terminate the program.  Exceptions thrown by
-the handler procedure will propagate out of g-main-loop-run.
+the handler procedure will propagate out of main-loop:run.
 </p>
 <p>Here is an example of the use of await-glib-task-in-thread:
 </p><div class="example">
-<pre class="example">(define main-loop (g-main-loop-new #f #f))
+<pre class="example">(define main-loop (main-loop:new #f #f))
 (a-sync (lambda (await resume)
 	  (simple-format #t &quot;1 + 1 is ~A\n&quot;
 			 (await-glib-task-in-thread await resume
 						    (lambda ()
 						      (+ 1 1))))
-	  (g-main-loop-quit main-loop)))
-(g-main-loop-run main-loop)
+	  (quit main-loop)))
+(run main-loop)
 </pre></div>
 </dd></dl>
 
 <dl>
-<dt id="index-await_002dglib_002dtask-1">Scheme Procedure: <strong>await-glib-task</strong> <em>await resume thunk</em></dt>
+<dt id="index-await_002dglib_002dtask-2">Scheme Procedure: <strong>await-glib-task</strong> <em>await resume thunk</em></dt>
 <dd><p>This is a convenience procedure for use with glib, which will run
 &rsquo;thunk&rsquo; in the default glib main loop.  This procedure calls &rsquo;await&rsquo;
 and will return the thunk&rsquo;s return value.  It is intended to be called
@@ -125,24 +125,23 @@ thread as that in which the default glib main loop runs.
 <p>Exceptions may propagate out of this procedure if they arise while
 setting up (that is, before the task starts), which shouldn&rsquo;t happen
 unless memory is exhausted.  Exceptions arising during execution of
-the task, if not caught locally, will propagate out of
-g-main-loop-run.
+the task, if not caught locally, will propagate out of main-loop:run.
 </p>
 <p>Here is an example of the use of await-glib-task:
 </p><div class="example">
-<pre class="example">(define main-loop (g-main-loop-new #f #f))
+<pre class="example">(define main-loop (main-loop:new #f #f))
 (a-sync (lambda (await resume)
 	  (simple-format #t &quot;1 + 1 is ~A\n&quot;
 			 (await-glib-task await resume
 					  (lambda ()
 					    (+ 1 1))))
-	  (g-main-loop-quit main-loop)))
-(g-main-loop-run main-loop)
+	  (quit main-loop)))
+(run main-loop)
 </pre></div>
 </dd></dl>
 
 <dl>
-<dt id="index-await_002dglib_002dyield-1">Scheme Procedure: <strong>await-glib-yield</strong> <em>await resume</em></dt>
+<dt id="index-await_002dglib_002dyield-2">Scheme Procedure: <strong>await-glib-yield</strong> <em>await resume</em></dt>
 <dd><p>This is a convenience procedure for use with glib, which will
 surrender execution to the default glib main loop, so that code in
 other a-sync or compose-a-sync blocks can run.  The remainder of the
@@ -161,18 +160,18 @@ exhausted.
 </p>
 <p>Here is an example of the use of await-glib-yield:
 </p><div class="example">
-<pre class="example">(define main-loop (g-main-loop-new #f #f))
+<pre class="example">(define main-loop (main-loop:new #f #f))
 (a-sync (lambda (await resume)
 	  (display &quot;In first iteration through event loop\n&quot;)
 	  (await-glib-yield await resume)
 	  (display &quot;In next iteration through event loop\n&quot;)))
-	  (g-main-loop-quit main-loop)))
-(g-main-loop-run main-loop)
+	  (quit main-loop)))
+(run main-loop)
 </pre></div>
 </dd></dl>
 
 <dl>
-<dt id="index-await_002dglib_002dgenerator_002din_002dthread-1">Scheme Procedure: <strong>await-glib-generator-in-thread</strong> <em>await resume generator proc [handler]</em></dt>
+<dt id="index-await_002dglib_002dgenerator_002din_002dthread-2">Scheme Procedure: <strong>await-glib-generator-in-thread</strong> <em>await resume generator proc [handler]</em></dt>
 <dd><p>This is a convenience procedure for acting asynchronously on values
 yielded by generator procedures.  The &rsquo;generator&rsquo; argument is a
 procedure taking one argument, namely a yield argument (see the
@@ -206,13 +205,13 @@ setting up (that is, before the worker thread starts), which shouldn&rsquo;t
 happen unless memory is exhausted or pthread has run out of resources.
 Exceptions arising during execution of the generator, if not caught by
 a handler procedure, will terminate the program.  Exceptions thrown by
-the handler procedure will propagate out of g-main-loop-run.
+the handler procedure will propagate out of main-loop:run.
 Exceptions thrown by &rsquo;proc&rsquo;, if not caught locally, will also
-propagate out of g-main-loop-run.
+propagate out of main-loop:run.
 </p>
 <p>Here is an example of the use of await-glib-generator-in-thread:
 </p><div class="example">
-<pre class="example">(define main-loop (g-main-loop-new #f #f))
+<pre class="example">(define main-loop (main-loop:new #f #f))
 (a-sync (lambda (await resume)
 	  (await-glib-generator-in-thread await resume
 					  (lambda (yield)
@@ -223,13 +222,13 @@ propagate out of g-main-loop-run.
 					  (lambda (val)
 					    (display val)
 					    (newline)))
-	  (g-main-loop-quit main-loop)))
-(g-main-loop-run main-loop)
+	  (quit main-loop)))
+(run main-loop)
 </pre></div>
 </dd></dl>
 
 <dl>
-<dt id="index-await_002dglib_002dgenerator-1">Scheme Procedure: <strong>await-glib-generator</strong> <em>await resume generator proc</em></dt>
+<dt id="index-await_002dglib_002dgenerator-2">Scheme Procedure: <strong>await-glib-generator</strong> <em>await resume generator proc</em></dt>
 <dd><p>This is a convenience procedure for acting asynchronously on values
 yielded by generator procedures.  The &rsquo;generator&rsquo; argument is a
 procedure taking one argument, namely a yield argument (see the
@@ -261,11 +260,11 @@ setting up (that is, before the task starts), which shouldn&rsquo;t happen
 unless memory is exhausted.  Exceptions arising during execution of
 the generator, if not caught locally, will propagate out of
 await-glib-generator.  Exceptions thrown by &rsquo;proc&rsquo;, if not caught
-locally, will propagate out of g-main-loop-run.
+locally, will propagate out of main-loop:run.
 </p>
 <p>Here is an example of the use of await-glib-generator:
 </p><div class="example">
-<pre class="example">(define main-loop (g-main-loop-new #f #f))
+<pre class="example">(define main-loop (main-loop:new #f #f))
 (a-sync (lambda (await resume)
 	  (await-glib-generator await resume
 				(lambda (yield)
@@ -276,13 +275,13 @@ locally, will propagate out of g-main-loop-run.
 				(lambda (val)
 				  (display val)
 				  (newline)))
-	  (g-main-loop-quit main-loop)))
-(g-main-loop-run main-loop)
+	  (quit main-loop)))
+(run main-loop)
 </pre></div>
 </dd></dl>
 
 <dl>
-<dt id="index-await_002dglib_002dtimeout-1">Scheme Procedure: <strong>await-glib-timeout</strong> <em>await resume msecs thunk</em></dt>
+<dt id="index-await_002dglib_002dtimeout-2">Scheme Procedure: <strong>await-glib-timeout</strong> <em>await resume msecs thunk</em></dt>
 <dd><p>This is a convenience procedure for use with a glib main loop, which
 will run &rsquo;thunk&rsquo; in the default glib main loop when the timeout
 expires.  This procedure calls &rsquo;await&rsquo; and will return the thunk&rsquo;s
@@ -305,11 +304,11 @@ thread as that in which the default glib main loop runs.
 <p>Exceptions may propagate out of this procedure if they arise while
 setting up (that is, before the first call to &rsquo;await&rsquo; is made), which
 shouldn&rsquo;t happen unless memory is exhausted.  Exceptions thrown by
-&rsquo;thunk&rsquo;, if not caught locally, will propagate out of g-main-loop-run.
+&rsquo;thunk&rsquo;, if not caught locally, will propagate out of main-loop:run.
 </p>
 <p>Here is an example of the use of await-glib-timeout:
 </p><div class="example">
-<pre class="example">(define main-loop (g-main-loop-new #f #f))
+<pre class="example">(define main-loop (main-loop:new #f #f))
 (a-sync (lambda (await resume)
 	  (simple-format #t
 			 &quot;Timeout ~A\n&quot;
@@ -317,13 +316,13 @@ shouldn&rsquo;t happen unless memory is exhausted.  Exceptions thrown by
 					     100
 					     (lambda ()
 					       &quot;expired&quot;)))
-	  (g-main-loop-quit main-loop)))
-(g-main-loop-run main-loop)
+	  (quit main-loop)))
+(run main-loop)
 </pre></div>
 </dd></dl>
 
 <dl>
-<dt id="index-await_002dglib_002dsleep-1">Scheme Procedure: <strong>await-glib-sleep</strong> <em>await resume msecs</em></dt>
+<dt id="index-await_002dglib_002dsleep-2">Scheme Procedure: <strong>await-glib-sleep</strong> <em>await resume msecs</em></dt>
 <dd><p>This is a convenience procedure for use with a glib main loop, which
 will suspend execution of code in the current a-sync or compose-a-sync
 block for the duration of &rsquo;msecs&rsquo; milliseconds.  The event loop will
@@ -344,18 +343,18 @@ exhausted.
 </p>
 <p>Here is an example of the use of await-glib-sleep:
 </p><div class="example">
-<pre class="example">(define main-loop (g-main-loop-new #f #f))
+<pre class="example">(define main-loop (main-loop:new #f #f))
 (a-sync (lambda (await resume)
 	  (display &quot;Entering sleep\n&quot;)
 	  (await-glib-sleep await resume 500)
 	  (display &quot;Timeout expired\n&quot;)
-	  (g-main-loop-quit main-loop)))
-(g-main-loop-run main-loop)
+	  (quit main-loop)))
+(run main-loop)
 </pre></div>
 </dd></dl>
 
 <dl>
-<dt id="index-await_002dglib_002dtask_002din_002dthread_002dpool">Scheme Procedure: <strong>await-glib-task-in-thread-pool</strong> <em>await resume pool thunk [handler]</em></dt>
+<dt id="index-await_002dglib_002dtask_002din_002dthread_002dpool-1">Scheme Procedure: <strong>await-glib-task-in-thread-pool</strong> <em>await resume pool thunk [handler]</em></dt>
 <dd><p>This is a convenience procedure for use with a glib main loop, which
 will run &rsquo;thunk&rsquo; in the thread pool specified by the &rsquo;pool&rsquo;
 argument (see <a href="thread-pool.html">(a-sync thread-pool)</a>).  The result of
@@ -372,7 +371,7 @@ terminate if an unhandled exception propagates out of &rsquo;thunk&rsquo;.
 exception object.  Note that unlike a handler passed to the
 thread-pool-add! procedure, &rsquo;handler&rsquo; will run in the default glib
 main loop thread and not in a thread pool thread.  Exceptions thrown
-by the handler procedure will propagate out of g-main-loop-run.
+by the handler procedure will propagate out of main-loop:run.
 </p>
 <p>This procedure calls &rsquo;await&rsquo; and must (like the a-sync procedure) be
 called in the same thread as that in which the default glib main loop
@@ -389,7 +388,7 @@ exhausted.
 </p>
 <p>Here is an example of the use of await-glib-task-in-thread-pool:
 </p><div class="example">
-<pre class="example">(define main-loop (g-main-loop-new #f #f))
+<pre class="example">(define main-loop (main-loop:new #f #f))
 (let ((pool (make-thread-pool #:max-threads 4)))
   (a-sync (lambda (await resume)
 	    (simple-format #t &quot;1 + 1 is ~A\n&quot;
@@ -397,13 +396,13 @@ exhausted.
 							   pool
 							   (lambda ()
 							     (+ 1 1))))
-	    (g-main-loop-quit main-loop))))
-(g-main-loop-run main-loop)
+	    (quit main-loop))))
+(run main-loop)
 </pre></div>
 </dd></dl>
 
 <dl>
-<dt id="index-await_002dglib_002dgenerator_002din_002dthread_002dpool">Scheme Procedure: <strong>await-glib-generator-in-thread-pool</strong> <em>await resume pool generator proc [handler]</em></dt>
+<dt id="index-await_002dglib_002dgenerator_002din_002dthread_002dpool-1">Scheme Procedure: <strong>await-glib-generator-in-thread-pool</strong> <em>await resume pool generator proc [handler]</em></dt>
 <dd><p>The &rsquo;generator&rsquo; argument is a procedure taking one argument, namely a
 yield argument (see the documentation on the make-iterator procedure
 for further details).  This await-glib-generator-in-thread-pool
@@ -428,7 +427,7 @@ return #f if the generator completes normally, or
 &rsquo;handler&rsquo; is run (the &rsquo;guile-a-sync-thread-error symbol is reserved to
 the implementation and should not be yielded by the generator).
 Exceptions thrown by the handler procedure will propagate out of
-g-main-loop-run.
+main-loop:run.
 </p>
 <p>This procedure calls &rsquo;await&rsquo; and will return when the generator has
 finished or, if &rsquo;handler&rsquo; is provided, upon the generator raising an
@@ -443,11 +442,11 @@ objects, will arise), the thread pool tries to start an additional
 native thread which the operating system fails to supply (which would
 cause a system exception to arise) or memory is exhausted.  Exceptions
 arising during the execution of &rsquo;proc&rsquo;, if not caught locally, will
-propagate out of g-main-loop-run.
+propagate out of main-loop:run.
 </p>
 <p>Here is an example of the use of await-glib-generator-in-thread-pool:
 </p><div class="example">
-<pre class="example">(define main-loop (g-main-loop-new #f #f))
+<pre class="example">(define main-loop (main-loop:new #f #f))
 (let ((pool (make-thread-pool #:max-threads 4)))
   (a-sync (lambda (await resume)
 	    (await-glib-generator-in-thread-pool await resume
@@ -460,14 +459,14 @@ propagate out of g-main-loop-run.
 						 (lambda (val)
 						   (display val)
 						   (newline)))
-	    (g-main-loop-quit main-loop))))
-(g-main-loop-run main-loop)
+	    (quit main-loop))))
+(run main-loop)
 </pre></div>
 </dd></dl>
 <hr>
 <div class="header">
 <p>
-Next: <a href="g_002dgolf-await-ports.html" accesskey="n" rel="next">g-golf await ports</a>, Up: <a href="g_002dgolf.html" accesskey="u" rel="up">g-golf</a> &nbsp; </p>
+Next: <a href="guile_002dgi-await-ports.html" accesskey="n" rel="next">guile-gi await ports</a>, Up: <a href="guile_002dgi.html" accesskey="u" rel="up">guile-gi</a> &nbsp; </p>
 </div>
 
 

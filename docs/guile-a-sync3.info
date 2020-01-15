@@ -27,7 +27,8 @@ Modules
 * gnome glib::     (a-sync gnome-glib) module - provides some convenience await procedures for the glib main loop using guile-gnome
 * compose::        (a-sync compose) module - provides the compose-a-sync macro interface for the a-sync coroutine
 * meeting::        (a-sync meeting) module - provides for synchronization between a-sync or compose-a-sync blocks
-* g-golf::         provides some convenience await procedures for the glib main loop using g-golf
+* g-golf::         (a-sync g-golf) modules - provide some convenience await procedures for the glib main loop using g-golf
+* guile-gi::       (a-sync guile-gi) modules - provide some convenience await procedures for the glib main loop using guile-gi
 
 
 File: guile-a-sync3.info,  Node: overview,  Next: coroutines,  Prev: Top
@@ -480,7 +481,7 @@ The (a-sync coroutines) module provides the following procedures:
      general overview: overview.
 
 
-File: guile-a-sync3.info,  Node: event loop,  Next: await ports,  Prev: overview,  Up: Top
+File: guile-a-sync3.info,  Node: event loop,  Next: await ports,  Prev: coroutines,  Up: Top
 
 The (a-sync event-loop) module provides an event loop for asynchronous
 operations.  The event loop does not of itself start any new threads.
@@ -3663,7 +3664,6 @@ module, so as not to create a hard dependency on g-golf.
      await-glib-generator-in-thread-pool:
           (define main-loop (g-main-loop-new #f #f))
           (let ((pool (make-thread-pool #:max-threads 4)))
-            (event-loop-block! #t) ;; because the generator runs in another thread
             (a-sync (lambda (await resume)
           	    (await-glib-generator-in-thread-pool await resume
           						 pool
@@ -4154,7 +4154,1017 @@ glib-meeting form:
           (g-main-loop-quit main-loop))))
      (g-main-loop-run main-loop)
 
-   The (a-sync meeting) module provides the following procedures:
+   The (a-sync g-golf meeting) module provides the following procedures:
+
+ -- Scheme Procedure: make-glib-meeting
+     This procedure makes and returns a glib-meeting object.
+     glib-meetings are objects on which a-sync or compose-a-sync blocks
+     running on the default glib main loop can synchronize by one
+     passing a datum to another.
+
+     Strictly speaking this procedure can be called in any native OS
+     thread, but since it carries out no synchronization of native
+     threads the user would have to provide her own synchronization if
+     called in other than the thread of the default glib main loop; so
+     it is best if this procedure is called in the thread of that main
+     loop.
+
+ -- Scheme Procedure: glib-meeting? obj
+     This procedure indicates whether 'obj' is a glib-meeting object
+     constructed by make-glib-meeting.
+
+ -- Scheme Procedure: glib-meeting-close meeting
+     This closes a glib-meeting object.  It's purpose is to wake up any
+     "pseudo-thread" (that is, any a-sync or compose-a-sync block)
+     waiting in glib-meeting-send or glib-meeting-receive by causing
+     either procedure to return with a 'stop-iteration value.
+
+     Where that is not necessary (say, the receiver already knows how
+     many items are to be sent), then this procedure does not need to be
+     applied.  It is not needed in order to release resources.
+
+ -- Scheme Procedure: glib-meeting-ready? meeting
+     This indicates whether applying glib-meeting-send or
+     glib-meeting-receive (as the case may be) to the glib-meeting
+     object 'meeting' will return immediately: in other words, this
+     procedure will return #t if another a-sync or compose-a-sync block
+     is already waiting on the object or the glib-meeting object has
+     been closed, otherwise #f.
+
+ -- Scheme Procedure: glib-meeting-send await resume m0 [m1 ...] datum
+     This sends a datum to a receiver via one or more glib-meeting
+     objects 'm0 m1 ...'.  If no receiver is waiting for the datum, this
+     procedure waits until a receiver calls glib-meeting-receive on one
+     of the glib-meeting objects to request the datum.  If a receiver is
+     already waiting, this procedure passes on the datum and returns
+     immediately.
+
+     This procedure is intended to be called within a waitable procedure
+     invoked by a-sync (which supplies the 'await' and 'resume'
+     arguments).
+
+     Multiple senders may wait on a glib-meeting object to permit fan
+     in.  The provided datum of each sender will be passed to a receiver
+     (as and when a receiver becomes available) in the order in which
+     this procedure was invoked.  In addition, this procedure has
+     'select'-like behavior: multiple glib-meeting objects may be passed
+     and this procedure will send to the first one which becomes
+     available to receive the datum.
+
+     Once a datum exchange has taken place, the glib-meeting object(s)
+     can be reused for making another exchange (provided the
+     glib-meeting objects have not been closed).
+
+     This procedure must be called in the native OS thread in which the
+     default glib main loop runs.  To have other native OS threads
+     communicate with that loop, use await-glib-task-in-thread,
+     await-glib-generator-in-thread, await-glib-task-in-thread-pool or
+     await-glib-generator-in-thread-pool.
+
+     This procedure always returns #f unless glib-meeting-close has been
+     applied to a glib-meeting object, in which case 'stop-iteration is
+     returned.  Note that if multiple glib-meeting objects are passed to
+     this procedure and one of them is then closed, this procedure will
+     return 'stop-iteration and any wait will be abandonned.  It is
+     usually a bad idea to close a glib-meeting object on which this
+     procedure is waiting where this procedure is selecting on more than
+     one glib-meeting object.
+
+ -- Scheme Procedure: glib-meeting-receive await resume m0 [m1 ...]
+     This receives a datum from a sender via one or more glib-meeting
+     objects 'm0 m1 ...'.  If no sender is waiting to pass the datum,
+     this procedure waits until a sender calls glib-meeting-send on one
+     of the glib-meeting objects to provide the datum.  If a sender is
+     already waiting, this procedure returns immediately with the datum
+     supplied.
+
+     This procedure is intended to be called within a waitable procedure
+     invoked by a-sync (which supplies the 'await' and 'resume'
+     arguments).
+
+     Multiple receivers may wait on a glib-meeting object to permit fan
+     out.  The waiting receivers will be released (as and when a sender
+     provides a datum) in the order in which this procedure was invoked.
+     In addition, this procedure has 'select'-like behavior: multiple
+     glib-meeting objects may be passed and this procedure will receive
+     from the first one which sends a datum.
+
+     Once a datum exchange has taken place, the glib-meeting object(s)
+     can be reused for making another exchange (provided the
+     glib-meeting objects have not been closed).
+
+     This procedure must be called in the native OS thread in which the
+     default glib main loop runs.  To have other native OS threads
+     communicate with that loop, use await-glib-task-in-thread,
+     await-glib-generator-in-thread, await-glib-task-in-thread-pool or
+     await-glib-generator-in-thread-pool.
+
+     This procedure always returns the datum value supplied by
+     glib-meeting-send unless glib-meeting-close has been applied to a
+     glib-meeting object, in which case 'stop-iteration is returned.
+     Note that if multiple glib-meeting objects are passed to this
+     procedure and one of them is then closed, this procedure will
+     return 'stop-iteration and any wait will be abandonned.  It is
+     usually a bad idea to close a glib-meeting object on which this
+     procedure is waiting where this procedure is selecting on more than
+     one glib-meeting object.
+
+
+File: guile-a-sync3.info,  Node: guile-gi,  Next: guile-gi base,  Up: Top
+
+* Menu:
+
+
+* guile-gi base::        (a-sync guile-gi base) module - provides base procedures for use with guile-gi
+* guile-gi await ports:: (a-sync guile-gi await-ports) module - provides procedures for using suspendable ports with guile-gi
+* guile-gi meeting::     (a-sync guile-gi meeting) - provides for synchronization between a-sync or compose-a-sync blocks when using guile-gi
+
+
+File: guile-a-sync3.info,  Node: guile-gi base,  Next: guile-gi await ports,  Up: guile-gi
+
+When using the guile-gi bindings for gtk+, in order to provide await
+semantics on gtk+ callbacks it will normally be necessary to use the
+'await' and 'resume' procedures provided by the a-sync procedure in the
+*note (a-sync coroutines): coroutines. module directly (calling 'resume'
+in the gtk+ callback when ready, and waiting on that callback using
+'await').  However when launching timeouts, file watches or other events
+on the glib main loop using guile-gi, convenience procedures are
+possible similar to those provided for the event loop in the *note
+(a-sync event-loop): event loop. module.  These are set out in these
+(a-sync guile-gi ...)  modules.
+
+   Most of the scheme files provided by this library are by default
+compiled by this library to bytecode.  That is not the case with this
+module, so as not to create a hard dependency on guile-gi.
+
+   The (a-sync guile-gi base) module provides the following procedures:
+
+ -- Scheme Procedure: await-glib-task-in-thread await resume thunk
+          [handler]
+     This is a convenience procedure which will run 'thunk' in its own
+     thread, and then post an event to the default glib main loop when
+     'thunk' has finished.  This procedure calls 'await' in the default
+     glib main loop and will return the thunk's return value.  It is
+     intended to be called in a waitable procedure invoked by a-sync.
+     If the optional 'handler' argument is provided, then it will be run
+     in the default glib main loop if 'thunk' throws and its return
+     value will be the return value of this procedure; otherwise the
+     program will terminate if an unhandled exception propagates out of
+     'thunk'.  'handler' should take a single argument, which will be
+     the thrown exception object.
+
+     This procedure must (like the a-sync procedure) be called in the
+     same thread as that in which the default glib main loop runs, where
+     the result of calling 'thunk' will be received.  As mentioned
+     above, the thunk itself will run in its own thread.
+
+     Exceptions may propagate out of this procedure if they arise while
+     setting up (that is, before the worker thread starts), which
+     shouldn't happen unless memory is exhausted or pthread has run out
+     of resources.  Exceptions arising during execution of the task, if
+     not caught by a handler procedure, will terminate the program.
+     Exceptions thrown by the handler procedure will propagate out of
+     main-loop:run.
+
+     Here is an example of the use of await-glib-task-in-thread:
+          (define main-loop (main-loop:new #f #f))
+          (a-sync (lambda (await resume)
+          	  (simple-format #t "1 + 1 is ~A\n"
+          			 (await-glib-task-in-thread await resume
+          						    (lambda ()
+          						      (+ 1 1))))
+          	  (quit main-loop)))
+          (run main-loop)
+
+ -- Scheme Procedure: await-glib-task await resume thunk
+     This is a convenience procedure for use with glib, which will run
+     'thunk' in the default glib main loop.  This procedure calls
+     'await' and will return the thunk's return value.  It is intended
+     to be called in a waitable procedure invoked by a-sync.  It is the
+     single-threaded corollary of await-glib-task-in-thread.  This means
+     that (unlike with await-glib-task-in-thread) while 'thunk' is
+     running other events in the main loop will not make progress, so
+     blocking calls should not be made in 'thunk'.
+
+     When 'thunk' is executed, this procedure is waiting on 'await', so
+     'await' and 'resume' cannot be used again in 'thunk' (although
+     'thunk' can call a-sync to start another series of asynchronous
+     operations with a new await-resume pair).  For that reason,
+     await-glib-yield is usually more convenient for composing
+     asynchronous tasks.  In retrospect, this procedure offers little
+     over await-glib-yield, apart from symmetry with
+     await-glib-task-in-thread.
+
+     This procedure must (like the a-sync procedure) be called in the
+     same thread as that in which the default glib main loop runs.
+
+     Exceptions may propagate out of this procedure if they arise while
+     setting up (that is, before the task starts), which shouldn't
+     happen unless memory is exhausted.  Exceptions arising during
+     execution of the task, if not caught locally, will propagate out of
+     main-loop:run.
+
+     Here is an example of the use of await-glib-task:
+          (define main-loop (main-loop:new #f #f))
+          (a-sync (lambda (await resume)
+          	  (simple-format #t "1 + 1 is ~A\n"
+          			 (await-glib-task await resume
+          					  (lambda ()
+          					    (+ 1 1))))
+          	  (quit main-loop)))
+          (run main-loop)
+
+ -- Scheme Procedure: await-glib-yield await resume
+     This is a convenience procedure for use with glib, which will
+     surrender execution to the default glib main loop, so that code in
+     other a-sync or compose-a-sync blocks can run.  The remainder of
+     the code after the call to await-glib-yield in the current a-sync
+     or compose-a-sync block will execute on the next iteration through
+     the loop.  It is intended to be called within a waitable procedure
+     invoked by a-sync (which supplies the 'await' and 'resume'
+     arguments).  It's effect is similar to calling await-glib-task with
+     a task that does nothing.
+
+     This procedure must (like the a-sync procedure) be called in the
+     same thread as that in which the default glib main loop runs.
+
+     This procedure should not throw any exceptions unless memory is
+     exhausted.
+
+     Here is an example of the use of await-glib-yield:
+          (define main-loop (main-loop:new #f #f))
+          (a-sync (lambda (await resume)
+          	  (display "In first iteration through event loop\n")
+          	  (await-glib-yield await resume)
+          	  (display "In next iteration through event loop\n")))
+          	  (quit main-loop)))
+          (run main-loop)
+
+ -- Scheme Procedure: await-glib-generator-in-thread await resume
+          generator proc [handler]
+     This is a convenience procedure for acting asynchronously on values
+     yielded by generator procedures.  The 'generator' argument is a
+     procedure taking one argument, namely a yield argument (see the
+     documentation on the make-iterator procedure for further details).
+     This await-glib-generator-in-thread procedure will run 'generator'
+     in its own worker thread, and whenever 'generator' yields a value
+     will cause 'proc' to execute in the default glib main loop.
+
+     'proc' should be a procedure taking a single argument, namely the
+     value yielded by the generator.  If the optional 'handler' argument
+     is provided, then that handler will be run in the default glib main
+     loop if 'generator' throws; otherwise the program will terminate if
+     an unhandled exception propagates out of 'generator'.  'handler'
+     should take a single argument, which will be the thrown exception
+     object.
+
+     This procedure calls 'await' and will return when the generator has
+     finished or, if 'handler' is provided, upon the generator throwing
+     an exception.  This procedure will return #f if the generator
+     completes normally, or 'guile-a-sync-thread-error if the generator
+     throws an exception and 'handler' is run (the
+     'guile-a-sync-thread-error symbol is reserved to the implementation
+     and should not be yielded by the generator).
+
+     This procedure is intended to be called in a waitable procedure
+     invoked by a-sync.  It must (like the a-sync procedure) be called
+     in the same thread as that in which the default glib main loop
+     runs.  As mentioned above, the generator itself will run in its own
+     thread.
+
+     Exceptions may propagate out of this procedure if they arise while
+     setting up (that is, before the worker thread starts), which
+     shouldn't happen unless memory is exhausted or pthread has run out
+     of resources.  Exceptions arising during execution of the
+     generator, if not caught by a handler procedure, will terminate the
+     program.  Exceptions thrown by the handler procedure will propagate
+     out of main-loop:run.  Exceptions thrown by 'proc', if not caught
+     locally, will also propagate out of main-loop:run.
+
+     Here is an example of the use of await-glib-generator-in-thread:
+          (define main-loop (main-loop:new #f #f))
+          (a-sync (lambda (await resume)
+          	  (await-glib-generator-in-thread await resume
+          					  (lambda (yield)
+          					    (let loop ((count 0))
+          					      (when (< count 5)
+          						(yield (* 2 count))
+          						(loop (1+ count)))))
+          					  (lambda (val)
+          					    (display val)
+          					    (newline)))
+          	  (quit main-loop)))
+          (run main-loop)
+
+ -- Scheme Procedure: await-glib-generator await resume generator proc
+     This is a convenience procedure for acting asynchronously on values
+     yielded by generator procedures.  The 'generator' argument is a
+     procedure taking one argument, namely a yield argument (see the
+     documentation on the make-iterator procedure for further details).
+     This await-glib-generator procedure will run 'generator', and
+     whenever 'generator' yields a value will cause 'proc' to execute in
+     the default glib main loop - each time 'proc' runs it will do so as
+     a separate event in the main loop and so be multi-plexed with other
+     events.  'proc' should be a procedure taking a single argument,
+     namely the value yielded by the generator.
+
+     This procedure is intended to be called in a waitable procedure
+     invoked by a-sync.  It is the single-threaded corollary of
+     await-glib-generator-in-thread.  This means that (unlike with
+     await-glib-generator-in-thread) while 'generator' is running other
+     events in the main loop will not make progress, so blocking calls
+     (other than to the yield procedure) should not be made in
+     'generator'.
+
+     This procedure must (like the a-sync procedure) be called in the
+     same thread as that in which the default glib main loop runs.
+
+     When 'proc' executes, 'await' and 'resume' will still be in use by
+     this procedure, so they may not be reused by 'proc' (even though
+     'proc' runs in the event loop thread).
+
+     Exceptions may propagate out of this procedure if they arise while
+     setting up (that is, before the task starts), which shouldn't
+     happen unless memory is exhausted.  Exceptions arising during
+     execution of the generator, if not caught locally, will propagate
+     out of await-glib-generator.  Exceptions thrown by 'proc', if not
+     caught locally, will propagate out of main-loop:run.
+
+     Here is an example of the use of await-glib-generator:
+          (define main-loop (main-loop:new #f #f))
+          (a-sync (lambda (await resume)
+          	  (await-glib-generator await resume
+          				(lambda (yield)
+          				  (let loop ((count 0))
+          				    (when (< count 5)
+          				      (yield (* 2 count))
+          				      (loop (1+ count)))))
+          				(lambda (val)
+          				  (display val)
+          				  (newline)))
+          	  (quit main-loop)))
+          (run main-loop)
+
+ -- Scheme Procedure: await-glib-timeout await resume msecs thunk
+     This is a convenience procedure for use with a glib main loop,
+     which will run 'thunk' in the default glib main loop when the
+     timeout expires.  This procedure calls 'await' and will return the
+     thunk's return value.  It is intended to be called in a waitable
+     procedure invoked by a-sync.  The timeout is single shot only - as
+     soon as 'thunk' has run once and completed, the timeout will be
+     removed from the event loop.
+
+     In practice, calling await-glib-sleep may often be more convenient
+     for composing asynchronous code than using this procedure.  That is
+     because, when 'thunk' is executed, this procedure is waiting on
+     'await', so 'await' and 'resume' cannot be used again in 'thunk'
+     (although 'thunk' can call a-sync to start another series of
+     asynchronous operations with a new await-resume pair).  In
+     retrospect, this procedure offers little over await-glib-sleep.
+
+     This procedure must (like the a-sync procedure) be called in the
+     same thread as that in which the default glib main loop runs.
+
+     Exceptions may propagate out of this procedure if they arise while
+     setting up (that is, before the first call to 'await' is made),
+     which shouldn't happen unless memory is exhausted.  Exceptions
+     thrown by 'thunk', if not caught locally, will propagate out of
+     main-loop:run.
+
+     Here is an example of the use of await-glib-timeout:
+          (define main-loop (main-loop:new #f #f))
+          (a-sync (lambda (await resume)
+          	  (simple-format #t
+          			 "Timeout ~A\n"
+          			 (await-glib-timeout await resume
+          					     100
+          					     (lambda ()
+          					       "expired")))
+          	  (quit main-loop)))
+          (run main-loop)
+
+ -- Scheme Procedure: await-glib-sleep await resume msecs
+     This is a convenience procedure for use with a glib main loop,
+     which will suspend execution of code in the current a-sync or
+     compose-a-sync block for the duration of 'msecs' milliseconds.  The
+     event loop will not be blocked by the sleep - instead any other
+     events in the event loop (including any other a-sync or
+     compose-a-sync blocks) will be serviced.  It is intended to be
+     called within a waitable procedure invoked by a-sync (which
+     supplies the 'await' and 'resume' arguments).
+
+     Calling this procedure is equivalent to calling await-glib-timeout
+     with a 'proc' argument comprising a lambda expression that does
+     nothing.
+
+     This procedure must (like the a-sync procedure) be called in the
+     same thread as that in which the default glib main loop runs.
+
+     This procedure should not throw any exceptions unless memory is
+     exhausted.
+
+     Here is an example of the use of await-glib-sleep:
+          (define main-loop (main-loop:new #f #f))
+          (a-sync (lambda (await resume)
+          	  (display "Entering sleep\n")
+          	  (await-glib-sleep await resume 500)
+          	  (display "Timeout expired\n")
+          	  (quit main-loop)))
+          (run main-loop)
+
+ -- Scheme Procedure: await-glib-task-in-thread-pool await resume pool
+          thunk [handler]
+     This is a convenience procedure for use with a glib main loop,
+     which will run 'thunk' in the thread pool specified by the 'pool'
+     argument (see *note (a-sync thread-pool): thread pool.).  The
+     result of executing 'thunk' will then be posted to the default glib
+     main loop, and will comprise this procedure's return value.  This
+     procedure is intended to be called within a waitable procedure
+     invoked by a-sync (which supplies the 'await' and 'resume'
+     arguments).
+
+     If the optional 'handler' argument is provided, then that handler
+     will run if 'thunk' throws, and the return value of the handler
+     would become the return value of this procedure; otherwise the
+     program will terminate if an unhandled exception propagates out of
+     'thunk'.  'handler' should take a single argument, which will be
+     the thrown exception object.  Note that unlike a handler passed to
+     the thread-pool-add!  procedure, 'handler' will run in the default
+     glib main loop thread and not in a thread pool thread.  Exceptions
+     thrown by the handler procedure will propagate out of
+     main-loop:run.
+
+     This procedure calls 'await' and must (like the a-sync procedure)
+     be called in the same thread as that in which the default glib main
+     loop runs.
+
+     Exceptions may propagate out of this procedure if they arise while
+     setting up, which shouldn't happen unless the thread pool given by
+     the 'pool' argument has been closed (in which case a compound
+     &thread-pool-error exception, also incorporating &origin and
+     &message objects, will arise), the thread pool tries to start an
+     additional native thread which the operating system fails to supply
+     (which would cause a system exception to arise) or memory is
+     exhausted.
+
+     Here is an example of the use of await-glib-task-in-thread-pool:
+          (define main-loop (main-loop:new #f #f))
+          (let ((pool (make-thread-pool #:max-threads 4)))
+            (a-sync (lambda (await resume)
+          	    (simple-format #t "1 + 1 is ~A\n"
+          			   (await-glib-task-in-thread-pool await resume
+          							   pool
+          							   (lambda ()
+          							     (+ 1 1))))
+          	    (quit main-loop))))
+          (run main-loop)
+
+ -- Scheme Procedure: await-glib-generator-in-thread-pool await resume
+          pool generator proc [handler]
+     The 'generator' argument is a procedure taking one argument, namely
+     a yield argument (see the documentation on the make-iterator
+     procedure for further details).  This
+     await-glib-generator-in-thread-pool procedure will cause
+     'generator' to run as a task in the 'pool' thread pool (see *note
+     (a-sync thread-pool): thread pool.), and whenever 'generator'
+     yields a value this will cause 'proc' to execute in the default
+     glib main loop.  'proc' should be a procedure taking a single
+     argument, namely the value yielded by the generator.
+
+     This procedure is intended to be called within a waitable procedure
+     invoked by a-sync (which supplies the 'await' and 'resume'
+     arguments).
+
+     If the optional 'handler' argument is provided, then that handler
+     will run if 'generator' throws an exception; otherwise the program
+     will terminate if an unhandled exception propagates out of
+     'generator'.  'handler' should take a single argument, which will
+     be the thrown exception object.  Note that unlike a handler passed
+     to the thread-pool-add!  procedure, 'handler' will run in the
+     default glib main loop thread and not in a thread pool thread.
+     This procedure will return #f if the generator completes normally,
+     or 'guile-a-sync-thread-error if the generator throws an exception
+     and 'handler' is run (the 'guile-a-sync-thread-error symbol is
+     reserved to the implementation and should not be yielded by the
+     generator).  Exceptions thrown by the handler procedure will
+     propagate out of main-loop:run.
+
+     This procedure calls 'await' and will return when the generator has
+     finished or, if 'handler' is provided, upon the generator raising
+     an exception.  This procedure must (like the a-sync procedure) be
+     called in the same thread as that in which the default glib main
+     loop runs.
+
+     Exceptions may propagate out of this procedure if they arise while
+     setting up, which shouldn't happen unless the thread loop given by
+     the 'pool' argument has been closed (in which case a compound
+     &thread-pool-error exception, also incorporating &origin and
+     &message objects, will arise), the thread pool tries to start an
+     additional native thread which the operating system fails to supply
+     (which would cause a system exception to arise) or memory is
+     exhausted.  Exceptions arising during the execution of 'proc', if
+     not caught locally, will propagate out of main-loop:run.
+
+     Here is an example of the use of
+     await-glib-generator-in-thread-pool:
+          (define main-loop (main-loop:new #f #f))
+          (let ((pool (make-thread-pool #:max-threads 4)))
+            (a-sync (lambda (await resume)
+          	    (await-glib-generator-in-thread-pool await resume
+          						 pool
+          						 (lambda (yield)
+          						   (let loop ((count 0))
+          						     (when (< count 5)
+          						       (yield (* 2 count))
+          						       (loop (1+ count)))))
+          						 (lambda (val)
+          						   (display val)
+          						   (newline)))
+          	    (quit main-loop))))
+          (run main-loop)
+
+
+File: guile-a-sync3.info,  Node: guile-gi await ports,  Next: guile-gi meeting,  Prev: guile-gi base,  Up: guile-gi
+
+Most of the scheme files provided by this library are by default
+compiled by this library to bytecode.  That is not the case with this
+module, so as not to create a hard dependency on guile-gi.
+
+   Including this module will automatically enable suspendable ports.
+To disable suspendable ports again, uninstall-suspendable-ports!  can be
+called, but this means that those procedures can no longer be used while
+suspendable ports are disabled.  In addition, any port using those
+procedures must be made non-blocking using fcntl as follows:
+
+     (fcntl [port] F_SETFL (logior O_NONBLOCK
+                           (fcntl [port] F_GETFL)))
+
+   The (a-sync guile-gi await-ports) module provides the following
+procedures:
+
+ -- Scheme Procedure: await-glib-read-suspendable await resume port proc
+     'proc' is a procedure taking a single argument, to which the port
+     will be passed when it is invoked.  The purpose of 'proc' is to
+     carry out i/o operations on 'port' using the port's normal read
+     procedures.  'port' must be a suspendable non-blocking port.  This
+     procedure will return when 'proc' returns, as if by blocking read
+     operations, with the value returned by 'proc'.  However, the glib
+     main loop will not be blocked by this procedure even if only
+     individual characters or bytes comprising part characters are
+     available at any one time.  It is intended to be called in a
+     waitable procedure invoked by a-sync (which supplies the 'await'
+     and 'resume' arguments).  'proc' must not itself explicitly apply
+     'await' and 'resume' as those are potentially in use by the
+     suspendable port while 'proc' is executing.
+
+     If an exceptional condition ('pri) is encountered by the
+     implementation, #f will be returned by this procedure and the read
+     operations to be performed by 'proc' will be abandonned; there is
+     however no guarantee that any exceptional condition that does arise
+     will be encountered by the implementation - the user procedure
+     'proc' may get there first and deal with it, or it may not.
+     However exceptional conditions are very rare, usually comprising
+     only out-of-band data on a TCP socket, or a pseudoterminal master
+     in packet mode seeing state change in a slave.  In the absence of
+     an exceptional condition, the value(s) returned by 'proc' will be
+     returned.
+
+     This procedure must (like the a-sync procedure) be called in the
+     same thread as that in which the default glib main loop runs.
+
+     Exceptions (say, from 'proc' because of port or conversion errors)
+     will propagate out of this procedure in the first instance, and if
+     not caught locally will then propagate out of main-loop:run.
+
+     Unlike the await-* procedures in the (a-sync guile-gi base) module,
+     this procedure will not call 'await' if the read operation(s) in
+     'proc' can be effected immediately without waiting: instead, after
+     reading this procedure would return straight away without invoking
+     the glib main loop.
+
+     As an example of how to use await-glib-read-suspendable, here is
+     the implementation of await-glib-getline:
+
+          (define (await-glib-getline await resume port)
+            (await-glib-read-suspendable await resume port
+          			       (lambda (p)
+          				 (read-line p))))
+
+ -- Scheme Procedure: await-glib-getline await resume port
+     This procedure is provided mainly to retain compatibility with the
+     guile-a-sync library for guile-2.0, because it is trivial to
+     implement with await-glib-read-suspendable (and is implemented by
+     await-glib-read-suspendable).
+
+     It is intended to be called in a waitable procedure invoked by
+     a-sync, and reads a line of text from a non-blocking suspendable
+     port and returns it (without the terminating '\n' character).  See
+     the documentation on the await-glib-read-suspendable procedure for
+     further particulars about this procedure.
+
+     Here is an example of the use of await-glib-getline:
+          (define main-loop (main-loop:new #f #f))
+          (a-sync (lambda (await resume)
+                    (display "Enter a line of text at the keyboard\n")
+          	  (let ((port (open "/dev/tty" O_RDONLY)))
+          	    (fcntl port F_SETFL (logior O_NONBLOCK
+          					(fcntl port F_GETFL)))
+          	    (simple-format #t
+          			   "The line was: ~A\n"
+          			   (await-glib-getline await resume
+          					       port)))
+          	  (quit main-loop)))
+          (run main-loop)
+
+ -- Scheme Procedure: await-glib-geteveryline await resume port proc
+     This procedure is provided mainly to retain compatibility with the
+     guile-a-sync library for guile-2.0, because it is trivial to
+     implement with await-glib-read-suspendable (and is implemented by
+     await-glib-read-suspendable).
+
+     It is intended to be called within a waitable procedure invoked by
+     a-sync (which supplies the 'await' and 'resume' arguments), and
+     will apply 'proc' to every complete line of text received (without
+     the terminating '\n' character).  The watch will not end until
+     end-of-file or an exceptional condition ('pri) is reached.  In the
+     event of that happening, this procedure will end and return an
+     end-of-file object or #f respectively.
+
+     When 'proc' executes, 'await' and 'resume' will still be in use by
+     this procedure, so they may not be reused by 'proc' (even though
+     'proc' runs in the event loop thread).
+
+     See the documentation on the await-glib-read-suspendable procedure
+     for further particulars about this procedure.
+
+     Here is an example of the use of await-glib-geteveryline (because
+     the keyboard has no end-of-file, use Ctrl-C to exit this code
+     snippet):
+          (define main-loop (main-loop:new #f #f))
+          (a-sync (lambda (await resume)
+          	  (display "Enter lines of text at the keyboard, ^C to finish\n")
+          	  (let ((port (open "/dev/tty" O_RDONLY)))
+          	    (fcntl port F_SETFL (logior O_NONBLOCK
+          					(fcntl port F_GETFL)))
+          	    (await-glib-geteveryline await resume
+          				     port
+          				     (lambda (line)
+          				       (simple-format #t
+          						      "The line was: ~A\n"
+          						      line))))
+          	  (quit main-loop)))
+          (run main-loop)
+
+ -- Scheme Procedure: await-glib-getsomelines await resume port proc
+     This procedure is intended to be called within a waitable procedure
+     invoked by a-sync (which supplies the 'await' and 'resume'
+     arguments), and does the same as await-glib-geteveryline, except
+     that it provides a second argument to 'proc', namely an escape
+     continuation which can be invoked by 'proc' to cause the procedure
+     to return before end-of-file is reached.  Behavior is identical to
+     await-glib-geteveryline if the continuation is not invoked.
+
+     This procedure will apply 'proc' to every complete line of text
+     received (without the terminating '\n' character).  The watch will
+     not end until end-of-file or an exceptional condition ('pri) is
+     reached, which would cause this procedure to end and return an
+     end-of-file object or #f respectively, or until the escape
+     continuation is invoked, in which case the value passed to the
+     escape continuation will be returned.
+
+     When 'proc' executes, 'await' and 'resume' will still be in use by
+     this procedure, so they may not be reused by 'proc' (even though
+     'proc' runs in the event loop thread).
+
+     See the documentation on the await-glib-read-suspendable procedure
+     for further particulars about this procedure.
+
+     Here is an example of the use of await-glib-getsomelines:
+          (define main-loop (main-loop:new #f #f))
+          (a-sync (lambda (await resume)
+          	  (display "Enter lines of text at the keyboard, enter an empty line to finish\n")
+          	  (let ((port (open "/dev/tty" O_RDONLY)))
+          	    (fcntl port F_SETFL (logior O_NONBLOCK
+          					(fcntl port F_GETFL)))
+          	    (await-glib-getsomelines await resume
+          				     port
+          				     (lambda (line k)
+          				       (when (string=? line "")
+          					 (k #f))
+          				       (simple-format #t
+          						      "The line was: ~A\n"
+          						      line))))
+          	  (quit main-loop)))
+          (run main-loop)
+
+ -- Scheme Procedure: await-glib-getblock await resume port size
+     This procedure is provided mainly to retain compatibility with the
+     guile-a-sync library for guile-2.0, because an implementation is
+     trivial to implement with await-glib-read-suspendable (and is
+     implemented by await-glib-read-suspendable).
+
+     It is intended to be called in a waitable procedure invoked by
+     a-sync, and reads a block of data, such as a binary record, of size
+     'size' from a non-blocking suspendable port 'port'.  This procedure
+     will return a pair, normally comprising as its car a bytevector of
+     length 'size' containing the data, and as its cdr the number of
+     bytes received and placed in the bytevector (which will be the same
+     as 'size' unless an end-of-file object was encountered part way
+     through receiving the data).  If an end-of-file object is
+     encountered without any bytes of data, a pair with eof-object as
+     car and #f as cdr will be returned.
+
+     See the documentation on the await-glib-read-suspendable procedure
+     for further particulars about this procedure.
+
+ -- Scheme Procedure: await-glib-geteveryblock await resume port size
+          proc
+     This procedure is provided mainly to retain compatibility with the
+     guile-a-sync library for guile-2.0, because it is trivial to
+     implement this kind of functionality with
+     await-glib-read-suspendable (and is implemented by
+     await-glib-read-suspendable).
+
+     It is intended to be called within a waitable procedure invoked by
+     a-sync (which supplies the 'await' and 'resume' arguments), and
+     will apply 'proc' to any block of data received, such as a binary
+     record.  'proc' should be a procedure taking two arguments, first a
+     bytevector of length 'size' containing the block of data read and
+     second the size of the block of data placed in the bytevector.  The
+     value passed as the size of the block of data placed in the
+     bytevector will always be the same as 'size' unless end-of-file has
+     been encountered after receiving only a partial block of data.  The
+     watch will not end until end-of-file or an exceptional condition
+     ('pri) is reached.  In the event of that happening, this procedure
+     will end and return an end-of-file object or #f respectively.
+
+     For efficiency reasons, this procedure passes its internal
+     bytevector buffer to 'proc' as proc's first argument and, when
+     'proc' returns, re-uses it.  Therefore, if 'proc' stores its first
+     argument for use after 'proc' has returned, it should store it by
+     copying it.
+
+     When 'proc' executes, 'await' and 'resume' will still be in use by
+     this procedure, so they may not be reused by 'proc' (even though
+     'proc' runs in the event loop thread).
+
+     See the documentation on the await-glib-read-suspendable procedure
+     for further particulars about this procedure.
+
+ -- Scheme Procedure: await-glib-getsomeblocks await resume port size
+          proc
+     This procedure is intended to be called within a waitable procedure
+     invoked by a-sync (which supplies the 'await' and 'resume'
+     arguments), and does the same as await-glib-geteveryblock, except
+     that it provides a third argument to 'proc', namely an escape
+     continuation which can be invoked by 'proc' to cause the procedure
+     to return before end-of-file is reached.  Behavior is identical to
+     await-glib-geteveryblock if the continuation is not invoked.
+
+     This procedure will apply 'proc' to any block of data received,
+     such as a binary record.  'proc' should be a procedure taking three
+     arguments, first a bytevector of length 'size' containing the block
+     of data read, second the size of the block of data placed in the
+     bytevector and third an escape continuation.  The value passed as
+     the size of the block of data placed in the bytevector will always
+     be the same as 'size' unless end-of-file has been encountered after
+     receiving only a partial block of data.  The watch will not end
+     until end-of-file or an exceptional condition ('pri) is reached,
+     which would cause this procedure to end and return an end-of-file
+     object or #f respectively, or until the escape continuation is
+     invoked, in which case the value passed to the escape continuation
+     will be returned.
+
+     For efficiency reasons, this procedure passes its internal
+     bytevector buffer to 'proc' as proc's first argument and, when
+     'proc' returns, re-uses it.  Therefore, if 'proc' stores its first
+     argument for use after 'proc' has returned, it should store it by
+     copying it.
+
+     When 'proc' executes, 'await' and 'resume' will still be in use by
+     this procedure, so they may not be reused by 'proc' (even though
+     'proc' runs in the event loop thread).
+
+     See the documentation on the await-glib-read-suspendable procedure
+     for further particulars about this procedure.
+
+ -- Scheme Procedure: await-glib-write-suspendable await resume port
+          proc
+     'proc' is a procedure taking a single argument, to which the port
+     will be passed when it is invoked.  The purpose of 'proc' is to
+     carry out i/o operations on 'port' using the port's normal write
+     procedures.  'port' must be a suspendable non-blocking port.  This
+     procedure will return when 'proc' returns, as if by blocking write
+     operations, with the value(s) returned by 'proc'.  However, the
+     glib main loop will not be blocked by this procedure even if only
+     individual characters or bytes comprising part characters can be
+     written at any one time.  It is intended to be called in a waitable
+     procedure invoked by a-sync (which supplies the 'await' and
+     'resume' arguments).  'proc' must not itself explicitly apply
+     'await' and 'resume' as those are potentially in use by the
+     suspendable port while 'proc' is executing.
+
+     This procedure must (like the a-sync procedure) be called in the
+     same thread as that in which the default glib main loop runs.
+
+     Exceptions (say, from 'proc' because of port or conversion errors)
+     will propagate out of this procedure in the first instance, and if
+     not caught locally will then propagate out of main-loop:run.
+
+     Unlike the await-* procedures in the (a-sync guile-gi base) module,
+     this procedure will not call 'await' if the write operation(s) in
+     'proc' can be effected immediately without waiting: instead, after
+     writing this procedure would return straight away without invoking
+     the glib main loop.
+
+     As an example of how to use await-glib-write-suspendable, here is
+     the implementation of await-glib-put-string:
+
+          (define (await-glib-put-string await resume port text)
+            (await-glib-write-suspendable await resume port
+          				(lambda (p)
+          				  (put-string p text)
+          				  ;; enforce a flush when the current
+          				  ;; write-waiter is still in
+          				  ;; operation
+          				  (force-output p))))
+
+ -- Scheme Procedure: await-glib-put-bytevector await resume port bv
+     This procedure is provided mainly to retain compatibility with the
+     guile-a-sync library for guile-2.0, because it is trivial to
+     implement with await-glib-write-suspendable (and is implemented by
+     await-glib-write-suspendable).
+
+     It is intended to be called in a waitable procedure invoked by
+     a-sync, and will write a bytevector to the port.
+
+     See the documentation on the await-glib-write-suspendable procedure
+     for further particulars about this procedure.
+
+     As mentioned in relation to the await-glib-write-suspendable
+     procedure, write exceptions will propagate out of this procedure in
+     the first instance, and if not caught locally (say by placing a
+     catch block immediately around this procedure) will then propagate
+     out of main-loop:run.  So one way of testing for EPIPE is as
+     follows:
+          (define main-loop (main-loop:new #f #f))
+          (a-sync (lambda (await resume)
+          	  (catch 'system-error
+          		 (lambda ()
+          		   (await-glib-put-bytevector await resume port bv))
+          		 (lambda args
+          		   (if (= (system-error-errno args) EPIPE)
+          		       (begin
+          			 ... do something to cater for EPIPE ...)
+          		       (begin
+          			 ;; possibly rethrow the exception
+          			 (apply throw args)))))
+          	  (quit main-loop)))
+          (run main-loop)
+
+ -- Scheme Procedure: await-glib-put-string await resume port text
+     This procedure is provided mainly to retain compatibility with the
+     guile-a-sync library for guile-2.0, because it is trivial to
+     implement with await-glib-write-suspendable (and is implemented by
+     await-glib-write-suspendable).
+
+     It is intended to be called in a waitable procedure invoked by
+     a-sync, and will write a string to the port.
+
+     If CR-LF line endings are to be written when outputting the string,
+     the '\r' character (as well as the '\n' character) must be embedded
+     in the string.
+
+     See the documentation on the await-glib-write-suspendable procedure
+     for further particulars about this procedure.
+
+     As mentioned in relation to the await-glib-write-suspendable
+     procedure, write exceptions will propagate out of this procedure in
+     the first instance, and if not caught locally (say by placing a
+     catch block immediately around this procedure) will then propagate
+     out of main-loop:run.  So one way of testing for EPIPE is as
+     follows:
+          (define main-loop (main-loop:new #f #f))
+          (a-sync (lambda (await resume)
+          	  (catch 'system-error
+          		 (lambda ()
+          		   (await-glib-put-string await resume port "test"))
+          		 (lambda args
+          		   (if (= (system-error-errno args) EPIPE)
+          		       (begin
+          			 ... do something to cater for EPIPE ...)
+          		       (begin
+          			 ;; possibly rethrow the exception
+          			 (apply throw args)))))
+          	  (quit main-loop)))
+          (run main-loop)
+
+ -- Scheme Procedure: await-glib-accept await resume sock
+     This procedure is provided mainly to retain compatibility with the
+     guile-a-sync library for guile-2.0, because it is trivial to
+     implement with await-glib-read-suspendable (and is implemented by
+     await-glib-read-suspendable).
+
+     This procedure will start a watch on listening socket 'sock' for a
+     connection.  'sock' must be a non-blocking socket port.  This
+     procedure wraps the guile 'accept' procedure and therefore returns
+     a pair, comprising as car a connection socket, and as cdr a socket
+     address object containing particulars of the address of the remote
+     connection.  This procedure is intended to be called within a
+     waitable procedure invoked by a-sync (which supplies the 'await'
+     and 'resume' arguments).
+
+     See the documentation on the await-glib-read-suspendable procedure
+     for further particulars about this procedure.
+
+ -- Scheme Procedure: await-glib-connect await resume sock . args
+     This procedure is provided mainly to retain compatibility with the
+     guile-a-sync library for guile-2.0, because it is trivial to
+     implement with await-glib-write-suspendable (and is implemented by
+     await-glib-write-suspendable).
+
+     This procedure will connect socket 'sock' to a remote host.
+     Particulars of the remote host are given by 'args' which are the
+     arguments (other than 'sock') taken by guile's 'connect' procedure,
+     which this procedure wraps.  'sock' must be a non-blocking socket
+     port.  This procedure is intended to be called in a waitable
+     procedure invoked by a-sync (which supplies the 'await' and
+     'resume' arguments).
+
+     There are cases where it will not be helpful to use this procedure.
+     Where a connection request is immediately followed by a write to
+     the remote server (say, a get request), the call to 'connect' and
+     to 'put-string' can be combined in a single procedure passed to
+     await-glib-write-suspendable.
+
+     See the documentation on the await-glib-write-suspendable procedure
+     for further particulars about this procedure.
+
+
+File: guile-a-sync3.info,  Node: guile-gi meeting,  Prev: guile-gi await ports,  Up: guile-gi
+
+As explained in the *note general overview: overview, each 'a-sync'
+block (see *note (a-sync coroutines): coroutines.) or 'compose-a-sync'
+block (see *note (a-sync compose): compose.) is a separate unit of
+computation which appears within itself to proceed sequentially but
+which also appears to execute concurrently with other 'a-sync' or
+'compose-a-sync' blocks running on the same event loop.  Each 'a-sync'
+or 'compose-a-sync' block is therefore in some sense analogous to a
+thread of execution.
+
+   This (a-sync guile-gi meeting) module provides a 'glib-meeting' type
+which can be used to synchronize between such "pseudo-threads" (that is,
+between a-sync or compose-a-sync blocks) running on the default glib
+main loop.  A 'glib-meeting' object is, in terms of communicating
+sequential processes, an unbuffered (synchronous) channel.  Unbuffered
+channels in the CSP style are a natural fit for use with coroutines
+running on a single native thread (but not necessarily for native
+threads running in parallel unless combined with work stealing).  They
+are therefore a natural fit for synchronizing the "pseudo-threads"
+provided by this library.
+
+   Look at the *note (a-sync meeting): meeting. documentation for
+examples of the use of meeting objects and how and when synchronization
+takes place, which applies also to glib-meeting objects: this is not
+repeated again here, save to translate the parallel-map example to
+glib-meeting form:
+
+     (use-modules (a-sync guile-gi base)
+     	     (a-sync guile-gi meeting)
+     	     (a-sync coroutines)
+     	     (a-sync compose)
+     	     (ice-9 match)
+     	     (gi)
+     	     (gi repository))
+
+     (require "GLib" "2.0")
+     (load-by-name "GLib" "MainLoop")
+
+     (define main-loop (main-loop:new #f #f))
+
+     (define (parallel-map await resume proc lst)
+       (match lst
+         (() '())
+         ((head . tail)
+          (let ((m1 (make-glib-meeting)))
+            (compose-a-sync ((hd (await-glib-task-in-thread (lambda () (proc head)))))
+     		       (glib-meeting-send m1 hd))
+            (let* ((tl (parallel-map await resume proc tail))
+     	      (hd (glib-meeting-receive await resume m1)))
+     	 (cons hd tl))))))
+
+     ;; simulate a computational task which takes 1 second to complete
+     (define (do-work i) (sleep 1) (* i 2))
+
+     (a-sync
+      (lambda (await resume)
+        (let ((lst (parallel-map await resume do-work (list 1 2 3 4 5))))
+          (display lst)(newline)
+          (quit main-loop))))
+     (run main-loop)
+
+   The (a-sync guile-gi meeting) module provides the following
+procedures:
 
  -- Scheme Procedure: make-glib-meeting
      This procedure makes and returns a glib-meeting object.
@@ -4273,19 +5283,23 @@ glib-meeting form:
 
 Tag Table:
 Node: Top87
-Node: overview1561
-Node: coroutines4865
-Node: event loop23257
-Node: await ports69952
-Node: thread pool96775
-Node: monotonic time117601
-Node: gnome glib119037
-Node: compose147083
-Node: meeting155071
-Node: g-golf168564
-Node: g-golf base169002
-Node: g-golf await ports189593
-Node: g-golf meeting210631
+Node: overview1713
+Node: coroutines5017
+Node: event loop23409
+Node: await ports70106
+Node: thread pool96929
+Node: monotonic time117755
+Node: gnome glib119191
+Node: compose147237
+Node: meeting155225
+Node: g-golf168718
+Node: g-golf base169156
+Node: g-golf await ports189664
+Node: g-golf meeting210702
+Node: guile-gi219213
+Node: guile-gi base219673
+Node: guile-gi await ports239945
+Node: guile-gi meeting260861
 
 End Tag Table
 

@@ -29,7 +29,8 @@ Modules
 * gnome glib::     (a-sync gnome-glib) module - provides some convenience await procedures for the glib main loop using guile-gnome
 * compose::        (a-sync compose) module - provides the compose-a-sync macro interface for the a-sync coroutine
 * meeting::        (a-sync meeting) module - provides for synchronization between a-sync or compose-a-sync blocks
-* g-golf::         provides some convenience await procedures for the glib main loop using g-golf
+* g-golf::         (a-sync g-golf) modules - provide some convenience await procedures for the glib main loop using g-golf
+* guile-gi::       (a-sync guile-gi) modules - provide some convenience await procedures for the glib main loop using guile-gi
 @end menu
 
 @include overview.texi
@@ -42,5 +43,6 @@ Modules
 @include compose.texi
 @include meeting.texi
 @include g-golf.texi
+@include guile-gi.texi
 
 @bye

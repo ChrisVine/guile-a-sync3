@@ -3,17 +3,16 @@
 <!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<title>g-golf meeting (guile-a-sync3)</title>
+<title>guile-gi meeting (guile-a-sync3)</title>
 
-<meta name="description" content="g-golf meeting (guile-a-sync3)">
-<meta name="keywords" content="g-golf meeting (guile-a-sync3)">
+<meta name="description" content="guile-gi meeting (guile-a-sync3)">
+<meta name="keywords" content="guile-gi meeting (guile-a-sync3)">
 <meta name="resource-type" content="document">
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
 <link href="index.html" rel="start" title="Top">
-<link href="g_002dgolf.html" rel="up" title="g-golf">
-<link href="guile_002dgi.html" rel="next" title="guile-gi">
-<link href="g_002dgolf-await-ports.html" rel="prev" title="g-golf await ports">
+<link href="guile_002dgi.html" rel="up" title="guile-gi">
+<link href="guile_002dgi-await-ports.html" rel="prev" title="guile-gi await ports">
 <style type="text/css">
 <!--
 a.summary-letter {text-decoration: none}
@@ -37,12 +36,12 @@ ul.no-bullet {list-style: none}
 </head>
 
 <body lang="en">
-<span id="g_002dgolf-meeting"></span><div class="header">
+<span id="guile_002dgi-meeting"></span><div class="header">
 <p>
-Previous: <a href="g_002dgolf-await-ports.html" accesskey="p" rel="prev">g-golf await ports</a>, Up: <a href="g_002dgolf.html" accesskey="u" rel="up">g-golf</a> &nbsp; </p>
+Previous: <a href="guile_002dgi-await-ports.html" accesskey="p" rel="prev">guile-gi await ports</a>, Up: <a href="guile_002dgi.html" accesskey="u" rel="up">guile-gi</a> &nbsp; </p>
 </div>
 <hr>
-<h4 class="node-heading">g-golf meeting</h4>
+<h4 class="node-heading">guile-gi meeting</h4>
 
 <p>As explained in the <a href="overview.html">general overview</a>, each &rsquo;a-sync&rsquo;
 block (see <a href="coroutines.html">(a-sync coroutines)</a>) or &rsquo;compose-a-sync&rsquo;
@@ -53,7 +52,7 @@ which also appears to execute concurrently with other &rsquo;a-sync&rsquo; or
 or &rsquo;compose-a-sync&rsquo; block is therefore in some sense analogous to a
 thread of execution.
 </p>
-<p>This (a-sync g-golf meeting) module provides a &rsquo;glib-meeting&rsquo; type
+<p>This (a-sync guile-gi meeting) module provides a &rsquo;glib-meeting&rsquo; type
 which can be used to synchronize between such &quot;pseudo-threads&quot; (that
 is, between a-sync or compose-a-sync blocks) running on the default
 glib main loop.  A &rsquo;glib-meeting&rsquo; object is, in terms of communicating
@@ -71,14 +70,18 @@ repeated again here, save to translate the parallel-map example to
 glib-meeting form:
 </p>
 <div class="example">
-<pre class="example">(use-modules (a-sync g-golf base)
-	     (a-sync g-golf meeting)
+<pre class="example">(use-modules (a-sync guile-gi base)
+	     (a-sync guile-gi meeting)
 	     (a-sync coroutines)
 	     (a-sync compose)
-	     (g-golf glib main-event-loop)
-	     (ice-9 match))
+	     (ice-9 match)
+	     (gi)
+	     (gi repository))
 
-(define main-loop (g-main-loop-new #f #f))
+(require &quot;GLib&quot; &quot;2.0&quot;)
+(load-by-name &quot;GLib&quot; &quot;MainLoop&quot;)
+
+(define main-loop (main-loop:new #f #f))
 
 (define (parallel-map await resume proc lst)
   (match lst
@@ -98,14 +101,14 @@ glib-meeting form:
  (lambda (await resume)
    (let ((lst (parallel-map await resume do-work (list 1 2 3 4 5))))
      (display lst)(newline)
-     (g-main-loop-quit main-loop))))
-(g-main-loop-run main-loop)
+     (quit main-loop))))
+(run main-loop)
 </pre></div>
 
-<p>The (a-sync g-golf meeting) module provides the following procedures:
+<p>The (a-sync guile-gi meeting) module provides the following procedures:
 </p>
 <dl>
-<dt id="index-make_002dglib_002dmeeting">Scheme Procedure: <strong>make-glib-meeting</strong></dt>
+<dt id="index-make_002dglib_002dmeeting-1">Scheme Procedure: <strong>make-glib-meeting</strong></dt>
 <dd><p>This procedure makes and returns a glib-meeting object.  glib-meetings
 are objects on which a-sync or compose-a-sync blocks running on the
 default glib main loop can synchronize by one passing a datum to
@@ -119,13 +122,13 @@ this procedure is called in the thread of that main loop.
 </p></dd></dl>
 
 <dl>
-<dt id="index-glib_002dmeeting_003f">Scheme Procedure: <strong>glib-meeting?</strong> <em>obj</em></dt>
+<dt id="index-glib_002dmeeting_003f-1">Scheme Procedure: <strong>glib-meeting?</strong> <em>obj</em></dt>
 <dd><p>This procedure indicates whether &rsquo;obj&rsquo; is a glib-meeting object
 constructed by make-glib-meeting.
 </p></dd></dl>
 
 <dl>
-<dt id="index-glib_002dmeeting_002dclose">Scheme Procedure: <strong>glib-meeting-close</strong> <em>meeting</em></dt>
+<dt id="index-glib_002dmeeting_002dclose-1">Scheme Procedure: <strong>glib-meeting-close</strong> <em>meeting</em></dt>
 <dd><p>This closes a glib-meeting object.  It&rsquo;s purpose is to wake up any
 &quot;pseudo-thread&quot; (that is, any a-sync or compose-a-sync block) waiting
 in glib-meeting-send or glib-meeting-receive by causing either
@@ -137,7 +140,7 @@ applied.  It is not needed in order to release resources.
 </p></dd></dl>
 
 <dl>
-<dt id="index-glib_002dmeeting_002dready_003f">Scheme Procedure: <strong>glib-meeting-ready?</strong> <em>meeting</em></dt>
+<dt id="index-glib_002dmeeting_002dready_003f-1">Scheme Procedure: <strong>glib-meeting-ready?</strong> <em>meeting</em></dt>
 <dd><p>This indicates whether applying glib-meeting-send or
 glib-meeting-receive (as the case may be) to the glib-meeting object
 &rsquo;meeting&rsquo; will return immediately: in other words, this procedure will
@@ -147,7 +150,7 @@ on the object or the glib-meeting object has been closed, otherwise
 </p></dd></dl>
 
 <dl>
-<dt id="index-glib_002dmeeting_002dsend">Scheme Procedure: <strong>glib-meeting-send</strong> <em>await resume m0 [m1 ...] datum</em></dt>
+<dt id="index-glib_002dmeeting_002dsend-1">Scheme Procedure: <strong>glib-meeting-send</strong> <em>await resume m0 [m1 ...] datum</em></dt>
 <dd><p>This sends a datum to a receiver via one or more glib-meeting objects
 &rsquo;m0 m1 ...&rsquo;.  If no receiver is waiting for the datum, this procedure
 waits until a receiver calls glib-meeting-receive on one of the
@@ -186,7 +189,7 @@ glib-meeting object.
 </p></dd></dl>
 
 <dl>
-<dt id="index-glib_002dmeeting_002dreceive">Scheme Procedure: <strong>glib-meeting-receive</strong> <em>await resume m0 [m1 ...]</em></dt>
+<dt id="index-glib_002dmeeting_002dreceive-1">Scheme Procedure: <strong>glib-meeting-receive</strong> <em>await resume m0 [m1 ...]</em></dt>
 <dd><p>This receives a datum from a sender via one or more glib-meeting
 objects &rsquo;m0 m1 ...&rsquo;.  If no sender is waiting to pass the datum, this
 procedure waits until a sender calls glib-meeting-send on one of the
@@ -222,10 +225,11 @@ and any wait will be abandonned.  It is usually a bad idea to close a
 glib-meeting object on which this procedure is waiting where this
 procedure is selecting on more than one glib-meeting object.
 </p></dd></dl>
+
 <hr>
 <div class="header">
 <p>
-Previous: <a href="g_002dgolf-await-ports.html" accesskey="p" rel="prev">g-golf await ports</a>, Up: <a href="g_002dgolf.html" accesskey="u" rel="up">g-golf</a> &nbsp; </p>
+Previous: <a href="guile_002dgi-await-ports.html" accesskey="p" rel="prev">guile-gi await ports</a>, Up: <a href="guile_002dgi.html" accesskey="u" rel="up">guile-gi</a> &nbsp; </p>
 </div>
 
 
