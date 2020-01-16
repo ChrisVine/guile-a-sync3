@@ -52,5 +52,6 @@ AC_PROG_MAKE_SET
 
 AC_CONFIG_FILES([ Makefile a-sync/Makefile a-sync/g-golf/Makefile \
 		  a-sync/guile-gi/Makefile lib/Makefile docs/Makefile \
-		  tests/Makefile guile-a-sync3.pc ])
+		  tests/Makefile tests/g-golf/Makefile \
+		  tests/guile-gi/Makefile guile-a-sync3.pc ])
 AC_OUTPUT

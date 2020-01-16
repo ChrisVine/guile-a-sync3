@@ -1,0 +1,5 @@
+The tests in this directory are not run recursively by 'make test'
+executed in the top level directory, because that would make running
+those tests dependent on guile-gi, which is an optional dependency
+which is not pre-compiled.  Instead, to run the guile-gi tests you
+must change to this directory and run 'make test'.
