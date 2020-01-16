@@ -36,7 +36,8 @@
   #:use-module (gi repository)
   #:use-module (a-sync coroutines)     ;; for make-iterator
   #:use-module (a-sync thread-pool)
-  #:export (await-glib-task-in-thread
+  #:export (a-sync-glib-quit
+	    await-glib-task-in-thread
 	    await-glib-task
 	    await-glib-yield
 	    await-glib-generator-in-thread
@@ -48,6 +49,7 @@
 
 (eval-when (load compile eval)
   (require "GLib" "2.0")
+  (load-by-name "GLib" "MainLoop")
   (load-by-name "GLib" "idle_add")
   (load-by-name "GLib" "timeout_add")
   (load-by-name "GLib" "PRIORITY_DEFAULT"))
@@ -65,6 +67,21 @@
 	       #f
 	       (lambda ignore #f)))
 
+
+;; Usually the default glib main loop runs throughout a program's
+;; lifetime and only quits (say, via GTK) when the program is brought
+;; to an end by the user.  Notwithstanding that, in a non-GUI program
+;; sometimes you may need to quit the main loop programmatically (most
+;; of the glib example code in this library does so).  To quit a main
+;; loop using main-loop:quit, the loop must be running.  One problem
+;; that may arise from this is that the suspendable port procedures in
+;; the (a-sync guile-gi await-ports) module do not suspend to the main
+;; loop if they do not need to.  This procedure deals with the issue
+;; by posting a main-loop:quit event to the main loop instead of
+;; calling main-loop:quit directly, so ensuring that the main loop
+;; must be running when main-loop:quit is called.
+(define (a-sync-glib-quit loop)
+  (glib-post-event (lambda ignore (main-loop:quit loop) #f)))
 
 ;; This is a convenience procedure which will run 'thunk' in its own
 ;; thread, and then post an event to the default glib main loop when
@@ -89,7 +106,7 @@
 ;; of resources.  Exceptions arising during execution of the task, if
 ;; not caught by a handler procedure, will terminate the program.
 ;; Exceptions thrown by the handler procedure will propagate out of
-;; g-main-loop-run.
+;; main-loop:run.
 (define* (await-glib-task-in-thread await resume thunk #:optional handler)
   (if handler
       (call-with-new-thread

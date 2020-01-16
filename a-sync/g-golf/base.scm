@@ -33,9 +33,11 @@
 (define-module (a-sync g-golf base)
   #:use-module (ice-9 threads)         ;; for with-mutex and call-with-new-thread
   #:use-module (g-golf hl-api glib)
+  #:use-module (g-golf glib main-event-loop)
   #:use-module (a-sync coroutines)     ;; for make-iterator
   #:use-module (a-sync thread-pool)
-  #:export (await-glib-task-in-thread
+  #:export (a-sync-glib-quit
+	    await-glib-task-in-thread
 	    await-glib-task
 	    await-glib-yield
 	    await-glib-generator-in-thread
@@ -44,6 +46,21 @@
 	    await-glib-sleep
 	    await-glib-task-in-thread-pool
 	    await-glib-generator-in-thread-pool))
+
+;; Usually the default glib main loop runs throughout a program's
+;; lifetime and only quits (say, via GTK) when the program is brought
+;; to an end by the user.  Notwithstanding that, in a non-GUI program
+;; sometimes you may need to quit the main loop programmatically (most
+;; of the glib example code in this library does so).  To quit a main
+;; loop using g-main-loop-quit, the loop must be running.  One problem
+;; that may arise from this is that the suspendable port procedures in
+;; the (a-sync g-golf await-ports) module do not suspend to the main
+;; loop if they do not need to.  This procedure deals with the issue
+;; by posting a g-main-loop-quit event to the main loop instead of
+;; calling g-main-loop-quit directly, so ensuring that the main loop
+;; must be running when g-main-loop-quit is called.
+(define (a-sync-glib-quit loop)
+  (g-idle-add (lambda () (g-main-loop-quit loop) #f) 'default))
 
 ;; This is a convenience procedure which will run 'thunk' in its own
 ;; thread, and then post an event to the default glib main loop when

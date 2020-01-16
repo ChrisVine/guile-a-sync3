@@ -3294,6 +3294,20 @@ module, so as not to create a hard dependency on g-golf.
 
    The (a-sync g-golf base) module provides the following procedures:
 
+ -- Scheme Procedure: a-sync-glib-quit loop
+     Usually the default glib main loop runs throughout a program's
+     lifetime and only quits (say, via GTK) when the program is brought
+     to an end by the user.  Notwithstanding that, in a non-GUI program
+     sometimes you may need to quit the main loop programmatically (most
+     of the glib example code in this library does so).  To quit a main
+     loop using g-main-loop-quit, the loop must be running.  One problem
+     that may arise from this is that the suspendable port procedures in
+     the (a-sync g-golf await-ports) module do not suspend to the main
+     loop if they do not need to.  This procedure deals with the issue
+     by posting a g-main-loop-quit event to the main loop instead of
+     calling g-main-loop-quit directly, so ensuring that the main loop
+     must be running when g-main-loop-quit is called.
+
  -- Scheme Procedure: await-glib-task-in-thread await resume thunk
           [handler]
      This is a convenience procedure which will run 'thunk' in its own
@@ -3328,7 +3342,7 @@ module, so as not to create a hard dependency on g-golf.
           			 (await-glib-task-in-thread await resume
           						    (lambda ()
           						      (+ 1 1))))
-          	  (g-main-loop-quit main-loop)))
+          	  (a-sync-glib-quit main-loop)))
           (g-main-loop-run main-loop)
 
  -- Scheme Procedure: await-glib-task await resume thunk
@@ -3366,7 +3380,7 @@ module, so as not to create a hard dependency on g-golf.
           			 (await-glib-task await resume
           					  (lambda ()
           					    (+ 1 1))))
-          	  (g-main-loop-quit main-loop)))
+          	  (a-sync-glib-quit main-loop)))
           (g-main-loop-run main-loop)
 
  -- Scheme Procedure: await-glib-yield await resume
@@ -3392,7 +3406,7 @@ module, so as not to create a hard dependency on g-golf.
           	  (display "In first iteration through event loop\n")
           	  (await-glib-yield await resume)
           	  (display "In next iteration through event loop\n")))
-          	  (g-main-loop-quit main-loop)))
+          	  (a-sync-glib-quit main-loop)))
           (g-main-loop-run main-loop)
 
  -- Scheme Procedure: await-glib-generator-in-thread await resume
@@ -3448,7 +3462,7 @@ module, so as not to create a hard dependency on g-golf.
           					  (lambda (val)
           					    (display val)
           					    (newline)))
-          	  (g-main-loop-quit main-loop)))
+          	  (a-sync-glib-quit main-loop)))
           (g-main-loop-run main-loop)
 
  -- Scheme Procedure: await-glib-generator await resume generator proc
@@ -3497,7 +3511,7 @@ module, so as not to create a hard dependency on g-golf.
           				(lambda (val)
           				  (display val)
           				  (newline)))
-          	  (g-main-loop-quit main-loop)))
+          	  (a-sync-glib-quit main-loop)))
           (g-main-loop-run main-loop)
 
  -- Scheme Procedure: await-glib-timeout await resume msecs thunk
@@ -3535,7 +3549,7 @@ module, so as not to create a hard dependency on g-golf.
           					     100
           					     (lambda ()
           					       "expired")))
-          	  (g-main-loop-quit main-loop)))
+          	  (a-sync-glib-quit main-loop)))
           (g-main-loop-run main-loop)
 
  -- Scheme Procedure: await-glib-sleep await resume msecs
@@ -3564,7 +3578,7 @@ module, so as not to create a hard dependency on g-golf.
           	  (display "Entering sleep\n")
           	  (await-glib-sleep await resume 500)
           	  (display "Timeout expired\n")
-          	  (g-main-loop-quit main-loop)))
+          	  (a-sync-glib-quit main-loop)))
           (g-main-loop-run main-loop)
 
  -- Scheme Procedure: await-glib-task-in-thread-pool await resume pool
@@ -3611,7 +3625,7 @@ module, so as not to create a hard dependency on g-golf.
           							   pool
           							   (lambda ()
           							     (+ 1 1))))
-          	    (g-main-loop-quit main-loop))))
+          	    (a-sync-glib-quit main-loop))))
           (g-main-loop-run main-loop)
 
  -- Scheme Procedure: await-glib-generator-in-thread-pool await resume
@@ -3675,7 +3689,7 @@ module, so as not to create a hard dependency on g-golf.
           						 (lambda (val)
           						   (display val)
           						   (newline)))
-          	    (g-main-loop-quit main-loop))))
+          	    (a-sync-glib-quit main-loop))))
           (g-main-loop-run main-loop)
 
 
@@ -4299,6 +4313,20 @@ module, so as not to create a hard dependency on guile-gi.
 
    The (a-sync guile-gi base) module provides the following procedures:
 
+ -- Scheme Procedure: a-sync-glib-quit loop
+     Usually the default glib main loop runs throughout a program's
+     lifetime and only quits (say, via GTK) when the program is brought
+     to an end by the user.  Notwithstanding that, in a non-GUI program
+     sometimes you may need to quit the main loop programmatically (most
+     of the glib example code in this library does so).  To quit a main
+     loop using main-loop:quit, the loop must be running.  One problem
+     that may arise from this is that the suspendable port procedures in
+     the (a-sync guile-gi await-ports) module do not suspend to the main
+     loop if they do not need to.  This procedure deals with the issue
+     by posting a main-loop:quit event to the main loop instead of
+     calling main-loop:quit directly, so ensuring that the main loop
+     must be running when main-loop:quit is called.
+
  -- Scheme Procedure: await-glib-task-in-thread await resume thunk
           [handler]
      This is a convenience procedure which will run 'thunk' in its own
@@ -4333,7 +4361,7 @@ module, so as not to create a hard dependency on guile-gi.
           			 (await-glib-task-in-thread await resume
           						    (lambda ()
           						      (+ 1 1))))
-          	  (quit main-loop)))
+          	  (a-sync-glib-quit main-loop)))
           (run main-loop)
 
  -- Scheme Procedure: await-glib-task await resume thunk
@@ -4371,7 +4399,7 @@ module, so as not to create a hard dependency on guile-gi.
           			 (await-glib-task await resume
           					  (lambda ()
           					    (+ 1 1))))
-          	  (quit main-loop)))
+          	  (a-sync-glib-quit main-loop)))
           (run main-loop)
 
  -- Scheme Procedure: await-glib-yield await resume
@@ -4397,7 +4425,7 @@ module, so as not to create a hard dependency on guile-gi.
           	  (display "In first iteration through event loop\n")
           	  (await-glib-yield await resume)
           	  (display "In next iteration through event loop\n")))
-          	  (quit main-loop)))
+          	  (a-sync-glib-quit main-loop)))
           (run main-loop)
 
  -- Scheme Procedure: await-glib-generator-in-thread await resume
@@ -4453,7 +4481,7 @@ module, so as not to create a hard dependency on guile-gi.
           					  (lambda (val)
           					    (display val)
           					    (newline)))
-          	  (quit main-loop)))
+          	  (a-sync-glib-quit main-loop)))
           (run main-loop)
 
  -- Scheme Procedure: await-glib-generator await resume generator proc
@@ -4502,7 +4530,7 @@ module, so as not to create a hard dependency on guile-gi.
           				(lambda (val)
           				  (display val)
           				  (newline)))
-          	  (quit main-loop)))
+          	  (a-sync-glib-quit main-loop)))
           (run main-loop)
 
  -- Scheme Procedure: await-glib-timeout await resume msecs thunk
@@ -4540,7 +4568,7 @@ module, so as not to create a hard dependency on guile-gi.
           					     100
           					     (lambda ()
           					       "expired")))
-          	  (quit main-loop)))
+          	  (a-sync-glib-quit main-loop)))
           (run main-loop)
 
  -- Scheme Procedure: await-glib-sleep await resume msecs
@@ -4569,7 +4597,7 @@ module, so as not to create a hard dependency on guile-gi.
           	  (display "Entering sleep\n")
           	  (await-glib-sleep await resume 500)
           	  (display "Timeout expired\n")
-          	  (quit main-loop)))
+          	  (a-sync-glib-quit main-loop)))
           (run main-loop)
 
  -- Scheme Procedure: await-glib-task-in-thread-pool await resume pool
@@ -4616,7 +4644,7 @@ module, so as not to create a hard dependency on guile-gi.
           							   pool
           							   (lambda ()
           							     (+ 1 1))))
-          	    (quit main-loop))))
+          	    (a-sync-glib-quit main-loop))))
           (run main-loop)
 
  -- Scheme Procedure: await-glib-generator-in-thread-pool await resume
@@ -4680,7 +4708,7 @@ module, so as not to create a hard dependency on guile-gi.
           						 (lambda (val)
           						   (display val)
           						   (newline)))
-          	    (quit main-loop))))
+          	    (a-sync-glib-quit main-loop))))
           (run main-loop)
 
 
@@ -5294,12 +5322,12 @@ Node: compose147237
 Node: meeting155225
 Node: g-golf168718
 Node: g-golf base169156
-Node: g-golf await ports189664
-Node: g-golf meeting210702
-Node: guile-gi219213
-Node: guile-gi base219673
-Node: guile-gi await ports239945
-Node: guile-gi meeting260861
+Node: g-golf await ports190548
+Node: g-golf meeting211586
+Node: guile-gi220097
+Node: guile-gi base220557
+Node: guile-gi await ports241815
+Node: guile-gi meeting262731
 
 End Tag Table
 

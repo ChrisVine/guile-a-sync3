@@ -23,7 +23,8 @@
   #:use-module (a-sync guile-gi base)
   #:use-module (a-sync guile-gi await-ports)
   #:use-module (a-sync guile-gi meeting)
-  #:re-export (await-glib-task-in-thread
+  #:re-export (a-sync-glib-quit
+	       await-glib-task-in-thread
 	       await-glib-task
 	       await-glib-yield
 	       await-glib-generator-in-thread

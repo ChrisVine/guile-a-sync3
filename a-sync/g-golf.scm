@@ -23,7 +23,8 @@
   #:use-module (a-sync g-golf base)
   #:use-module (a-sync g-golf await-ports)
   #:use-module (a-sync g-golf meeting)
-  #:re-export (await-glib-task-in-thread
+  #:re-export (a-sync-glib-quit
+	       await-glib-task-in-thread
 	       await-glib-task
 	       await-glib-yield
 	       await-glib-generator-in-thread

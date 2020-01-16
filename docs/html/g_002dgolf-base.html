@@ -62,6 +62,22 @@ module, so as not to create a hard dependency on g-golf.
 <p>The (a-sync g-golf base) module provides the following procedures:
 </p>
 <dl>
+<dt id="index-a_002dsync_002dglib_002dquit">Scheme Procedure: <strong>a-sync-glib-quit</strong> <em>loop</em></dt>
+<dd><p>Usually the default glib main loop runs throughout a program&rsquo;s
+lifetime and only quits (say, via GTK) when the program is brought to
+an end by the user.  Notwithstanding that, in a non-GUI program
+sometimes you may need to quit the main loop programmatically (most of
+the glib example code in this library does so).  To quit a main loop
+using g-main-loop-quit, the loop must be running.  One problem that
+may arise from this is that the suspendable port procedures in the
+(a-sync g-golf await-ports) module do not suspend to the main loop if
+they do not need to.  This procedure deals with the issue by posting a
+g-main-loop-quit event to the main loop instead of calling
+g-main-loop-quit directly, so ensuring that the main loop must be
+running when g-main-loop-quit is called.
+</p></dd></dl>
+
+<dl>
 <dt id="index-await_002dglib_002dtask_002din_002dthread-1">Scheme Procedure: <strong>await-glib-task-in-thread</strong> <em>await resume thunk [handler]</em></dt>
 <dd><p>This is a convenience procedure which will run &rsquo;thunk&rsquo; in its own
 thread, and then post an event to the default glib main loop when
@@ -95,7 +111,7 @@ the handler procedure will propagate out of g-main-loop-run.
 			 (await-glib-task-in-thread await resume
 						    (lambda ()
 						      (+ 1 1))))
-	  (g-main-loop-quit main-loop)))
+	  (a-sync-glib-quit main-loop)))
 (g-main-loop-run main-loop)
 </pre></div>
 </dd></dl>
@@ -136,7 +152,7 @@ g-main-loop-run.
 			 (await-glib-task await resume
 					  (lambda ()
 					    (+ 1 1))))
-	  (g-main-loop-quit main-loop)))
+	  (a-sync-glib-quit main-loop)))
 (g-main-loop-run main-loop)
 </pre></div>
 </dd></dl>
@@ -166,7 +182,7 @@ exhausted.
 	  (display &quot;In first iteration through event loop\n&quot;)
 	  (await-glib-yield await resume)
 	  (display &quot;In next iteration through event loop\n&quot;)))
-	  (g-main-loop-quit main-loop)))
+	  (a-sync-glib-quit main-loop)))
 (g-main-loop-run main-loop)
 </pre></div>
 </dd></dl>
@@ -223,7 +239,7 @@ propagate out of g-main-loop-run.
 					  (lambda (val)
 					    (display val)
 					    (newline)))
-	  (g-main-loop-quit main-loop)))
+	  (a-sync-glib-quit main-loop)))
 (g-main-loop-run main-loop)
 </pre></div>
 </dd></dl>
@@ -276,7 +292,7 @@ locally, will propagate out of g-main-loop-run.
 				(lambda (val)
 				  (display val)
 				  (newline)))
-	  (g-main-loop-quit main-loop)))
+	  (a-sync-glib-quit main-loop)))
 (g-main-loop-run main-loop)
 </pre></div>
 </dd></dl>
@@ -317,7 +333,7 @@ shouldn&rsquo;t happen unless memory is exhausted.  Exceptions thrown by
 					     100
 					     (lambda ()
 					       &quot;expired&quot;)))
-	  (g-main-loop-quit main-loop)))
+	  (a-sync-glib-quit main-loop)))
 (g-main-loop-run main-loop)
 </pre></div>
 </dd></dl>
@@ -349,7 +365,7 @@ exhausted.
 	  (display &quot;Entering sleep\n&quot;)
 	  (await-glib-sleep await resume 500)
 	  (display &quot;Timeout expired\n&quot;)
-	  (g-main-loop-quit main-loop)))
+	  (a-sync-glib-quit main-loop)))
 (g-main-loop-run main-loop)
 </pre></div>
 </dd></dl>
@@ -397,7 +413,7 @@ exhausted.
 							   pool
 							   (lambda ()
 							     (+ 1 1))))
-	    (g-main-loop-quit main-loop))))
+	    (a-sync-glib-quit main-loop))))
 (g-main-loop-run main-loop)
 </pre></div>
 </dd></dl>
@@ -460,7 +476,7 @@ propagate out of g-main-loop-run.
 						 (lambda (val)
 						   (display val)
 						   (newline)))
-	    (g-main-loop-quit main-loop))))
+	    (a-sync-glib-quit main-loop))))
 (g-main-loop-run main-loop)
 </pre></div>
 </dd></dl>

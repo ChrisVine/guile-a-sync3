@@ -17,6 +17,21 @@ module, so as not to create a hard dependency on guile-gi.
 
 The (a-sync guile-gi base) module provides the following procedures:
 
+@deffn {Scheme Procedure} a-sync-glib-quit loop
+Usually the default glib main loop runs throughout a program's
+lifetime and only quits (say, via GTK) when the program is brought to
+an end by the user.  Notwithstanding that, in a non-GUI program
+sometimes you may need to quit the main loop programmatically (most of
+the glib example code in this library does so).  To quit a main loop
+using main-loop:quit, the loop must be running.  One problem that may
+arise from this is that the suspendable port procedures in the (a-sync
+guile-gi await-ports) module do not suspend to the main loop if they
+do not need to.  This procedure deals with the issue by posting a
+main-loop:quit event to the main loop instead of calling
+main-loop:quit directly, so ensuring that the main loop must be
+running when main-loop:quit is called.
+@end deffn
+
 @deffn {Scheme Procedure} await-glib-task-in-thread await resume thunk [handler]
 This is a convenience procedure which will run 'thunk' in its own
 thread, and then post an event to the default glib main loop when
@@ -50,7 +65,7 @@ Here is an example of the use of await-glib-task-in-thread:
 			 (await-glib-task-in-thread await resume
 						    (lambda ()
 						      (+ 1 1))))
-	  (quit main-loop)))
+	  (a-sync-glib-quit main-loop)))
 (run main-loop)
 @end example
 @end deffn
@@ -89,7 +104,7 @@ Here is an example of the use of await-glib-task:
 			 (await-glib-task await resume
 					  (lambda ()
 					    (+ 1 1))))
-	  (quit main-loop)))
+	  (a-sync-glib-quit main-loop)))
 (run main-loop)
 @end example
 @end deffn
@@ -118,7 +133,7 @@ Here is an example of the use of await-glib-yield:
 	  (display "In first iteration through event loop\n")
 	  (await-glib-yield await resume)
 	  (display "In next iteration through event loop\n")))
-	  (quit main-loop)))
+	  (a-sync-glib-quit main-loop)))
 (run main-loop)
 @end example
 @end deffn
@@ -174,7 +189,7 @@ Here is an example of the use of await-glib-generator-in-thread:
 					  (lambda (val)
 					    (display val)
 					    (newline)))
-	  (quit main-loop)))
+	  (a-sync-glib-quit main-loop)))
 (run main-loop)
 @end example
 @end deffn
@@ -226,7 +241,7 @@ Here is an example of the use of await-glib-generator:
 				(lambda (val)
 				  (display val)
 				  (newline)))
-	  (quit main-loop)))
+	  (a-sync-glib-quit main-loop)))
 (run main-loop)
 @end example
 @end deffn
@@ -266,7 +281,7 @@ Here is an example of the use of await-glib-timeout:
 					     100
 					     (lambda ()
 					       "expired")))
-	  (quit main-loop)))
+	  (a-sync-glib-quit main-loop)))
 (run main-loop)
 @end example
 @end deffn
@@ -297,7 +312,7 @@ Here is an example of the use of await-glib-sleep:
 	  (display "Entering sleep\n")
 	  (await-glib-sleep await resume 500)
 	  (display "Timeout expired\n")
-	  (quit main-loop)))
+	  (a-sync-glib-quit main-loop)))
 (run main-loop)
 @end example
 @end deffn
@@ -344,7 +359,7 @@ Here is an example of the use of await-glib-task-in-thread-pool:
 							   pool
 							   (lambda ()
 							     (+ 1 1))))
-	    (quit main-loop))))
+	    (a-sync-glib-quit main-loop))))
 (run main-loop)
 @end example
 @end deffn
@@ -406,7 +421,7 @@ Here is an example of the use of await-glib-generator-in-thread-pool:
 						 (lambda (val)
 						   (display val)
 						   (newline)))
-	    (quit main-loop))))
+	    (a-sync-glib-quit main-loop))))
 (run main-loop)
 @end example
 @end deffn
