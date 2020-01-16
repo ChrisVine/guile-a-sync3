@@ -54,7 +54,7 @@ glib-meeting form:
  (lambda (await resume)
    (let ((lst (parallel-map await resume do-work (list 1 2 3 4 5))))
      (display lst)(newline)
-     (g-main-loop-quit main-loop))))
+     (a-sync-glib-quit main-loop))))
 (g-main-loop-run main-loop)
 @end example
 

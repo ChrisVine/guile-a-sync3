@@ -90,7 +90,7 @@ Here is an example of the use of await-glib-getline:
 			   "The line was: ~A\n"
 			   (await-glib-getline await resume
 					       port)))
-	  (quit main-loop)))
+	  (a-sync-glib-quit main-loop)))
 (run main-loop)
 @end example
 @end deffn
@@ -131,7 +131,7 @@ keyboard has no end-of-file, use Ctrl-C to exit this code snippet):
 				       (simple-format #t
 						      "The line was: ~A\n"
 						      line))))
-	  (quit main-loop)))
+	  (a-sync-glib-quit main-loop)))
 (run main-loop)
 @end example
 @end deffn
@@ -176,7 +176,7 @@ Here is an example of the use of await-glib-getsomelines:
 				       (simple-format #t
 						      "The line was: ~A\n"
 						      line))))
-	  (quit main-loop)))
+	  (a-sync-glib-quit main-loop)))
 (run main-loop)
 @end example
 @end deffn
@@ -341,7 +341,7 @@ main-loop:run.  So one way of testing for EPIPE is as follows:
 		       (begin
 			 ;; possibly rethrow the exception
 			 (apply throw args)))))
-	  (quit main-loop)))
+	  (a-sync-glib-quit main-loop)))
 (run main-loop)
 @end example
 @end deffn
@@ -380,7 +380,7 @@ main-loop:run.  So one way of testing for EPIPE is as follows:
 		       (begin
 			 ;; possibly rethrow the exception
 			 (apply throw args)))))
-	  (quit main-loop)))
+	  (a-sync-glib-quit main-loop)))
 (run main-loop)
 @end example
 @end deffn
