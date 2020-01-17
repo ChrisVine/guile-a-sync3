@@ -3708,6 +3708,11 @@ procedures must be made non-blocking using fcntl as follows:
      (fcntl [port] F_SETFL (logior O_NONBLOCK
                            (fcntl [port] F_GETFL)))
 
+   See the introductory remarks at *note (a-sync await-ports): await
+ports. for more about the guile i/o procedures which can safely be used
+with suspendable ports (and so with await-glib-read-suspendable and
+await-glib-write-suspendable).
+
    The (a-sync g-golf await-ports) module provides the following
 procedures:
 
@@ -4727,6 +4732,11 @@ procedures must be made non-blocking using fcntl as follows:
      (fcntl [port] F_SETFL (logior O_NONBLOCK
                            (fcntl [port] F_GETFL)))
 
+   See the introductory remarks at *note (a-sync await-ports): await
+ports. for more about the guile i/o procedures which can safely be used
+with suspendable ports (and so with await-glib-read-suspendable and
+await-glib-write-suspendable).
+
    The (a-sync guile-gi await-ports) module provides the following
 procedures:
 
@@ -5323,11 +5333,11 @@ Node: meeting155225
 Node: g-golf168718
 Node: g-golf base169156
 Node: g-golf await ports190548
-Node: g-golf meeting211586
-Node: guile-gi220097
-Node: guile-gi base220557
-Node: guile-gi await ports241815
-Node: guile-gi meeting262791
+Node: g-golf meeting211827
+Node: guile-gi220338
+Node: guile-gi base220798
+Node: guile-gi await ports242056
+Node: guile-gi meeting263273
 
 End Tag Table
 

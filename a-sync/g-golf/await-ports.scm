@@ -14,6 +14,7 @@
 ;; License along with this library; if not, write to the Free Software
 ;; Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; When using the g-golf bindings for gtk+, in order to provide await
 ;; semantics on gtk+ callbacks it will normally be necessary to use
@@ -52,9 +53,35 @@
 	    await-glib-accept
 	    await-glib-connect))
 
+;; NOTE: The procedures which may be used with
+;; await-glib-read-suspendable and await-glib-write-suspendable cover
+;; most but not all i/o procedures.  Thus, the following are safe to
+;; use with non-blocking suspendable ports: read-char, get-char,
+;; peek-char, lookahead-char, read-line, get-line, get-u8,
+;; lookahead-u8, get-bytevector-n, get-string-all, write-char,
+;; put-char, put-u8, put-string, put-bytevector, newline, force-output
+;; and flush-output-port.  For sockets, the accept and connect
+;; procedures are also safe.
+;;
+;; Some others are not at present safe to use with suspendable ports,
+;; including get-bytevector-n!, get-bytevector-some,
+;; get-bytevector-all, get-string-n, read, write and display.
+;; Unfortunately this means that some of the procedures in guile's web
+;; module cannot be used with suspendable ports.  build-uri,
+;; build-request and cognates are fine, as is write-request if no
+;; custom header writers are imported, but the read-response-body
+;; procedure is not.  This means that http-get, http-put and so on
+;; cannot normally be used: an example of a safe procedure for reading
+;; http responses is in the example-client.scm file in the docs
+;; directory.  In addition, guile-gnutls ports are not suspendable.
+;; (One answer where only a few gnutls sessions are to be run
+;; concurrently is to run each such session in a separate thread using
+;; await-glib-task-in-thread or await-glib-task-in-thread-pool, and to
+;; use synchronous guile-gnutls i/o in the session.)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (install-suspendable-ports!)
-
 
 ;; 'proc' is a procedure taking a single argument, to which the port
 ;; will be passed when it is invoked.  The purpose of 'proc' is to

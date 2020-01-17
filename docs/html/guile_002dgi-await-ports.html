@@ -59,6 +59,11 @@ those procedures must be made non-blocking using fcntl as follows:
                       (fcntl [port] F_GETFL)))
 </pre></div>
 
+<p>See the introductory remarks at <a href="await-ports.html">(a-sync
+await-ports)</a> for more about the guile i/o procedures which can safely
+be used with suspendable ports (and so with
+await-glib-read-suspendable and await-glib-write-suspendable).
+</p>
 <p>The (a-sync guile-gi await-ports) module provides the following procedures:
 </p>
 <dl>
