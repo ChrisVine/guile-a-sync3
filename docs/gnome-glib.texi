@@ -16,7 +16,9 @@ appears to be a garbage collection issue, and if you call the
 procedure often enough in a single or multi-threaded program it will
 eventually segfault.  g-io-add-watch is also broken in guile-gnome, so
 this library uses its own glib-add-watch procedure which is exported
-publicly in case it is useful to users.
+publicly in case it is useful to users.  In consequence, consider
+using the support for g-golf and guile-gi which is provided by
+guile-a-sync3 instead.
 
 Most of the scheme files provided by this library are by default
 compiled by this library to bytecode.  That is not the case with this

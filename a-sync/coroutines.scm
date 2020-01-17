@@ -222,8 +222,8 @@
 ;; other asynchronous events.
 ;;
 ;; This procedure can be used with any event loop, including the glib
-;; event loop provided by guile-gnome and so with gtk+ callbacks, and
-;; with the event loop in the event-loop module.
+;; main loop provided by g-golf and guile-gi and so with gtk+
+;; callbacks, and with the event loop in the event-loop module.
 (define (a-sync waitable . args)
   (letrec ((resume (make-iterator (lambda (await)
 				  (apply waitable await resume args)))))
