@@ -85,13 +85,15 @@ guile-3.0 are as follows:
 1.  In guile-a-sync3 the exception handler procedures passed to
 await-task-in-thread!, await-generator-in-thread!, thread-pool-add!,
 await-task-in-thread-pool!, await-generator-in-thread-pool!,
-await-glib-task-in-thread and await-glib-generator-in-thread take a
-single argument (the thrown exception object) rather than
+await-glib-task-in-thread, await-glib-generator-in-thread,
+await-glib-task-in-thread-pool and await-glib-generator-in-thread-pool
+take a single argument (the thrown exception object) rather than
 'catch'-handler style arguments.
 
 2.  In guile-a-sync2 the thread-pool-set-non-blocking!,
-thread-pool-stop!, thread-pool-add!, await-task-in-thread-pool! and
-await-generator-in-thread-pool! procedures might throw a
+thread-pool-stop!, thread-pool-add!, await-task-in-thread-pool!,
+await-generator-in-thread-pool!, await-glib-task-in-thread-pool and
+await-glib-generator-in-thread-pool procedures might throw a
 'thread-pool-error exception in certain circumstances.  In
 guile-a-sync3 these throw a compound exception object incorporating a
 &thread-pool-error object with a thread-pool-error? predicate, and
