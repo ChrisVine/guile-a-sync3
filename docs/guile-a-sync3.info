@@ -623,7 +623,11 @@ await-ports) module) will not work correctly.
      If something else throws in the implementation or a callback
      throws, then this procedure will clean up the event loop as if
      event-loop-quit!  had been called, and the exception will be
-     rethrown out of this procedure.
+     rethrown out of this procedure.  This means that if there are
+     continuable exceptions, they will be converted into non-continuable
+     ones (but continuable exceptions are usually incompatible with
+     asynchronous event handlers and may break resource management using
+     rethrows or dynamic winds).
 
  -- Scheme Procedure: event-loop-add-read-watch! file proc [loop]
      The 'loop' (event loop) argument is optional.  This procedure will
@@ -1421,7 +1425,12 @@ procedures must be made non-blocking using fcntl as follows:
 
      Exceptions (say, from 'proc' because of port or conversion errors)
      will propagate out of this procedure in the first instance, and if
-     not caught locally will then propagate out of event-loop-run!.
+     not caught locally will then propagate out of event-loop-run!.  If
+     a continuable exception propagates out of this procedure, it will
+     be converted into a non-continuable one (continuable exceptions are
+     incompatible with asynchronous event handling using this procedure
+     and may break resource management which uses rethrows or dynamic
+     winds).
 
      Unlike the await-* procedures in the *note (a-sync event-loop):
      event loop. module, this procedure will not call 'await' if the
@@ -1698,7 +1707,12 @@ procedures must be made non-blocking using fcntl as follows:
 
      Exceptions (say, from 'proc' because of port or conversion errors)
      will propagate out of this procedure in the first instance, and if
-     not caught locally will then propagate out of event-loop-run!.
+     not caught locally will then propagate out of event-loop-run!.  If
+     a continuable exception propagates out of this procedure, it will
+     be converted into a non-continuable one (continuable exceptions are
+     incompatible with asynchronous event handling using this procedure
+     and may break resource management which uses rethrows or dynamic
+     winds).
 
      Unlike the await-* procedures in the *note (a-sync event-loop):
      event loop. module, this procedure will not call 'await' if the
@@ -3749,7 +3763,12 @@ procedures:
 
      Exceptions (say, from 'proc' because of port or conversion errors)
      will propagate out of this procedure in the first instance, and if
-     not caught locally will then propagate out of g-main-loop-run.
+     not caught locally will then propagate out of g-main-loop-run.  If
+     a continuable exception propagates out of this procedure, it will
+     be converted into a non-continuable one (continuable exceptions are
+     incompatible with asynchronous event handling using this procedure
+     and may break resource management which uses rethrows or dynamic
+     winds).
 
      Unlike the await-* procedures in the (a-sync g-golf base) module,
      this procedure will not call 'await' if the read operation(s) in
@@ -3984,7 +4003,12 @@ procedures:
 
      Exceptions (say, from 'proc' because of port or conversion errors)
      will propagate out of this procedure in the first instance, and if
-     not caught locally will then propagate out of g-main-loop-run.
+     not caught locally will then propagate out of g-main-loop-run.  If
+     a continuable exception propagates out of this procedure, it will
+     be converted into a non-continuable one (continuable exceptions are
+     incompatible with asynchronous event handling using this procedure
+     and may break resource management which uses rethrows or dynamic
+     winds).
 
      Unlike the await-* procedures in the (a-sync g-golf base) module,
      this procedure will not call 'await' if the write operation(s) in
@@ -4773,7 +4797,12 @@ procedures:
 
      Exceptions (say, from 'proc' because of port or conversion errors)
      will propagate out of this procedure in the first instance, and if
-     not caught locally will then propagate out of main-loop:run.
+     not caught locally will then propagate out of main-loop:run.  If a
+     continuable exception propagates out of this procedure, it will be
+     converted into a non-continuable one (continuable exceptions are
+     incompatible with asynchronous event handling using this procedure
+     and may break resource management which uses rethrows or dynamic
+     winds).
 
      Unlike the await-* procedures in the (a-sync guile-gi base) module,
      this procedure will not call 'await' if the read operation(s) in
@@ -5008,7 +5037,12 @@ procedures:
 
      Exceptions (say, from 'proc' because of port or conversion errors)
      will propagate out of this procedure in the first instance, and if
-     not caught locally will then propagate out of main-loop:run.
+     not caught locally will then propagate out of main-loop:run.  If a
+     continuable exception propagates out of this procedure, it will be
+     converted into a non-continuable one (continuable exceptions are
+     incompatible with asynchronous event handling using this procedure
+     and may break resource management which uses rethrows or dynamic
+     winds).
 
      Unlike the await-* procedures in the (a-sync guile-gi base) module,
      this procedure will not call 'await' if the write operation(s) in
@@ -5325,20 +5359,20 @@ Node: Top87
 Node: overview1713
 Node: coroutines5017
 Node: event loop23416
-Node: await ports70113
-Node: thread pool96936
-Node: monotonic time117762
-Node: gnome glib119198
-Node: compose147356
-Node: meeting155344
-Node: g-golf168837
-Node: g-golf base169282
-Node: g-golf await ports190674
-Node: g-golf meeting211953
-Node: guile-gi220464
-Node: guile-gi base220931
-Node: guile-gi await ports242189
-Node: guile-gi meeting263406
+Node: await ports70390
+Node: thread pool97819
+Node: monotonic time118645
+Node: gnome glib120081
+Node: compose148239
+Node: meeting156227
+Node: g-golf169720
+Node: g-golf base170165
+Node: g-golf await ports191557
+Node: g-golf meeting213442
+Node: guile-gi221953
+Node: guile-gi base222420
+Node: guile-gi await ports243678
+Node: guile-gi meeting265501
 
 End Tag Table
 

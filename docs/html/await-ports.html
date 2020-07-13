@@ -123,7 +123,11 @@ thread as that in which the event loop runs.
 </p>
 <p>Exceptions (say, from &rsquo;proc&rsquo; because of port or conversion errors)
 will propagate out of this procedure in the first instance, and if not
-caught locally will then propagate out of event-loop-run!.
+caught locally will then propagate out of event-loop-run!.  If a
+continuable exception propagates out of this procedure, it will be
+converted into a non-continuable one (continuable exceptions are
+incompatible with asynchronous event handling using this procedure and
+may break resource management which uses rethrows or dynamic winds).
 </p>
 <p>Unlike the await-* procedures in the <a href="event-loop.html">(a-sync
 event-loop)</a> module, this procedure will not call &rsquo;await&rsquo; if the read
@@ -411,7 +415,11 @@ thread as that in which the event loop runs.
 </p>
 <p>Exceptions (say, from &rsquo;proc&rsquo; because of port or conversion errors)
 will propagate out of this procedure in the first instance, and if not
-caught locally will then propagate out of event-loop-run!.
+caught locally will then propagate out of event-loop-run!.  If a
+continuable exception propagates out of this procedure, it will be
+converted into a non-continuable one (continuable exceptions are
+incompatible with asynchronous event handling using this procedure and
+may break resource management which uses rethrows or dynamic winds).
 </p>
 <p>Unlike the await-* procedures in the <a href="event-loop.html">(a-sync
 event-loop)</a> module, this procedure will not call &rsquo;await&rsquo; if the write

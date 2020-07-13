@@ -99,7 +99,12 @@
 ;;
 ;; Exceptions (say, from 'proc' because of port or conversion errors)
 ;; will propagate out of this procedure in the first instance, and if
-;; not caught locally will then propagate out of event-loop-run!.
+;; not caught locally will then propagate out of event-loop-run!.  If
+;; a continuable exception propagates out of this procedure, it will
+;; be converted into a non-continuable one (continuable exceptions are
+;; incompatible with asynchronous event handling using this procedure
+;; and may break resource management which uses rethrows or dynamic
+;; winds).
 ;;
 ;; Unlike the await-* procedures in the (a-sync event-loop) module,
 ;; this procedure will not call 'await' if the read operation(s) in
@@ -457,7 +462,12 @@
 ;;
 ;; Exceptions (say, from 'proc' because of port or conversion errors)
 ;; will propagate out of this procedure in the first instance, and if
-;; not caught locally will then propagate out of event-loop-run!.
+;; not caught locally will then propagate out of event-loop-run!.  If
+;; a continuable exception propagates out of this procedure, it will
+;; be converted into a non-continuable one (continuable exceptions are
+;; incompatible with asynchronous event handling using this procedure
+;; and may break resource management which uses rethrows or dynamic
+;; winds).
 ;;
 ;; Unlike the await-* procedures in the (a-sync event-loop) module,
 ;; this procedure will not call 'await' if the write operation(s) in

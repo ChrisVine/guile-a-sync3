@@ -347,7 +347,11 @@
 ;; If something else throws in the implementation or a callback
 ;; throws, then this procedure will clean up the event loop as if
 ;; event-loop-quit! had been called, and the exception will be
-;; rethrown out of this procedure.
+;; rethrown out of this procedure.  This means that if there are
+;; continuable exceptions, they will be converted into non-continuable
+;; ones (but continuable exceptions are usually incompatible with
+;; asynchronous event handlers and may break resource management using
+;; rethrows or dynamic winds).
 (define* (event-loop-run! #:optional el)
   (let ((el (or el (get-default-event-loop))))
     (when (not el) 
