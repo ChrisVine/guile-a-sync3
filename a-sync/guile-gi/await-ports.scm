@@ -37,6 +37,7 @@
   #:use-module (ice-9 binary-ports)          ;; for get-u8
   #:use-module (ice-9 control)               ;; for call/ec
   #:use-module (ice-9 suspendable-ports)
+  #:use-module (ice-9 exceptions)            ;; for raise-exception and with-exception-handler
   #:use-module (gi)
   #:use-module (gi repository)
   #:use-module (gi types)
@@ -151,7 +152,7 @@
 				     (resume))
 				 #t))))
     (when (eq? (await) 'except)
-      (throw 'except)))
+      (raise-exception 'except)))
   (call-with-values
     (lambda ()
       (parameterize ((current-read-waiter read-waiter))
