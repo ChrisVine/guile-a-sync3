@@ -369,6 +369,8 @@
   (with-mutex mutex
     (case (_mode-get el)
       ((closed)
+       ;; TODO: why aren't we using raise-exception?  At a suitable
+       ;; opportunity change this to raising a condition object.
        (throw 'event-loop-error
 	      "event-loop-run!"
 	      "event-loop-run! applied to an event loop which has been closed"))
