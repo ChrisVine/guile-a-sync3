@@ -1,7 +1,7 @@
 #!/usr/bin/env guile
 !#
 
-;; Copyright (C) 2016 to 2019 Chris Vine
+;; Copyright (C) 2016 to 2021 Chris Vine
 ;;
 ;; Permission is hereby granted, free of charge, to any person
 ;; obtaining a copy of this file (the "Software"), to deal in the
@@ -77,7 +77,10 @@
 	 (request (build-request (build-uri 'http 
 					    #:host check-ip
 					    #:port 80
-					    #:path "/")))
+					    #:path "/")
+				 #:method 'GET
+				 #:version '(1 . 1)
+				 #:headers '((Connection . "close"))))
 	 ;; getaddrinfo is not suspendable, so call it up with
 	 ;; await-task-in-thread!, await-task-in-event-loop! or
 	 ;; await-task-in-thread-pool!
