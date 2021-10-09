@@ -98,7 +98,7 @@
      (setvbuf sock 'block)
 
      ;; the connect and force-output procedures are suspendable in
-     ;; guile-2.2, as is write-request if no custom header writers
+     ;; guile-3.0, as is write-request if no custom header writers
      ;; are imported which invoke non-suspendable i/o
      (await-write-suspendable! await resume sock
 			       (lambda (s)
