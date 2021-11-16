@@ -1,4 +1,4 @@
-;; Copyright (C) 2014 to 2019 Chris Vine
+;; Copyright (C) 2014 to 2021 Chris Vine
 
 ;; This library is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU Lesser General Public
@@ -366,23 +366,26 @@
   (define read-files #f)
   (define write-files #f)
 
-  (with-mutex mutex
-    (case (_mode-get el)
-      ((closed)
-       ;; TODO: why aren't we using raise-exception?  At a suitable
-       ;; opportunity change this to raising a condition object.
-       (throw 'event-loop-error
-	      "event-loop-run!"
-	      "event-loop-run! applied to an event loop which has been closed"))
-      ((running prepare-to-quit)
-       (throw 'event-loop-error
-	      "event-loop-run!"
-	      "event-loop-run! applied to an event loop which is already running"))
-      (else
-       (set! event-in (_event-in-get el))
-       (set! event-fd (fileno event-in))
-       (_loop-thread-set! el (current-thread))
-       (_mode-set! el 'running))))
+  (let ((exc
+	 (with-mutex mutex
+	   (case (_mode-get el)
+	     ((closed)
+	      ;; TODO: why aren't we using raise-exception?  At a suitable
+	      ;; opportunity change this to raising a condition object.
+	      (list 'event-loop-error
+		    "event-loop-run!"
+		    "event-loop-run! applied to an event loop which has been closed"))
+	     ((running prepare-to-quit)
+	      (list 'event-loop-error
+		    "event-loop-run!"
+		    "event-loop-run! applied to an event loop which is already running"))
+	     (else
+	      (set! event-in (_event-in-get el))
+	      (set! event-fd (fileno event-in))
+	      (_loop-thread-set! el (current-thread))
+	      (_mode-set! el 'running)
+	      #f)))))
+    (when exc (apply throw exc)))
 
   (with-exception-handler
     (lambda (exc)
@@ -391,8 +394,8 @@
       (with-mutex mutex
 	(_event-loop-reset! el)
 	(when (not (eq? (_mode-get el) 'closed))
-	  (_mode-set! el #f))
-	(raise-exception exc)))
+	  (_mode-set! el #f)))
+      (raise-exception exc))
     (lambda ()
       (let loop1 ()
 	;; we don't need to use the mutex in this procedure to access
