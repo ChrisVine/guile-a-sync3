@@ -515,8 +515,10 @@
 	  ;; now reset the operating mode when not closed
 	  (when (not (eq? mode 'closed))
 	    (_mode-set! el #f)))))
-    ;; as the handler always rethrows, we do not need to unwind here
-    #:unwind? #f))
+    ;; as the exception handler locks the event loop mutex for
+    ;; house-keeping, unwind the stack to ensure that any with-mutex
+    ;; forms have unlocked by the time we enter the handler
+    #:unwind? #t))
 
 ;; This procedure is only called in the event loop thread, by
 ;; event-loop-run!  It must be called while holding the event loop
