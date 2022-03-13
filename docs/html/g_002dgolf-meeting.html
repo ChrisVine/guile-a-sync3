@@ -1,6 +1,6 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html>
-<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
+<!-- Created by GNU Texinfo 6.8, https://www.gnu.org/software/texinfo/ -->
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>g-golf meeting (guile-a-sync3)</title>
@@ -10,17 +10,18 @@
 <meta name="resource-type" content="document">
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
 <link href="index.html" rel="start" title="Top">
 <link href="g_002dgolf.html" rel="up" title="g-golf">
-<link href="guile_002dgi.html" rel="next" title="guile-gi">
 <link href="g_002dgolf-await-ports.html" rel="prev" title="g-golf await ports">
 <style type="text/css">
 <!--
+a.copiable-anchor {visibility: hidden; text-decoration: none; line-height: 0em}
 a.summary-letter {text-decoration: none}
 blockquote.indentedblock {margin-right: 0em}
 div.display {margin-left: 3.2em}
 div.example {margin-left: 3.2em}
-div.lisp {margin-left: 3.2em}
 kbd {font-style: oblique}
 pre.display {font-family: inherit}
 pre.format {font-family: inherit}
@@ -29,6 +30,7 @@ pre.menu-preformatted {font-family: serif}
 span.nolinebreak {white-space: nowrap}
 span.roman {font-family: initial; font-weight: normal}
 span.sansserif {font-family: sans-serif; font-weight: normal}
+span:hover a.copiable-anchor {visibility: visible}
 ul.no-bullet {list-style: none}
 -->
 </style>
@@ -104,8 +106,8 @@ glib-meeting form:
 
 <p>The (a-sync g-golf meeting) module provides the following procedures:
 </p>
-<dl>
-<dt id="index-make_002dglib_002dmeeting">Scheme Procedure: <strong>make-glib-meeting</strong></dt>
+<dl class="def">
+<dt id="index-make_002dglib_002dmeeting"><span class="category">Scheme Procedure: </span><span><strong>make-glib-meeting</strong><a href='#index-make_002dglib_002dmeeting' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This procedure makes and returns a glib-meeting object.  glib-meetings
 are objects on which a-sync or compose-a-sync blocks running on the
 default glib main loop can synchronize by one passing a datum to
@@ -118,14 +120,14 @@ other than the thread of the default glib main loop; so it is best if
 this procedure is called in the thread of that main loop.
 </p></dd></dl>
 
-<dl>
-<dt id="index-glib_002dmeeting_003f">Scheme Procedure: <strong>glib-meeting?</strong> <em>obj</em></dt>
+<dl class="def">
+<dt id="index-glib_002dmeeting_003f"><span class="category">Scheme Procedure: </span><span><strong>glib-meeting?</strong> <em>obj</em><a href='#index-glib_002dmeeting_003f' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This procedure indicates whether &rsquo;obj&rsquo; is a glib-meeting object
 constructed by make-glib-meeting.
 </p></dd></dl>
 
-<dl>
-<dt id="index-glib_002dmeeting_002dclose">Scheme Procedure: <strong>glib-meeting-close</strong> <em>meeting</em></dt>
+<dl class="def">
+<dt id="index-glib_002dmeeting_002dclose"><span class="category">Scheme Procedure: </span><span><strong>glib-meeting-close</strong> <em>meeting</em><a href='#index-glib_002dmeeting_002dclose' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This closes a glib-meeting object.  It&rsquo;s purpose is to wake up any
 &quot;pseudo-thread&quot; (that is, any a-sync or compose-a-sync block) waiting
 in glib-meeting-send or glib-meeting-receive by causing either
@@ -136,8 +138,8 @@ items are to be sent), then this procedure does not need to be
 applied.  It is not needed in order to release resources.
 </p></dd></dl>
 
-<dl>
-<dt id="index-glib_002dmeeting_002dready_003f">Scheme Procedure: <strong>glib-meeting-ready?</strong> <em>meeting</em></dt>
+<dl class="def">
+<dt id="index-glib_002dmeeting_002dready_003f"><span class="category">Scheme Procedure: </span><span><strong>glib-meeting-ready?</strong> <em>meeting</em><a href='#index-glib_002dmeeting_002dready_003f' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This indicates whether applying glib-meeting-send or
 glib-meeting-receive (as the case may be) to the glib-meeting object
 &rsquo;meeting&rsquo; will return immediately: in other words, this procedure will
@@ -146,8 +148,8 @@ on the object or the glib-meeting object has been closed, otherwise
 #f.
 </p></dd></dl>
 
-<dl>
-<dt id="index-glib_002dmeeting_002dsend">Scheme Procedure: <strong>glib-meeting-send</strong> <em>await resume m0 [m1 ...] datum</em></dt>
+<dl class="def">
+<dt id="index-glib_002dmeeting_002dsend"><span class="category">Scheme Procedure: </span><span><strong>glib-meeting-send</strong> <em>await resume m0 [m1 ...] datum</em><a href='#index-glib_002dmeeting_002dsend' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This sends a datum to a receiver via one or more glib-meeting objects
 &rsquo;m0 m1 ...&rsquo;.  If no receiver is waiting for the datum, this procedure
 waits until a receiver calls glib-meeting-receive on one of the
@@ -185,8 +187,8 @@ waiting where this procedure is selecting on more than one
 glib-meeting object.
 </p></dd></dl>
 
-<dl>
-<dt id="index-glib_002dmeeting_002dreceive">Scheme Procedure: <strong>glib-meeting-receive</strong> <em>await resume m0 [m1 ...]</em></dt>
+<dl class="def">
+<dt id="index-glib_002dmeeting_002dreceive"><span class="category">Scheme Procedure: </span><span><strong>glib-meeting-receive</strong> <em>await resume m0 [m1 ...]</em><a href='#index-glib_002dmeeting_002dreceive' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This receives a datum from a sender via one or more glib-meeting
 objects &rsquo;m0 m1 ...&rsquo;.  If no sender is waiting to pass the datum, this
 procedure waits until a sender calls glib-meeting-send on one of the
@@ -225,7 +227,7 @@ procedure is selecting on more than one glib-meeting object.
 <hr>
 <div class="header">
 <p>
-Previous: <a href="g_002dgolf-await-ports.html" accesskey="p" rel="prev">g-golf await ports</a>, Up: <a href="g_002dgolf.html" accesskey="u" rel="up">g-golf</a> &nbsp; </p>
+Previous: <a href="g_002dgolf-await-ports.html">g-golf await ports</a>, Up: <a href="g_002dgolf.html">g-golf</a> &nbsp; </p>
 </div>
 
 

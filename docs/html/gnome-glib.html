@@ -1,6 +1,6 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html>
-<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
+<!-- Created by GNU Texinfo 6.8, https://www.gnu.org/software/texinfo/ -->
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>gnome glib (guile-a-sync3)</title>
@@ -10,17 +10,19 @@
 <meta name="resource-type" content="document">
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
 <link href="index.html" rel="start" title="Top">
 <link href="index.html" rel="up" title="Top">
 <link href="compose.html" rel="next" title="compose">
 <link href="monotonic-time.html" rel="prev" title="monotonic time">
 <style type="text/css">
 <!--
+a.copiable-anchor {visibility: hidden; text-decoration: none; line-height: 0em}
 a.summary-letter {text-decoration: none}
 blockquote.indentedblock {margin-right: 0em}
 div.display {margin-left: 3.2em}
 div.example {margin-left: 3.2em}
-div.lisp {margin-left: 3.2em}
 kbd {font-style: oblique}
 pre.display {font-family: inherit}
 pre.format {font-family: inherit}
@@ -29,6 +31,7 @@ pre.menu-preformatted {font-family: serif}
 span.nolinebreak {white-space: nowrap}
 span.roman {font-family: initial; font-weight: normal}
 span.sansserif {font-family: sans-serif; font-weight: normal}
+span:hover a.copiable-anchor {visibility: visible}
 ul.no-bullet {list-style: none}
 -->
 </style>
@@ -39,7 +42,7 @@ ul.no-bullet {list-style: none}
 <body lang="en">
 <span id="gnome-glib"></span><div class="header">
 <p>
-Next: <a href="compose.html" accesskey="n" rel="next">compose</a>, Previous: <a href="monotonic-time.html" accesskey="p" rel="prev">monotonic time</a>, Up: <a href="index.html" accesskey="u" rel="up">Top</a> &nbsp; </p>
+Next: <a href="compose.html" accesskey="n" rel="next">compose</a>, Previous: <a href="monotonic-time.html" accesskey="p" rel="prev">monotonic time</a>, Up: <a href="index.html" accesskey="u" rel="up">guile-a-sync3 reference</a> &nbsp; </p>
 </div>
 <hr>
 <h4 class="node-heading">gnome glib</h4>
@@ -83,8 +86,8 @@ those procedures must be made non-blocking using fcntl as follows:
 
 <p>The (a-sync gnome-glib) module provides the following procedures:
 </p>
-<dl>
-<dt id="index-await_002dglib_002dtask_002din_002dthread">Scheme Procedure: <strong>await-glib-task-in-thread</strong> <em>await resume thunk [handler]</em></dt>
+<dl class="def">
+<dt id="index-await_002dglib_002dtask_002din_002dthread"><span class="category">Scheme Procedure: </span><span><strong>await-glib-task-in-thread</strong> <em>await resume thunk [handler]</em><a href='#index-await_002dglib_002dtask_002din_002dthread' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This is a convenience procedure which will run &rsquo;thunk&rsquo; in its own
 thread, and then post an event to the default glib main loop when
 &rsquo;thunk&rsquo; has finished.  This procedure calls &rsquo;await&rsquo; in the default
@@ -125,8 +128,8 @@ that.
 </pre></div>
 </dd></dl>
 
-<dl>
-<dt id="index-await_002dglib_002dtask">Scheme Procedure: <strong>await-glib-task</strong> <em>await resume thunk</em></dt>
+<dl class="def">
+<dt id="index-await_002dglib_002dtask"><span class="category">Scheme Procedure: </span><span><strong>await-glib-task</strong> <em>await resume thunk</em><a href='#index-await_002dglib_002dtask' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This is a convenience procedure for use with glib, which will run
 &rsquo;thunk&rsquo; in the default glib main loop.  This procedure calls &rsquo;await&rsquo;
 and will return the thunk&rsquo;s return value.  It is intended to be called
@@ -169,8 +172,8 @@ that.
 </pre></div>
 </dd></dl>
 
-<dl>
-<dt id="index-await_002dglib_002dyield">Scheme Procedure: <strong>await-glib-yield</strong> <em>await resume</em></dt>
+<dl class="def">
+<dt id="index-await_002dglib_002dyield"><span class="category">Scheme Procedure: </span><span><strong>await-glib-yield</strong> <em>await resume</em><a href='#index-await_002dglib_002dyield' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This is a convenience procedure for use with glib, which will
 surrender execution to the default glib main loop, so that code in
 other a-sync or compose-a-sync blocks can run.  The remainder of the
@@ -202,8 +205,8 @@ that.
 </pre></div>
 </dd></dl>
 
-<dl>
-<dt id="index-await_002dglib_002dgenerator_002din_002dthread">Scheme Procedure: <strong>await-glib-generator-in-thread</strong> <em>await resume generator proc [handler]</em></dt>
+<dl class="def">
+<dt id="index-await_002dglib_002dgenerator_002din_002dthread"><span class="category">Scheme Procedure: </span><span><strong>await-glib-generator-in-thread</strong> <em>await resume generator proc [handler]</em><a href='#index-await_002dglib_002dgenerator_002din_002dthread' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This is a convenience procedure for acting asynchronously on values
 yielded by generator procedures.  The &rsquo;generator&rsquo; argument is a
 procedure taking one argument, namely a yield argument (see the
@@ -262,8 +265,8 @@ that.
 </pre></div>
 </dd></dl>
 
-<dl>
-<dt id="index-await_002dglib_002dgenerator">Scheme Procedure: <strong>await-glib-generator</strong> <em>await resume generator proc</em></dt>
+<dl class="def">
+<dt id="index-await_002dglib_002dgenerator"><span class="category">Scheme Procedure: </span><span><strong>await-glib-generator</strong> <em>await resume generator proc</em><a href='#index-await_002dglib_002dgenerator' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This is a convenience procedure for acting asynchronously on values
 yielded by generator procedures.  The &rsquo;generator&rsquo; argument is a
 procedure taking one argument, namely a yield argument (see the
@@ -318,8 +321,8 @@ that.
 </pre></div>
 </dd></dl>
 
-<dl>
-<dt id="index-await_002dglib_002dtimeout">Scheme Procedure: <strong>await-glib-timeout</strong> <em>await resume msecs thunk</em></dt>
+<dl class="def">
+<dt id="index-await_002dglib_002dtimeout"><span class="category">Scheme Procedure: </span><span><strong>await-glib-timeout</strong> <em>await resume msecs thunk</em><a href='#index-await_002dglib_002dtimeout' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This is a convenience procedure for use with a glib main loop, which
 will run &rsquo;thunk&rsquo; in the default glib main loop when the timeout
 expires.  This procedure calls &rsquo;await&rsquo; and will return the thunk&rsquo;s
@@ -359,8 +362,8 @@ shouldn&rsquo;t happen unless memory is exhausted.  Exceptions thrown by
 </pre></div>
 </dd></dl>
 
-<dl>
-<dt id="index-await_002dglib_002dsleep">Scheme Procedure: <strong>await-glib-sleep</strong> <em>await resume msecs</em></dt>
+<dl class="def">
+<dt id="index-await_002dglib_002dsleep"><span class="category">Scheme Procedure: </span><span><strong>await-glib-sleep</strong> <em>await resume msecs</em><a href='#index-await_002dglib_002dsleep' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This is a convenience procedure for use with a glib main loop, which
 will suspend execution of code in the current a-sync or compose-a-sync
 block for the duration of &rsquo;msecs&rsquo; milliseconds.  The event loop will
@@ -391,8 +394,8 @@ exhausted.
 </pre></div>
 </dd></dl>
 
-<dl>
-<dt id="index-glib_002dadd_002dwatch">Scheme Procedure: <strong>glib-add-watch</strong> <em>ioc cond func [context]</em></dt>
+<dl class="def">
+<dt id="index-glib_002dadd_002dwatch"><span class="category">Scheme Procedure: </span><span><strong>glib-add-watch</strong> <em>ioc cond func [context]</em><a href='#index-glib_002dadd_002dwatch' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This procedure replaces guile-gnome&rsquo;s g-io-add-watch procedure, which
 won&rsquo;t compile.  It attaches a watch on a g-io-channel object to the
 main context provided, or if none is provided, to the default glib
@@ -434,8 +437,8 @@ watch does not trigger because there is nothing new to make the file
 descriptor ready for reading.
 </p></dd></dl>
 
-<dl>
-<dt id="index-await_002dglib_002dread_002dsuspendable">Scheme Procedure: <strong>await-glib-read-suspendable</strong> <em>await resume port proc</em></dt>
+<dl class="def">
+<dt id="index-await_002dglib_002dread_002dsuspendable"><span class="category">Scheme Procedure: </span><span><strong>await-glib-read-suspendable</strong> <em>await resume port proc</em><a href='#index-await_002dglib_002dread_002dsuspendable' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>&rsquo;proc&rsquo; is a procedure taking a single argument, to which the port will
 be passed when it is invoked.  The purpose of &rsquo;proc&rsquo; is to carry out
 i/o operations on &rsquo;port&rsquo; using the port&rsquo;s normal read procedures.
@@ -472,8 +475,8 @@ implementation of await-glib-getline:
 </pre></div>
 </dd></dl>
 
-<dl>
-<dt id="index-await_002dglib_002dgetline">Scheme Procedure: <strong>await-glib-getline</strong> <em>await resume port</em></dt>
+<dl class="def">
+<dt id="index-await_002dglib_002dgetline"><span class="category">Scheme Procedure: </span><span><strong>await-glib-getline</strong> <em>await resume port</em><a href='#index-await_002dglib_002dgetline' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This procedure is provided mainly to retain compatibility with the
 guile-a-sync library for guile-2.0, because it is trivial to implement
 with await-glib-read-suspendable (and is implemented by
@@ -502,8 +505,8 @@ particulars about this procedure.
 </pre></div>
 </dd></dl>
 
-<dl>
-<dt id="index-await_002dglib_002dgetblock">Scheme Procedure: <strong>await-glib-getblock</strong> <em>await resume port size</em></dt>
+<dl class="def">
+<dt id="index-await_002dglib_002dgetblock"><span class="category">Scheme Procedure: </span><span><strong>await-glib-getblock</strong> <em>await resume port size</em><a href='#index-await_002dglib_002dgetblock' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This procedure is provided mainly to retain compatibility with the
 guile-a-sync library for guile-2.0, because an implementation is
 trivial to implement with await-glib-read-suspendable (and is
@@ -524,8 +527,8 @@ returned.
 further particulars about this procedure.
 </p></dd></dl>
 
-<dl>
-<dt id="index-await_002dglib_002dwrite_002dsuspendable">Scheme Procedure: <strong>await-glib-write-suspendable</strong> <em>await resume port proc</em></dt>
+<dl class="def">
+<dt id="index-await_002dglib_002dwrite_002dsuspendable"><span class="category">Scheme Procedure: </span><span><strong>await-glib-write-suspendable</strong> <em>await resume port proc</em><a href='#index-await_002dglib_002dwrite_002dsuspendable' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>&rsquo;proc&rsquo; is a procedure taking a single argument, to which the port will
 be passed when it is invoked.  The purpose of &rsquo;proc&rsquo; is to carry out
 i/o operations on &rsquo;port&rsquo; using the port&rsquo;s normal write procedures.
@@ -565,8 +568,8 @@ implementation of await-glib-put-string:
 </pre></div>
 </dd></dl>
 
-<dl>
-<dt id="index-await_002dglib_002dput_002dbytevector">Scheme Procedure: <strong>await-glib-put-bytevector</strong> <em>await resume port bv</em></dt>
+<dl class="def">
+<dt id="index-await_002dglib_002dput_002dbytevector"><span class="category">Scheme Procedure: </span><span><strong>await-glib-put-bytevector</strong> <em>await resume port bv</em><a href='#index-await_002dglib_002dput_002dbytevector' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This procedure is provided mainly to retain compatibility with the
 guile-a-sync library for guile-2.0, because it is trivial to implement
 with await-glib-write-suspendable (and is implemented by
@@ -601,8 +604,8 @@ g-main-loop-run.  So one way of testing for EPIPE is as follows:
 </pre></div>
 </dd></dl>
 
-<dl>
-<dt id="index-await_002dglib_002dput_002dstring">Scheme Procedure: <strong>await-glib-put-string</strong> <em>await resume port text</em></dt>
+<dl class="def">
+<dt id="index-await_002dglib_002dput_002dstring"><span class="category">Scheme Procedure: </span><span><strong>await-glib-put-string</strong> <em>await resume port text</em><a href='#index-await_002dglib_002dput_002dstring' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This procedure is provided mainly to retain compatibility with the
 guile-a-sync library for guile-2.0, because it is trivial to implement
 with await-glib-write-suspendable (and is implemented by
@@ -643,7 +646,7 @@ g-main-loop-run.  So one way of testing for EPIPE is as follows:
 <hr>
 <div class="header">
 <p>
-Next: <a href="compose.html" accesskey="n" rel="next">compose</a>, Previous: <a href="monotonic-time.html" accesskey="p" rel="prev">monotonic time</a>, Up: <a href="index.html" accesskey="u" rel="up">Top</a> &nbsp; </p>
+Next: <a href="compose.html">compose</a>, Previous: <a href="monotonic-time.html">monotonic time</a>, Up: <a href="index.html">guile-a-sync3 reference</a> &nbsp; </p>
 </div>
 
 

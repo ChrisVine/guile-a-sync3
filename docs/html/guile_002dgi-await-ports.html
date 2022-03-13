@@ -1,6 +1,6 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html>
-<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
+<!-- Created by GNU Texinfo 6.8, https://www.gnu.org/software/texinfo/ -->
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>guile-gi await ports (guile-a-sync3)</title>
@@ -10,17 +10,19 @@
 <meta name="resource-type" content="document">
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
 <link href="index.html" rel="start" title="Top">
 <link href="guile_002dgi.html" rel="up" title="guile-gi">
 <link href="guile_002dgi-meeting.html" rel="next" title="guile-gi meeting">
 <link href="guile_002dgi-base.html" rel="prev" title="guile-gi base">
 <style type="text/css">
 <!--
+a.copiable-anchor {visibility: hidden; text-decoration: none; line-height: 0em}
 a.summary-letter {text-decoration: none}
 blockquote.indentedblock {margin-right: 0em}
 div.display {margin-left: 3.2em}
 div.example {margin-left: 3.2em}
-div.lisp {margin-left: 3.2em}
 kbd {font-style: oblique}
 pre.display {font-family: inherit}
 pre.format {font-family: inherit}
@@ -29,6 +31,7 @@ pre.menu-preformatted {font-family: serif}
 span.nolinebreak {white-space: nowrap}
 span.roman {font-family: initial; font-weight: normal}
 span.sansserif {font-family: sans-serif; font-weight: normal}
+span:hover a.copiable-anchor {visibility: visible}
 ul.no-bullet {list-style: none}
 -->
 </style>
@@ -66,8 +69,8 @@ await-glib-read-suspendable and await-glib-write-suspendable).
 </p>
 <p>The (a-sync guile-gi await-ports) module provides the following procedures:
 </p>
-<dl>
-<dt id="index-await_002dglib_002dread_002dsuspendable-2">Scheme Procedure: <strong>await-glib-read-suspendable</strong> <em>await resume port proc</em></dt>
+<dl class="def">
+<dt id="index-await_002dglib_002dread_002dsuspendable-2"><span class="category">Scheme Procedure: </span><span><strong>await-glib-read-suspendable</strong> <em>await resume port proc</em><a href='#index-await_002dglib_002dread_002dsuspendable-2' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>&rsquo;proc&rsquo; is a procedure taking a single argument, to which the port will
 be passed when it is invoked.  The purpose of &rsquo;proc&rsquo; is to carry out
 i/o operations on &rsquo;port&rsquo; using the port&rsquo;s normal read procedures.
@@ -120,8 +123,8 @@ implementation of await-glib-getline:
 </pre></div>
 </dd></dl>
 
-<dl>
-<dt id="index-await_002dglib_002dgetline-2">Scheme Procedure: <strong>await-glib-getline</strong> <em>await resume port</em></dt>
+<dl class="def">
+<dt id="index-await_002dglib_002dgetline-2"><span class="category">Scheme Procedure: </span><span><strong>await-glib-getline</strong> <em>await resume port</em><a href='#index-await_002dglib_002dgetline-2' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This procedure is provided mainly to retain compatibility with the
 guile-a-sync library for guile-2.0, because it is trivial to implement
 with await-glib-read-suspendable (and is implemented by
@@ -150,8 +153,8 @@ particulars about this procedure.
 </pre></div>
 </dd></dl>
 
-<dl>
-<dt id="index-await_002dglib_002dgeteveryline-1">Scheme Procedure: <strong>await-glib-geteveryline</strong> <em>await resume port proc</em></dt>
+<dl class="def">
+<dt id="index-await_002dglib_002dgeteveryline-1"><span class="category">Scheme Procedure: </span><span><strong>await-glib-geteveryline</strong> <em>await resume port proc</em><a href='#index-await_002dglib_002dgeteveryline-1' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This procedure is provided mainly to retain compatibility with the
 guile-a-sync library for guile-2.0, because it is trivial to implement
 with await-glib-read-suspendable (and is implemented by
@@ -192,8 +195,8 @@ keyboard has no end-of-file, use Ctrl-C to exit this code snippet):
 </pre></div>
 </dd></dl>
 
-<dl>
-<dt id="index-await_002dglib_002dgetsomelines-1">Scheme Procedure: <strong>await-glib-getsomelines</strong> <em>await resume port proc</em></dt>
+<dl class="def">
+<dt id="index-await_002dglib_002dgetsomelines-1"><span class="category">Scheme Procedure: </span><span><strong>await-glib-getsomelines</strong> <em>await resume port proc</em><a href='#index-await_002dglib_002dgetsomelines-1' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This procedure is intended to be called within a waitable procedure
 invoked by a-sync (which supplies the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments),
 and does the same as await-glib-geteveryline, except that it provides
@@ -238,8 +241,8 @@ further particulars about this procedure.
 </pre></div>
 </dd></dl>
 
-<dl>
-<dt id="index-await_002dglib_002dgetblock-2">Scheme Procedure: <strong>await-glib-getblock</strong> <em>await resume port size</em></dt>
+<dl class="def">
+<dt id="index-await_002dglib_002dgetblock-2"><span class="category">Scheme Procedure: </span><span><strong>await-glib-getblock</strong> <em>await resume port size</em><a href='#index-await_002dglib_002dgetblock-2' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This procedure is provided mainly to retain compatibility with the
 guile-a-sync library for guile-2.0, because an implementation is
 trivial to implement with await-glib-read-suspendable (and is
@@ -260,8 +263,8 @@ returned.
 further particulars about this procedure.
 </p></dd></dl>
 
-<dl>
-<dt id="index-await_002dglib_002dgeteveryblock-1">Scheme Procedure: <strong>await-glib-geteveryblock</strong> <em>await resume port size proc</em></dt>
+<dl class="def">
+<dt id="index-await_002dglib_002dgeteveryblock-1"><span class="category">Scheme Procedure: </span><span><strong>await-glib-geteveryblock</strong> <em>await resume port size proc</em><a href='#index-await_002dglib_002dgeteveryblock-1' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This procedure is provided mainly to retain compatibility with the
 guile-a-sync library for guile-2.0, because it is trivial to implement
 this kind of functionality with await-glib-read-suspendable
@@ -293,8 +296,8 @@ this procedure, so they may not be reused by &rsquo;proc&rsquo; (even though
 further particulars about this procedure.
 </p></dd></dl>
 
-<dl>
-<dt id="index-await_002dglib_002dgetsomeblocks-1">Scheme Procedure: <strong>await-glib-getsomeblocks</strong> <em>await resume port size proc</em></dt>
+<dl class="def">
+<dt id="index-await_002dglib_002dgetsomeblocks-1"><span class="category">Scheme Procedure: </span><span><strong>await-glib-getsomeblocks</strong> <em>await resume port size proc</em><a href='#index-await_002dglib_002dgetsomeblocks-1' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This procedure is intended to be called within a waitable procedure
 invoked by a-sync (which supplies the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments),
 and does the same as await-glib-geteveryblock, except that it provides
@@ -329,8 +332,8 @@ this procedure, so they may not be reused by &rsquo;proc&rsquo; (even though
 further particulars about this procedure.
 </p></dd></dl>
 
-<dl>
-<dt id="index-await_002dglib_002dwrite_002dsuspendable-2">Scheme Procedure: <strong>await-glib-write-suspendable</strong> <em>await resume port proc</em></dt>
+<dl class="def">
+<dt id="index-await_002dglib_002dwrite_002dsuspendable-2"><span class="category">Scheme Procedure: </span><span><strong>await-glib-write-suspendable</strong> <em>await resume port proc</em><a href='#index-await_002dglib_002dwrite_002dsuspendable-2' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>&rsquo;proc&rsquo; is a procedure taking a single argument, to which the port will
 be passed when it is invoked.  The purpose of &rsquo;proc&rsquo; is to carry out
 i/o operations on &rsquo;port&rsquo; using the port&rsquo;s normal write procedures.
@@ -376,8 +379,8 @@ implementation of await-glib-put-string:
 </pre></div>
 </dd></dl>
 
-<dl>
-<dt id="index-await_002dglib_002dput_002dbytevector-2">Scheme Procedure: <strong>await-glib-put-bytevector</strong> <em>await resume port bv</em></dt>
+<dl class="def">
+<dt id="index-await_002dglib_002dput_002dbytevector-2"><span class="category">Scheme Procedure: </span><span><strong>await-glib-put-bytevector</strong> <em>await resume port bv</em><a href='#index-await_002dglib_002dput_002dbytevector-2' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This procedure is provided mainly to retain compatibility with the
 guile-a-sync library for guile-2.0, because it is trivial to implement
 with await-glib-write-suspendable (and is implemented by
@@ -412,8 +415,8 @@ main-loop:run.  So one way of testing for EPIPE is as follows:
 </pre></div>
 </dd></dl>
 
-<dl>
-<dt id="index-await_002dglib_002dput_002dstring-2">Scheme Procedure: <strong>await-glib-put-string</strong> <em>await resume port text</em></dt>
+<dl class="def">
+<dt id="index-await_002dglib_002dput_002dstring-2"><span class="category">Scheme Procedure: </span><span><strong>await-glib-put-string</strong> <em>await resume port text</em><a href='#index-await_002dglib_002dput_002dstring-2' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This procedure is provided mainly to retain compatibility with the
 guile-a-sync library for guile-2.0, because it is trivial to implement
 with await-glib-write-suspendable (and is implemented by
@@ -452,8 +455,8 @@ main-loop:run.  So one way of testing for EPIPE is as follows:
 </pre></div>
 </dd></dl>
 
-<dl>
-<dt id="index-await_002dglib_002daccept-1">Scheme Procedure: <strong>await-glib-accept</strong> <em>await resume sock</em></dt>
+<dl class="def">
+<dt id="index-await_002dglib_002daccept-1"><span class="category">Scheme Procedure: </span><span><strong>await-glib-accept</strong> <em>await resume sock</em><a href='#index-await_002dglib_002daccept-1' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This procedure is provided mainly to retain compatibility with the
 guile-a-sync library for guile-2.0, because it is trivial to implement
 with await-glib-read-suspendable (and is implemented by
@@ -472,8 +475,8 @@ arguments).
 further particulars about this procedure.
 </p></dd></dl>
 
-<dl>
-<dt id="index-await_002dglib_002dconnect-1">Scheme Procedure: <strong>await-glib-connect</strong> <em>await resume sock . args</em></dt>
+<dl class="def">
+<dt id="index-await_002dglib_002dconnect-1"><span class="category">Scheme Procedure: </span><span><strong>await-glib-connect</strong> <em>await resume sock . args</em><a href='#index-await_002dglib_002dconnect-1' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This procedure is provided mainly to retain compatibility with the
 guile-a-sync library for guile-2.0, because it is trivial to implement
 with await-glib-write-suspendable (and is implemented by
@@ -498,7 +501,7 @@ for further particulars about this procedure.
 <hr>
 <div class="header">
 <p>
-Next: <a href="guile_002dgi-meeting.html" accesskey="n" rel="next">guile-gi meeting</a>, Previous: <a href="guile_002dgi-base.html" accesskey="p" rel="prev">guile-gi base</a>, Up: <a href="guile_002dgi.html" accesskey="u" rel="up">guile-gi</a> &nbsp; </p>
+Next: <a href="guile_002dgi-meeting.html">guile-gi meeting</a>, Previous: <a href="guile_002dgi-base.html">guile-gi base</a>, Up: <a href="guile_002dgi.html">guile-gi</a> &nbsp; </p>
 </div>
 
 

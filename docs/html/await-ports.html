@@ -1,6 +1,6 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html>
-<!-- Created by GNU Texinfo 6.7, http://www.gnu.org/software/texinfo/ -->
+<!-- Created by GNU Texinfo 6.8, https://www.gnu.org/software/texinfo/ -->
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>await ports (guile-a-sync3)</title>
@@ -10,17 +10,19 @@
 <meta name="resource-type" content="document">
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
 <link href="index.html" rel="start" title="Top">
 <link href="index.html" rel="up" title="Top">
 <link href="thread-pool.html" rel="next" title="thread pool">
 <link href="event-loop.html" rel="prev" title="event loop">
 <style type="text/css">
 <!--
+a.copiable-anchor {visibility: hidden; text-decoration: none; line-height: 0em}
 a.summary-letter {text-decoration: none}
 blockquote.indentedblock {margin-right: 0em}
 div.display {margin-left: 3.2em}
 div.example {margin-left: 3.2em}
-div.lisp {margin-left: 3.2em}
 kbd {font-style: oblique}
 pre.display {font-family: inherit}
 pre.format {font-family: inherit}
@@ -29,6 +31,7 @@ pre.menu-preformatted {font-family: serif}
 span.nolinebreak {white-space: nowrap}
 span.roman {font-family: initial; font-weight: normal}
 span.sansserif {font-family: sans-serif; font-weight: normal}
+span:hover a.copiable-anchor {visibility: visible}
 ul.no-bullet {list-style: none}
 -->
 </style>
@@ -39,7 +42,7 @@ ul.no-bullet {list-style: none}
 <body lang="en">
 <span id="await-ports"></span><div class="header">
 <p>
-Next: <a href="thread-pool.html" accesskey="n" rel="next">thread pool</a>, Previous: <a href="event-loop.html" accesskey="p" rel="prev">event loop</a>, Up: <a href="index.html" accesskey="u" rel="up">Top</a> &nbsp; </p>
+Next: <a href="thread-pool.html" accesskey="n" rel="next">thread pool</a>, Previous: <a href="event-loop.html" accesskey="p" rel="prev">event loop</a>, Up: <a href="index.html" accesskey="u" rel="up">guile-a-sync3 reference</a> &nbsp; </p>
 </div>
 <hr>
 <h4 class="node-heading">await ports</h4>
@@ -89,8 +92,8 @@ procedures must be made non-blocking using fcntl as follows:
                       (fcntl [port] F_GETFL)))
 </pre></div>
 
-<dl>
-<dt id="index-await_002dread_002dsuspendable_0021">Scheme Procedure: <strong>await-read-suspendable!</strong> <em>await resume [loop] port proc</em></dt>
+<dl class="def">
+<dt id="index-await_002dread_002dsuspendable_0021"><span class="category">Scheme Procedure: </span><span><strong>await-read-suspendable!</strong> <em>await resume [loop] port proc</em><a href='#index-await_002dread_002dsuspendable_0021' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This procedure is provided to implement read file watches using
 guile-3.0&rsquo;s suspendable ports.  &rsquo;proc&rsquo; is a procedure taking a single
 argument, to which the port will be passed when it is invoked.  The
@@ -153,8 +156,8 @@ implementation of await-getline!:
 </pre></div>
 </dd></dl>
 
-<dl>
-<dt id="index-await_002dgetline_0021">Scheme Procedure: <strong>await-getline!</strong> <em>await resume [loop] port</em></dt>
+<dl class="def">
+<dt id="index-await_002dgetline_0021"><span class="category">Scheme Procedure: </span><span><strong>await-getline!</strong> <em>await resume [loop] port</em><a href='#index-await_002dgetline_0021' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This procedure is provided mainly to retain compatibility with the
 guile-a-sync library for guile-2.0, because it is trivial to implement
 with await-read-suspendable! (and is implemented by
@@ -188,8 +191,8 @@ procedure.
 </pre></div>
 </dd></dl>
 
-<dl>
-<dt id="index-await_002dgeteveryline_0021">Scheme Procedure: <strong>await-geteveryline!</strong> <em>await resume [loop] port proc</em></dt>
+<dl class="def">
+<dt id="index-await_002dgeteveryline_0021"><span class="category">Scheme Procedure: </span><span><strong>await-geteveryline!</strong> <em>await resume [loop] port proc</em><a href='#index-await_002dgeteveryline_0021' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This procedure is provided mainly to retain compatibility with the
 guile-a-sync library for guile-2.0, because it is trivial to implement
 with await-read-suspendable! (and is implemented by
@@ -231,8 +234,8 @@ keyboard has no end-of-file, use Ctrl-C to exit this code snippet):
 </pre></div>
 </dd></dl>
 
-<dl>
-<dt id="index-await_002dgetsomelines_0021">Scheme Procedure: <strong>await-getsomelines!</strong> <em>await resume [loop] port proc</em></dt>
+<dl class="def">
+<dt id="index-await_002dgetsomelines_0021"><span class="category">Scheme Procedure: </span><span><strong>await-getsomelines!</strong> <em>await resume [loop] port proc</em><a href='#index-await_002dgetsomelines_0021' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This procedure is intended to be called within a waitable procedure
 invoked by a-sync (which supplies the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments),
 and does the same as await-geteveryline!, except that it provides a
@@ -278,8 +281,8 @@ further particulars about this procedure.
 </pre></div>
 </dd></dl>
 
-<dl>
-<dt id="index-await_002dgetblock_0021">Scheme Procedure: <strong>await-getblock!</strong> <em>await resume [loop] port size</em></dt>
+<dl class="def">
+<dt id="index-await_002dgetblock_0021"><span class="category">Scheme Procedure: </span><span><strong>await-getblock!</strong> <em>await resume [loop] port size</em><a href='#index-await_002dgetblock_0021' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This procedure is provided mainly to retain compatibility with the
 guile-a-sync library for guile-2.0, because it is trivial to implement
 this kind of functionality with await-read-suspendable!  (and is
@@ -306,8 +309,8 @@ on the default event loop.
 further particulars about this procedure.
 </p></dd></dl>
 
-<dl>
-<dt id="index-await_002dgeteveryblock_0021">Scheme Procedure: <strong>await-geteveryblock!</strong> <em>await resume [loop] port size proc</em></dt>
+<dl class="def">
+<dt id="index-await_002dgeteveryblock_0021"><span class="category">Scheme Procedure: </span><span><strong>await-geteveryblock!</strong> <em>await resume [loop] port size proc</em><a href='#index-await_002dgeteveryblock_0021' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This procedure is provided mainly to retain compatibility with the
 guile-a-sync library for guile-2.0, because it is trivial to implement
 this kind of functionality with await-read-suspendable! (and is
@@ -343,8 +346,8 @@ this procedure, so they may not be reused by &rsquo;proc&rsquo; (even though
 further particulars about this procedure.
 </p></dd></dl>
 
-<dl>
-<dt id="index-await_002dgetsomeblocks_0021">Scheme Procedure: <strong>await-getsomeblocks!</strong> <em>await resume [loop] port size proc</em></dt>
+<dl class="def">
+<dt id="index-await_002dgetsomeblocks_0021"><span class="category">Scheme Procedure: </span><span><strong>await-getsomeblocks!</strong> <em>await resume [loop] port size proc</em><a href='#index-await_002dgetsomeblocks_0021' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This procedure is intended to be called within a waitable procedure
 invoked by a-sync (which supplies the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments),
 and does the same as await-geteveryblock!, except that it provides a
@@ -383,8 +386,8 @@ this procedure, so they may not be reused by &rsquo;proc&rsquo; (even though
 further particulars about this procedure.
 </p></dd></dl>
 
-<dl>
-<dt id="index-await_002dwrite_002dsuspendable_0021">Scheme Procedure: <strong>await-write-suspendable!</strong> <em>await resume [loop] port proc</em></dt>
+<dl class="def">
+<dt id="index-await_002dwrite_002dsuspendable_0021"><span class="category">Scheme Procedure: </span><span><strong>await-write-suspendable!</strong> <em>await resume [loop] port proc</em><a href='#index-await_002dwrite_002dsuspendable_0021' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This procedure is provided to implement write file watches using
 guile-2.2/3.0&rsquo;s suspendable ports.  &rsquo;proc&rsquo; is a procedure taking a
 single argument, to which the port will be passed when it is invoked.
@@ -448,8 +451,8 @@ implementation of await-put-string!:
 </pre></div>
 </dd></dl>
 
-<dl>
-<dt id="index-await_002dput_002dbytevector_0021">Scheme Procedure: <strong>await-put-bytevector!</strong> <em>await resume [loop] port bv</em></dt>
+<dl class="def">
+<dt id="index-await_002dput_002dbytevector_0021"><span class="category">Scheme Procedure: </span><span><strong>await-put-bytevector!</strong> <em>await resume [loop] port bv</em><a href='#index-await_002dput_002dbytevector_0021' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This procedure is provided mainly to retain compatibility with the
 guile-a-sync library for guile-2.0, because it is trivial to implement
 with await-write-suspendable! (and is implemented by
@@ -493,8 +496,8 @@ event-loop-run!.  So one way of testing for EPIPE is as follows:
 </pre></div>
 </dd></dl>
 
-<dl>
-<dt id="index-await_002dput_002dstring_0021">Scheme Procedure: <strong>await-put-string!</strong> <em>await resume [loop] port text</em></dt>
+<dl class="def">
+<dt id="index-await_002dput_002dstring_0021"><span class="category">Scheme Procedure: </span><span><strong>await-put-string!</strong> <em>await resume [loop] port text</em><a href='#index-await_002dput_002dstring_0021' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This procedure is provided mainly to retain compatibility with the
 guile-a-sync library for guile-2.0, because it is trivial to implement
 with await-write-suspendable! (and is implemented by
@@ -545,8 +548,8 @@ event-loop-run!.  So one way of testing for EPIPE is as follows:
 example-socket.scm file in the docs directory.
 </p></dd></dl>
 
-<dl>
-<dt id="index-await_002daccept_0021">Scheme Procedure: <strong>await-accept!</strong> <em>await resume [loop] sock</em></dt>
+<dl class="def">
+<dt id="index-await_002daccept_0021"><span class="category">Scheme Procedure: </span><span><strong>await-accept!</strong> <em>await resume [loop] sock</em><a href='#index-await_002daccept_0021' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This procedure is provided mainly to retain compatibility with the
 guile-a-sync library for guile-2.0, because it is trivial to implement
 with await-read-suspendable! (and is implemented by
@@ -567,8 +570,8 @@ supplies the &rsquo;await&rsquo; and &rsquo;resume&rsquo; arguments).
 further particulars about this procedure.
 </p></dd></dl>
 
-<dl>
-<dt id="index-await_002dconnect_0021">Scheme Procedure: <strong>await-connect!</strong> <em>await resume [loop] sock . args</em></dt>
+<dl class="def">
+<dt id="index-await_002dconnect_0021"><span class="category">Scheme Procedure: </span><span><strong>await-connect!</strong> <em>await resume [loop] sock . args</em><a href='#index-await_002dconnect_0021' class='copiable-anchor'> &para;</a></span></dt>
 <dd><p>This procedure is provided mainly to retain compatibility with the
 guile-a-sync library for guile-2.0, because it is trivial to implement
 with await-write-suspendable! (and is implemented by
@@ -596,7 +599,7 @@ further particulars about this procedure.
 <hr>
 <div class="header">
 <p>
-Next: <a href="thread-pool.html" accesskey="n" rel="next">thread pool</a>, Previous: <a href="event-loop.html" accesskey="p" rel="prev">event loop</a>, Up: <a href="index.html" accesskey="u" rel="up">Top</a> &nbsp; </p>
+Next: <a href="thread-pool.html">thread pool</a>, Previous: <a href="event-loop.html">event loop</a>, Up: <a href="index.html">guile-a-sync3 reference</a> &nbsp; </p>
 </div>
 
 
