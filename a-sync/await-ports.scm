@@ -55,9 +55,8 @@
 ;; module cannot be used with suspendable ports.  build-uri,
 ;; build-request and cognates are fine, as is write-request if no
 ;; custom header writers are imported, but the read-response-body
-;; procedure is not unless the Content-Length header of the response
-;; is set or the Transfer-Encoding header is set as chunked.  This
-;; means that http-get, http-put and so on cannot always be used in
+;; procedure is not because it invokes get-bytevector-all.  This means
+;; that (unless streaming) http-get, http-put and so on are unsafe in
 ;; suspendable code.  In addition, guile-gnutls ports are not
 ;; suspendable.  (One answer where only a few gnutls sessions are to
 ;; be run concurrently is to run each such session in a separate
